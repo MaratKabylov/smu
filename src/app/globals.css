@@ -1193,3 +1193,355 @@ th {
     padding: 28px;
   }
 }
+
+.heading-actions,
+.workflow-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.articles-table td {
+  border-top: 1px solid #edf0ed;
+  padding: 14px 16px;
+  color: #44504b;
+  font-size: 12px;
+  vertical-align: middle;
+}
+
+.articles-table td:first-child {
+  min-width: 260px;
+}
+
+.articles-table td a {
+  display: block;
+  color: var(--ink);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.articles-table td a:hover {
+  color: var(--forest-bright);
+}
+
+.articles-table td small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.status-badge,
+.locale-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  border: 1px solid #d7ddd9;
+  border-radius: 999px;
+  background: #f4f6f4;
+  color: #56615c;
+  padding: 5px 9px;
+  font-size: 10px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.status-in_review {
+  border-color: #d8c999;
+  background: #fff9e7;
+  color: #735f19;
+}
+
+.status-approved {
+  border-color: #a9d6bf;
+  background: #ebf8f1;
+  color: #206044;
+}
+
+.status-published {
+  border-color: #91c4ad;
+  background: var(--forest);
+  color: #fff;
+}
+
+.status-archived {
+  border-color: #c6c9c7;
+  background: #e7e9e8;
+  color: #525957;
+}
+
+.article-detail-heading .status-badge {
+  padding: 8px 13px;
+  font-size: 11px;
+}
+
+.workflow-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 18px;
+  border: 1px solid #cbdad2;
+  border-radius: 14px;
+  background: linear-gradient(120deg, #f7fbf8, #fff);
+  padding: 18px 20px;
+}
+
+.workflow-panel h2 {
+  margin: 2px 0 0;
+  font-family: Georgia, serif;
+  font-size: 22px;
+  font-weight: 500;
+}
+
+.workflow-panel p:not(.page-kicker) {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.article-form {
+  display: grid;
+  gap: 18px;
+}
+
+.article-editor-panel {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+  padding: 20px;
+}
+
+.article-editor-panel label,
+.taxonomy-form label {
+  display: grid;
+  gap: 7px;
+  color: #46504c;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.article-editor-panel input,
+.article-editor-panel textarea,
+.article-editor-panel select,
+.taxonomy-form input,
+.taxonomy-form select {
+  width: 100%;
+  border: 1px solid #cfd7d2;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  padding: 10px 11px;
+  outline: none;
+  font: inherit;
+  font-size: 13px;
+}
+
+.article-editor-panel input,
+.article-editor-panel select,
+.taxonomy-form input,
+.taxonomy-form select {
+  min-height: 42px;
+}
+
+.article-editor-panel textarea {
+  resize: vertical;
+  line-height: 1.55;
+}
+
+.article-editor-panel input:focus,
+.article-editor-panel textarea:focus,
+.article-editor-panel select:focus,
+.taxonomy-form input:focus,
+.taxonomy-form select:focus {
+  border-color: var(--forest-bright);
+  box-shadow: 0 0 0 3px rgb(31 100 76 / 10%);
+}
+
+.article-editor-panel :disabled {
+  background: #f1f3f1;
+  color: #707a75;
+}
+
+.form-three-columns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 13px;
+}
+
+.tag-fieldset {
+  margin: 18px 0 0;
+  border: 0;
+  padding: 0;
+}
+
+.tag-fieldset legend {
+  margin-bottom: 8px;
+  color: #46504c;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.tag-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tag-options label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid #d6ddd9;
+  border-radius: 999px;
+  background: #fafcfa;
+  padding: 7px 10px;
+  cursor: pointer;
+}
+
+.tag-options input {
+  width: 14px;
+  min-height: auto;
+  height: 14px;
+  accent-color: var(--forest-bright);
+}
+
+.field-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.field-hint a {
+  color: var(--forest-bright);
+}
+
+.translation-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 18px;
+}
+
+.translation-fields {
+  display: grid;
+  gap: 15px;
+}
+
+.article-body-field {
+  min-height: 340px;
+}
+
+.locale-badge {
+  border-color: #bfd5c9;
+  background: var(--mint);
+  color: var(--forest-bright);
+}
+
+.article-form-actions {
+  position: sticky;
+  bottom: 14px;
+  display: flex;
+  justify-content: flex-end;
+  z-index: 2;
+  border: 1px solid rgb(18 61 48 / 12%);
+  border-radius: 12px;
+  background: rgb(255 255 255 / 94%);
+  padding: 11px;
+  box-shadow: 0 12px 35px rgb(23 48 39 / 12%);
+  backdrop-filter: blur(10px);
+}
+
+.taxonomy-create-panel {
+  margin-bottom: 18px;
+}
+
+.taxonomy-form {
+  display: grid;
+  grid-template-columns: 0.75fr 1fr 1fr 1fr auto;
+  align-items: end;
+  gap: 10px;
+}
+
+.taxonomy-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: start;
+  gap: 18px;
+}
+
+.taxonomy-list-panel .panel-title h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.taxonomy-list-panel .panel-title h2 svg {
+  width: 18px;
+  color: var(--forest-bright);
+}
+
+.taxonomy-list-panel ul {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.taxonomy-list-panel li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  border-top: 1px solid #edf0ed;
+  padding: 11px 0;
+}
+
+.taxonomy-list-panel li span {
+  display: grid;
+  gap: 3px;
+}
+
+.taxonomy-list-panel li strong {
+  font-size: 12px;
+}
+
+.taxonomy-list-panel li small,
+.taxonomy-list-panel li code {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+@media (max-width: 1100px) {
+  .translation-grid,
+  .taxonomy-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .taxonomy-form {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .heading-actions,
+  .workflow-panel,
+  .workflow-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .form-three-columns,
+  .taxonomy-form {
+    grid-template-columns: 1fr;
+  }
+
+  .workflow-actions form,
+  .workflow-actions button,
+  .heading-actions a {
+    width: 100%;
+  }
+}
