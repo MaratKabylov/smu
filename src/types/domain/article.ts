@@ -58,3 +58,37 @@ export type ArticleTaxonomy = {
   categories: ArticleTaxonomyItem[];
   tags: ArticleTaxonomyItem[];
 };
+
+export type PublicArticleCover = {
+  url: string;
+  altRu: string | null;
+  altKk: string | null;
+  captionRu: string | null;
+  captionKk: string | null;
+};
+
+export type PublicArticleTranslation = {
+  locale: ArticleLocale;
+  title: string;
+  slug: string;
+  excerpt: string;
+};
+
+export type PublicArticleCard = {
+  id: string;
+  contentType: ArticleContentType;
+  publishedAt: string;
+  category: ArticleTaxonomyItem | null;
+  tags: ArticleTaxonomyItem[];
+  cover: PublicArticleCover | null;
+  translation: PublicArticleTranslation;
+};
+
+export type PublicArticleDetail = Omit<PublicArticleCard, "translation"> & {
+  translation: PublicArticleTranslation & {
+    body: string;
+    seoTitle: string | null;
+    seoDescription: string | null;
+  };
+  alternateTranslation: PublicArticleTranslation | null;
+};

@@ -54,6 +54,14 @@ export const taxonomyInputSchema = z.object({
   nameKk: z.string().trim().min(2).max(120),
 });
 
+export const publicArticleFiltersSchema = z.object({
+  locale: z.enum(["ru", "kk"]).default("ru"),
+  query: z.string().trim().max(120).default(""),
+  category: z.union([z.literal(""), slugSchema]).default(""),
+  tag: z.union([z.literal(""), slugSchema]).default(""),
+});
+
 export type ArticleInput = z.infer<typeof articleInputSchema>;
 export type ArticleListFilters = z.infer<typeof articleListFiltersSchema>;
 export type TaxonomyInput = z.infer<typeof taxonomyInputSchema>;
+export type PublicArticleFilters = z.infer<typeof publicArticleFiltersSchema>;

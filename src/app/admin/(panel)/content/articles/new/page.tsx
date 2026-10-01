@@ -18,7 +18,11 @@ export default async function NewArticlePage({ searchParams }: NewArticlePagePro
   const [taxonomy, media, state] = await Promise.all([
     new ArticleService().listTaxonomy(result.access),
     canViewMedia(result.access)
-      ? new MediaService().list(result.access, { query: "", type: "image" })
+      ? new MediaService()
+          .list(result.access, { query: "", type: "image" })
+          .then((assets) =>
+            assets.filter((asset) => asset.storageBucket === "article-media"),
+          )
       : Promise.resolve([]),
     searchParams,
   ]);

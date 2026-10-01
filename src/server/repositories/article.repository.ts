@@ -240,6 +240,7 @@ export class ArticleRepository {
       .eq("status", "ready")
       .is("deleted_at", null)
       .like("mime_type", "image/%")
+      .eq("storage_bucket", "article-media")
       .maybeSingle();
     if (error) throw error;
     return Boolean(data);

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { articleInputSchema, taxonomyInputSchema } from "./article";
+import {
+  articleInputSchema,
+  publicArticleFiltersSchema,
+  taxonomyInputSchema,
+} from "./article";
 
 const validInput = {
   contentType: "article",
@@ -54,6 +58,17 @@ describe("article validation", () => {
       articleInputSchema.safeParse({
         ...validInput,
         tagIds: [tagId, tagId],
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects unsafe public filter values", () => {
+    expect(
+      publicArticleFiltersSchema.safeParse({
+        locale: "ru",
+        query: "science",
+        category: "../../drafts",
+        tag: "",
       }).success,
     ).toBe(false);
   });
