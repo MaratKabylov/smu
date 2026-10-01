@@ -14,16 +14,22 @@ import {
   ShieldCheck,
   Sparkles,
   UsersRound,
+  type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const navigation = [
+type AdminNavigationSection = {
+  label: string;
+  items: Array<{ label: string; icon: LucideIcon; href?: string }>;
+};
+
+const navigation: AdminNavigationSection[] = [
   {
     label: "Контент",
     items: [
       { label: "Статьи", href: "/admin/content/articles", icon: BookOpenText },
-      { label: "Медиа", icon: Images },
+      { label: "Медиа", href: "/admin/content/media", icon: Images },
     ],
   },
   {

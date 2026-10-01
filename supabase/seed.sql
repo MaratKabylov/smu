@@ -21,6 +21,11 @@ values
   ('articles.review', 'Рецензирование статей'),
   ('articles.publish', 'Публикация статей'),
   ('articles.delete', 'Удаление статей'),
+  ('media.view', 'Просмотр медиа-библиотеки'),
+  ('media.create', 'Загрузка медиафайлов'),
+  ('media.edit', 'Редактирование метаданных медиафайлов'),
+  ('media.delete', 'Мягкое удаление медиафайлов'),
+  ('media.purge', 'Физическое удаление медиафайлов'),
   ('scientists.edit', 'Редактирование ученых'),
   ('scientists.verify', 'Верификация ученых'),
   ('projects.manage', 'Управление проектами'),
@@ -51,6 +56,21 @@ with grants(role_code, permission_code) as (
     ('content_manager', 'articles.publish'),
     ('content_manager', 'articles.delete'),
     ('content_manager', 'audit.read'),
+    ('author', 'media.view'),
+    ('author', 'media.create'),
+    ('editor', 'media.view'),
+    ('editor', 'media.create'),
+    ('editor', 'media.edit'),
+    ('content_manager', 'media.view'),
+    ('content_manager', 'media.create'),
+    ('content_manager', 'media.edit'),
+    ('content_manager', 'media.delete'),
+    ('scientist_manager', 'media.view'),
+    ('scientist_manager', 'media.create'),
+    ('scientist_manager', 'media.edit'),
+    ('project_manager', 'media.view'),
+    ('project_manager', 'media.create'),
+    ('project_manager', 'media.edit'),
     ('scientist_manager', 'admin.access'),
     ('scientist_manager', 'scientists.edit'),
     ('scientist_manager', 'scientists.verify'),
@@ -72,7 +92,7 @@ select r.id, p.id
 from public.roles r
 cross join public.permissions p
 where r.code = 'admin'
-  and p.code not in ('roles.manage', 'settings.manage')
+  and p.code not in ('roles.manage', 'settings.manage', 'media.purge')
 on conflict do nothing;
 
 insert into public.role_permissions (role_id, permission_id)

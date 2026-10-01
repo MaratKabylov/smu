@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   canAccessAdmin,
   canEditArticle,
+  canEditMedia,
   canPublishArticle,
 } from "./permissions";
 import type {
@@ -38,5 +39,11 @@ describe("permissions", () => {
 
     expect(canEditArticle(editor, "user-2")).toBe(true);
     expect(canPublishArticle(editor)).toBe(false);
+  });
+
+  it("keeps media editing separate from media access", () => {
+    const viewer = access(["media.view"]);
+
+    expect(canEditMedia(viewer)).toBe(false);
   });
 });

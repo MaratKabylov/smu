@@ -33,6 +33,21 @@ export const canPublishArticle = (access: AccessContext) =>
 export const canDeleteArticle = (access: AccessContext) =>
   hasPermission(access, "articles.delete");
 
+export const canViewMedia = (access: AccessContext) =>
+  hasPermission(access, "media.view");
+
+export const canCreateMedia = (access: AccessContext) =>
+  hasPermission(access, "media.create");
+
+export const canEditMedia = (access: AccessContext) =>
+  hasPermission(access, "media.edit");
+
+export const canDeleteMedia = (access: AccessContext) =>
+  hasPermission(access, "media.delete");
+
+export const canPurgeMedia = (access: AccessContext) =>
+  hasPermission(access, "media.purge");
+
 export const canEditScientist = (access: AccessContext) =>
   hasPermission(access, "scientists.edit");
 
