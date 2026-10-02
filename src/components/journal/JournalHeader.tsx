@@ -16,6 +16,9 @@ export function JournalHeader({ locale = "ru" }: { locale?: ArticleLocale }) {
         <nav className="journal-nav" aria-label="Основная навигация">
           <Link href={`/journal?lang=${locale}`}>Все материалы</Link>
           <Link href={`/scientists?lang=${locale}`}>Учёные</Link>
+        <Link href={`/research?lang=${locale}`}>{locale === "ru" ? "Исследования" : "Зерттеулер"}</Link>
+        <Link href={`/projects?lang=${locale}`}>{locale === "ru" ? "Проекты" : "Жобалар"}</Link>
+
           <a href="/admin" target="_blank" rel="noreferrer">
             SMU Admin <ArrowUpRight aria-hidden="true" />
           </a>

@@ -37,8 +37,8 @@ const navigation: AdminNavigationSection[] = [
     items: [
       { label: "Ученые", href: "/admin/science/scientists", icon: UsersRound },
       { label: "Организации", icon: Building2 },
-      { label: "Исследования", icon: FlaskConical },
-      { label: "Проекты", icon: LayoutGrid },
+      { label: "Исследования", href: "/admin/science/research", icon: FlaskConical },
+      { label: "Проекты", href: "/admin/science/projects", icon: LayoutGrid },
     ],
   },
   {

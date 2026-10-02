@@ -2895,3 +2895,45 @@ th {
     text-align: center;
   }
 }
+
+
+/* Research and project catalogs */
+.science-filters {
+  display: grid;
+  grid-template-columns: minmax(200px, 1.5fr) repeat(3, minmax(130px, 1fr)) auto;
+  gap: 10px;
+}
+.science-filters label { display: flex; align-items: center; gap: 8px; min-width: 0; background: #fff; border: 1px solid #d5dad6; border-radius: 8px; padding: 0 12px; }
+.science-filters label svg { width: 16px; flex: 0 0 auto; color: #79847e; }
+.science-filters input { width: 100%; min-width: 0; border: 0; padding: 12px 0; background: transparent; }
+.science-filters select, .science-filters button { min-width: 0; border: 1px solid #d5dad6; border-radius: 8px; background: #fff; padding: 12px; font-size: 12px; }
+.science-filters button { background: var(--forest); color: #fff; cursor: pointer; }
+.science-count { color: var(--muted); font-size: 11px; margin: 18px 0 28px; }
+.science-card .public-card-cover { height: 235px; }
+.science-card .public-card-cover > svg { width: 64px; height: 64px; color: #d0e4d7; }
+.science-card-field { margin-top: 14px; color: var(--forest-bright); font-size: 11px; }
+.science-work-body { color: #29332f; font-family: Georgia, serif; font-size: 18px; line-height: 1.8; min-width: 0; overflow-wrap: anywhere; }
+.science-work-body h2 { font-size: 28px; font-weight: 500; margin: 0 0 20px; }
+.science-work-body p { white-space: pre-line; margin: 0 0 24px; }
+.science-work-aside { font-size: 12px; overflow-wrap: anywhere; }
+.science-work-aside a { color: var(--forest-bright); text-decoration: none; }
+.science-work-aside > a { display: flex; align-items: center; gap: 6px; }
+.science-work-aside svg { width: 14px; flex: 0 0 auto; }
+.science-team-member { display: grid; gap: 4px; padding-bottom: 8px; }
+.science-team-member span { font-size: 10px; color: var(--muted); }
+.science-return { margin-top: 50px; border-top: 1px solid #d8ddd9; padding-top: 25px; }
+.science-return a { color: var(--forest-bright); font-size: 13px; }
+.science-site .journal-nav a[aria-current="page"] { color: var(--forest); font-weight: 900; }
+@media (max-width: 1050px) {
+  .science-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .science-filters label { grid-column: 1 / -1; }
+}
+@media (max-width: 900px) {
+  .science-site .journal-nav { display: flex; grid-column: 1 / -1; grid-row: 2; flex-wrap: wrap; justify-content: center; padding-bottom: 12px; }
+}
+@media (max-width: 640px) {
+  .science-filters { grid-template-columns: 1fr; }
+  .science-work-body { font-size: 16px; }
+  .science-work-body h2 { font-size: 24px; }
+  .science-site .journal-nav { gap: 16px; }
+}
