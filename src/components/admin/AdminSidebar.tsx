@@ -45,7 +45,7 @@ const navigation: AdminNavigationSection[] = [
     label: "Программы",
     items: [
       { label: "Наставничество", href: "/admin/programs/mentorship", icon: HandHeart },
-      { label: "Research Program", icon: Sparkles },
+      { label: "Research Program", href: "/admin/programs/research-program", icon: Sparkles },
       { label: "События", icon: CalendarDays },
     ],
   },

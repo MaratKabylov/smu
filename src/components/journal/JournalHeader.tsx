@@ -18,6 +18,7 @@ export function JournalHeader({ locale = "ru" }: { locale?: ArticleLocale }) {
           <Link href={`/scientists?lang=${locale}`}>Учёные</Link>
         <Link href={`/research?lang=${locale}`}>{locale === "ru" ? "Исследования" : "Зерттеулер"}</Link>
         <Link href={`/projects?lang=${locale}`}>{locale === "ru" ? "Проекты" : "Жобалар"}</Link>
+        <Link href={`/research-program?lang=${locale}`}>{locale === "ru" ? "Research Program" : "Зерттеу бағдарламасы"}</Link>
         <Link href={`/mentorship?lang=${locale}`}>{locale === "ru" ? "Наставничество" : "Тәлімгерлік"}</Link>
 
           <a href="/admin" target="_blank" rel="noreferrer">

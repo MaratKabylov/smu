@@ -14,6 +14,7 @@ export function CommunityHeader({ locale = "ru" }: { locale?: ScientistLocale })
         <Link href={`/journal?lang=${locale}`}>{locale === "ru" ? "Журнал" : "Журнал"}</Link>
         <Link href={`/research?lang=${locale}`}>{locale === "ru" ? "Исследования" : "Зерттеулер"}</Link>
         <Link href={`/projects?lang=${locale}`}>{locale === "ru" ? "Проекты" : "Жобалар"}</Link>
+        <Link href={`/research-program?lang=${locale}`}>{locale === "ru" ? "Research Program" : "Зерттеу бағдарламасы"}</Link>
         <Link href={`/mentorship?lang=${locale}`}>{locale === "ru" ? "Наставничество" : "Тәлімгерлік"}</Link>
 
         <a href="/admin" target="_blank" rel="noreferrer">SMU Admin <ArrowUpRight aria-hidden="true" /></a>

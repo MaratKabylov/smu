@@ -63,6 +63,9 @@ export const canManageResearch = (access: AccessContext) =>
 export const canManageMentorship = (access: AccessContext) =>
   hasPermission(access, "mentorship.manage");
 
+export const canManageResearchProgram = (access: AccessContext) =>
+  hasPermission(access, "research_program.manage");
+
 export const canManageUsers = (access: AccessContext) =>
   hasPermission(access, "users.manage");
 

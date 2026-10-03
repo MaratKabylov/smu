@@ -2904,6 +2904,8 @@ th {
 .mentorship-card .public-card-content h2 { margin: 0; }
 .mentorship-mentor a, .mentorship-card-link { color: var(--forest); text-decoration: none; font-size: 13px; }
 .mentorship-card-link { align-self: end; font-weight: 700; }
+.program-dates, .program-intake { font-size: 12px; line-height: 1.6; }
+.program-intake { color: var(--forest); }
 .mentorship-applications { display: grid; gap: 20px; margin-top: 36px; scroll-margin-top: 24px; }
 .mentorship-application { min-width: 0; overflow-wrap: anywhere; }
 .mentorship-application > a { color: var(--forest); font-size: 14px; }
