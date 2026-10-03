@@ -37,7 +37,7 @@ beforeAll(async () => {
     alter default privileges in schema public grant select on tables to anon, authenticated;
     alter default privileges in schema public grant all on tables to service_role;
   `);
-  for (const file of ["001_profiles_rbac.sql", "002_media_assets.sql", "003_articles.sql", "004_scientists.sql", "005_science_works.sql"]) {
+  for (const file of ["001_profiles_rbac.sql", "002_media_assets.sql", "003_articles.sql", "004_scientists.sql", "005_science_works.sql", "006_mentorship.sql"]) {
     let sql = await readFile(new URL("./migrations/" + file, import.meta.url), "utf8");
     // gen_random_uuid is built into PostgreSQL; PGlite does not bundle pgcrypto.
     sql = sql.replace("create extension if not exists pgcrypto;", "");
