@@ -18,6 +18,7 @@ export function CommunityHeader({ locale = "ru" }: { locale?: ScientistLocale })
         <Link href={`/mentorship?lang=${locale}`}>{locale === "ru" ? "Наставничество" : "Тәлімгерлік"}</Link>
 
         <a href="/admin" target="_blank" rel="noreferrer">SMU Admin <ArrowUpRight aria-hidden="true" /></a>
+        <Link href={"/events?lang=" + locale}>{locale === "ru" ? "События" : "Іс-шаралар"}</Link>
       </nav>
       <div className="journal-language" aria-label={locale === "ru" ? "Выбор языка" : "Тілді таңдау"}>
         <Link className={locale === "ru" ? "is-active" : ""} href="/scientists?lang=ru">RU</Link>

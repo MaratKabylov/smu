@@ -2898,6 +2898,13 @@ th {
 }
 
 
+.status-cancelled { background: #fbe8e5; color: #963f35; }
+.event-card-date { color: var(--forest); font-size: 13px; }
+.event-cancelled { color: #963f35; font-size: 12px; font-weight: 700; }
+.event-cancellation { padding: 20px 24px; margin-bottom: 30px; background: #fbe8e5; border-radius: 8px; color: #963f35; font-size: 14px; }
+.event-cancellation p { margin: 8px 0 0; }
+.science-work-aside .event-register { padding: 12px 16px; border-radius: 8px; color: #fff; background: var(--forest); font-weight: 700; justify-content: center; }
+
 /* Research and project catalogs */
 .mentorship-card { border-top: 3px solid var(--forest); }
 .mentorship-card .public-card-content { display: grid; gap: 12px; height: 100%; }

@@ -24,6 +24,7 @@ export function JournalHeader({ locale = "ru" }: { locale?: ArticleLocale }) {
           <a href="/admin" target="_blank" rel="noreferrer">
             SMU Admin <ArrowUpRight aria-hidden="true" />
           </a>
+          <Link href={"/events?lang=" + locale}>{locale === "ru" ? "События" : "Іс-шаралар"}</Link>
         </nav>
         <div className="journal-language" aria-label="Выбор языка">
           <Link className={locale === "ru" ? "is-active" : ""} href="/journal?lang=ru">RU</Link>
