@@ -9,9 +9,11 @@ import {
   canPublishArticle,
   canReviewArticle,
   canViewMedia,
+  hasPermission,
 } from "@/lib/permissions/permissions";
 import {
   changeArticleStatus,
+  assignArticleReviewer,
   softDeleteArticle,
   updateArticle,
 } from "@/server/actions/article.actions";
@@ -26,6 +28,7 @@ type ArticleDetailPageProps = {
     created?: string;
     saved?: string;
     status_changed?: string;
+    reviewer_saved?: string;
     error?: string;
   }>;
 };
@@ -37,6 +40,10 @@ const errorMessages: Record<string, string> = {
   invalid_reference: "Выбранная категория, тег или обложка недоступны.",
   confirm_delete: "Подтвердите перенос статьи в удалённые.",
   action_failed: "Не удалось сохранить изменения. Проверьте уникальность slug.",
+  invalid_input: "Проверьте обязательные поля материала.",
+  slug_conflict: "Этот slug уже используется. Выберите другой адрес.",
+  slug_reserved: "Этот адрес принадлежит другому материалу и сохранён в истории ссылок.",
+  stale_version: "Материал изменился после открытия страницы. Проверьте актуальный текст перед изменением статуса.",
 };
 
 export default async function ArticleDetailPage({ params, searchParams }: ArticleDetailPageProps) {
@@ -75,8 +82,11 @@ export default async function ArticleDetailPage({ params, searchParams }: Articl
   const canPublish = canPublishArticle(result.access);
   const mayEdit =
     canEditArticle(result.access, article.authorId) &&
-    (article.status === "draft" || canPublish);
-  const mayReview = canReviewArticle(result.access);
+    (article.status === "draft" || hasPermission(result.access, "articles.edit_any")) &&
+    (article.status !== "archived" || canPublish);
+  const mayReview = canReviewArticle(result.access, article.scientificReviewerId);
+  const mayAssignReviewer = hasPermission(result.access, "articles.edit_any") || canPublish;
+  const reviewers = mayAssignReviewer ? await service.listReviewers(result.access) : [];
   const mayDelete = canDeleteArticle(result.access);
   const updateAction = updateArticle.bind(null, article.id);
   const deleteAction = softDeleteArticle.bind(null, article.id);
@@ -99,6 +109,7 @@ export default async function ArticleDetailPage({ params, searchParams }: Articl
       {state.created === "1" ? <div className="notice success-notice">Черновик создан.</div> : null}
       {state.saved === "1" ? <div className="notice success-notice">Изменения сохранены.</div> : null}
       {state.status_changed === "1" ? <div className="notice success-notice">Редакционный статус обновлён.</div> : null}
+      {state.reviewer_saved === "1" ? <div className="notice success-notice">Назначение рецензента сохранено.</div> : null}
       {state.error ? <div className="notice error-notice" role="alert">{errorMessages[state.error] ?? errorMessages.action_failed}</div> : null}
 
       <section className="workflow-panel">
@@ -111,6 +122,7 @@ export default async function ArticleDetailPage({ params, searchParams }: Articl
           <WorkflowActions
             articleId={article.id}
             status={article.status}
+            contentVersion={article.contentVersion}
             mayEdit={mayEdit}
             mayReview={mayReview}
             mayPublish={canPublish}
@@ -118,6 +130,23 @@ export default async function ArticleDetailPage({ params, searchParams }: Articl
         </div>
       </section>
 
+      {mayAssignReviewer && (article.status === "draft" || article.status === "in_review") ? (
+        <section className="workflow-panel">
+          <div><h2>Научный рецензент</h2><p>Рецензент получает доступ к назначенному материалу.</p></div>
+          <form action={assignArticleReviewer.bind(null, article.id)}>
+            <label>Рецензент
+              <select name="reviewerId" defaultValue={article.scientificReviewerId ?? ""}>
+                <option value="">Не назначен</option>
+                {reviewers.map((reviewer) => <option key={reviewer.id} value={reviewer.id}>{reviewer.displayName}</option>)}
+              </select>
+            </label>
+            <button className="secondary-button" type="submit">Сохранить назначение</button>
+          </form>
+        </section>
+      ) : null}
+      {mayEdit && article.status !== "draft" ? (
+        <div className="notice">Сохранение изменений вернёт материал в черновики. Перед публикацией потребуется повторное одобрение.</div>
+      ) : null}
       <ArticleForm action={updateAction} article={article} taxonomy={taxonomy} media={media} disabled={!mayEdit} />
 
       {mayDelete ? (
@@ -141,12 +170,14 @@ export default async function ArticleDetailPage({ params, searchParams }: Articl
 function WorkflowActions({
   articleId,
   status,
+  contentVersion,
   mayEdit,
   mayReview,
   mayPublish,
 }: {
   articleId: string;
   status: ArticleStatus;
+  contentVersion: number;
   mayEdit: boolean;
   mayReview: boolean;
   mayPublish: boolean;
@@ -164,12 +195,13 @@ function WorkflowActions({
   if (status === "approved" && (mayReview || mayPublish)) actions.push({ next: "draft", label: "Вернуть на доработку", icon: Undo2 });
   if (status === "approved" && mayPublish) actions.push({ next: "published", label: "Опубликовать", icon: Send, primary: true });
   if (status === "published" && mayPublish) actions.push({ next: "archived", label: "Перенести в архив", icon: Archive });
+  if (status === "published" && mayPublish) actions.push({ next: "draft", label: "Снять с публикации", icon: Undo2 });
   if (status === "archived" && mayPublish) actions.push({ next: "draft", label: "Вернуть в черновики", icon: Undo2 });
 
   if (actions.length === 0) return <span className="field-hint">Нет доступных действий</span>;
 
   return actions.map(({ next, label, icon: Icon, primary }) => {
-    const action = changeArticleStatus.bind(null, articleId, next);
+    const action = changeArticleStatus.bind(null, articleId, next, contentVersion);
     return (
       <form action={action} key={next}>
         <button className={primary ? "primary-button" : "secondary-button"} type="submit">

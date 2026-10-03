@@ -4,6 +4,7 @@ import {
   canEditArticle,
   canEditMedia,
   canPublishArticle,
+  canReviewArticle,
 } from "./permissions";
 import type {
   AccessContext,
@@ -23,6 +24,13 @@ function access(
 }
 
 describe("permissions", () => {
+  it("restricts a scientific reviewer to assigned articles", () => {
+    const reviewer = access(["articles.review"]);
+    expect(canReviewArticle(reviewer)).toBe(false);
+    expect(canReviewArticle(reviewer, "user-2")).toBe(false);
+    expect(canReviewArticle(reviewer, "user-1")).toBe(true);
+    expect(canReviewArticle(access(["articles.review", "articles.edit_any"]))).toBe(true);
+  });
   it("does not infer access from a hidden UI element", () => {
     expect(canAccessAdmin(access([]))).toBe(false);
   });

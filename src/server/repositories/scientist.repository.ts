@@ -148,131 +148,30 @@ export class ScientistRepository {
     };
   }
 
-  async create(authorId: string, input: ScientistInput) {
-    const { data, error } = await this.client
-      .from("scientist_profiles")
-      .insert({
-        organization_id: input.organizationId,
-        avatar_media_id: input.avatarMediaId,
-        public_email: input.publicEmail,
-        orcid: input.orcid,
-        scholar_url: input.scholarUrl,
-        created_by: authorId,
-      })
-      .select("id")
-      .single();
-    if (error) throw error;
-    const id = (data as { id: string }).id;
-    try {
-      await this.replaceTranslations(id, input);
-      await this.replaceFields(id, input.fieldIds);
-      return id;
-    } catch (cause) {
-      await this.client.from("scientist_profiles").delete().eq("id", id);
-      throw cause;
-    }
+  async create(input: ScientistInput) {
+    return this.mutate<string>("save_scientist", { p_id: null, p_input: input });
   }
 
   async update(id: string, input: ScientistInput) {
-    const { error } = await this.client
-      .from("scientist_profiles")
-      .update({
-        organization_id: input.organizationId,
-        avatar_media_id: input.avatarMediaId,
-        public_email: input.publicEmail,
-        orcid: input.orcid,
-        scholar_url: input.scholarUrl,
-      })
-      .eq("id", id)
-      .is("deleted_at", null);
-    if (error) throw error;
-    await this.replaceTranslations(id, input);
-    await this.replaceFields(id, input.fieldIds);
+    await this.mutate<string>("save_scientist", { p_id: id, p_input: input });
   }
 
-  async changeStatus(id: string, status: ScientistStatus, verifierId: string) {
-    const { error } = await this.client
-      .from("scientist_profiles")
-      .update(status === "verified"
-        ? { status, verified_at: new Date().toISOString(), verified_by: verifierId }
-        : { status, verified_at: null, verified_by: null })
-      .eq("id", id)
-      .is("deleted_at", null);
-    if (error) throw error;
+  async changeStatus(id: string, status: ScientistStatus) {
+    await this.mutate("change_scientist_state", { p_id: id, p_status: status, p_delete: false });
   }
 
   async softDelete(id: string) {
-    const { error } = await this.client
-      .from("scientist_profiles")
-      .update({ deleted_at: new Date().toISOString() })
-      .eq("id", id)
-      .is("deleted_at", null);
-    if (error) throw error;
+    await this.mutate("change_scientist_state", { p_id: id, p_status: null, p_delete: true });
   }
 
   async createTaxonomyItem(input: ScientistTaxonomyInput) {
-    const result = input.kind === "field"
-      ? await this.client
-          .from("scientific_fields")
-          .insert({ slug: input.slug, name_ru: input.nameRu, name_kk: input.nameKk })
-          .select("id")
-          .single()
-      : await this.client
-          .from("scientific_organizations")
-          .insert({
-            slug: input.slug,
-            name_ru: input.nameRu,
-            name_kk: input.nameKk,
-            city_ru: input.cityRu,
-            city_kk: input.cityKk,
-            website_url: input.websiteUrl,
-          })
-          .select("id")
-          .single();
-    const { data, error } = result;
-    if (error) throw error;
-    return (data as { id: string }).id;
+    return this.mutate<string>("create_scientist_taxonomy", { p_input: input });
   }
 
-  async isUsableAvatar(id: string) {
-    const { data, error } = await this.client
-      .from("media_assets")
-      .select("id")
-      .eq("id", id)
-      .eq("status", "ready")
-      .eq("storage_bucket", "avatars")
-      .like("mime_type", "image/%")
-      .is("deleted_at", null)
-      .maybeSingle();
+  private async mutate<T = void>(name: string, args: Record<string, unknown>): Promise<T> {
+    const { data, error } = await this.client.rpc(name, args);
     if (error) throw error;
-    return Boolean(data);
-  }
-
-  private async replaceTranslations(id: string, input: ScientistInput) {
-    const { error } = await this.client.from("scientist_profile_translations").upsert(
-      (["ru", "kk"] as const).map((locale) => ({
-        scientist_profile_id: id,
-        locale,
-        full_name: input[locale].fullName,
-        slug: input[locale].slug,
-        position: input[locale].position,
-        academic_degree: input[locale].academicDegree,
-        short_bio: input[locale].shortBio,
-        biography: input[locale].biography,
-      })),
-      { onConflict: "scientist_profile_id,locale" },
-    );
-    if (error) throw error;
-  }
-
-  private async replaceFields(id: string, fieldIds: string[]) {
-    const { error: deleteError } = await this.client.from("scientist_field_links").delete().eq("scientist_profile_id", id);
-    if (deleteError) throw deleteError;
-    if (fieldIds.length === 0) return;
-    const { error } = await this.client.from("scientist_field_links").insert(
-      fieldIds.map((fieldId) => ({ scientist_profile_id: id, scientific_field_id: fieldId })),
-    );
-    if (error) throw error;
+    return data as T;
   }
 
   async hydrateProfiles(rows: ProfileRow[]): Promise<ScientistProfile[]> {

@@ -19,6 +19,9 @@ import type {
 type ArticleRow = {
   id: string;
   author_id: string;
+  scientific_reviewer_id: string | null;
+  content_version: number;
+  approved_version: number | null;
   category_id: string | null;
   cover_media_id: string | null;
   content_type: ArticleContentType;
@@ -152,129 +155,39 @@ export class ArticleRepository {
     };
   }
 
-  async create(authorId: string, input: ArticleInput): Promise<string> {
-    const { data, error } = await this.client
-      .from("articles")
-      .insert({
-        author_id: authorId,
-        category_id: input.categoryId,
-        cover_media_id: input.coverMediaId,
-        content_type: input.contentType,
-        status: "draft",
-      })
-      .select("id")
-      .single();
-    if (error) throw error;
-
-    const articleId = (data as { id: string }).id;
-    try {
-      await this.replaceTranslations(articleId, input);
-      await this.replaceTags(articleId, input.tagIds);
-      return articleId;
-    } catch (cause) {
-      await this.client.from("articles").delete().eq("id", articleId);
-      throw cause;
-    }
+  async create(input: ArticleInput): Promise<string> {
+    return this.mutate<string>("save_article", { p_id: null, p_input: input });
   }
 
   async update(id: string, input: ArticleInput) {
-    const { error } = await this.client
-      .from("articles")
-      .update({
-        category_id: input.categoryId,
-        cover_media_id: input.coverMediaId,
-        content_type: input.contentType,
-      })
-      .eq("id", id)
-      .is("deleted_at", null);
-    if (error) throw error;
-
-    await this.replaceTranslations(id, input);
-    await this.replaceTags(id, input.tagIds);
+    await this.mutate<string>("save_article", { p_id: id, p_input: input });
   }
 
-  async changeStatus(id: string, status: ArticleStatus) {
-    const values: { status: ArticleStatus; published_at?: string | null } = {
-      status,
-    };
-    if (status === "published") values.published_at = new Date().toISOString();
-    if (status === "draft") values.published_at = null;
-
-    const { error } = await this.client
-      .from("articles")
-      .update(values)
-      .eq("id", id)
-      .is("deleted_at", null);
-    if (error) throw error;
+  async changeStatus(id: string, status: ArticleStatus, expectedVersion: number) {
+    await this.mutate("change_article_state", { p_id: id, p_status: status, p_delete: false, p_expected_version: expectedVersion });
   }
 
   async softDelete(id: string) {
-    const { error } = await this.client
-      .from("articles")
-      .update({ deleted_at: new Date().toISOString() })
-      .eq("id", id)
-      .is("deleted_at", null);
-    if (error) throw error;
+    await this.mutate("change_article_state", { p_id: id, p_status: null, p_delete: true });
   }
 
   async createTaxonomyItem(input: TaxonomyInput) {
-    const table = input.kind === "category" ? "article_categories" : "article_tags";
-    const { data, error } = await this.client
-      .from(table)
-      .insert({
-        slug: input.slug,
-        name_ru: input.nameRu,
-        name_kk: input.nameKk,
-      })
-      .select("id")
-      .single();
-    if (error) throw error;
-    return (data as { id: string }).id;
+    return this.mutate<string>("create_article_taxonomy", { p_input: input });
   }
 
-  async isUsableCover(id: string) {
-    const { data, error } = await this.client
-      .from("media_assets")
-      .select("id")
-      .eq("id", id)
-      .eq("status", "ready")
-      .is("deleted_at", null)
-      .like("mime_type", "image/%")
-      .eq("storage_bucket", "article-media")
-      .maybeSingle();
-    if (error) throw error;
-    return Boolean(data);
+  async listReviewers() {
+    const rows = await this.mutate<Array<{ id: string; display_name: string | null }>>("list_article_reviewers", {});
+    return rows.map((row) => ({ id: row.id, displayName: row.display_name ?? "Рецензент" }));
   }
 
-  private async replaceTranslations(articleId: string, input: ArticleInput) {
-    const { error } = await this.client.from("article_translations").upsert(
-      (["ru", "kk"] as const).map((locale) => ({
-        article_id: articleId,
-        locale,
-        title: input[locale].title,
-        slug: input[locale].slug,
-        excerpt: input[locale].excerpt,
-        body: input[locale].body,
-        seo_title: input[locale].seoTitle,
-        seo_description: input[locale].seoDescription,
-      })),
-      { onConflict: "article_id,locale" },
-    );
-    if (error) throw error;
+  async assignReviewer(id: string, reviewerId: string | null) {
+    await this.mutate("assign_article_reviewer", { p_id: id, p_reviewer: reviewerId });
   }
 
-  private async replaceTags(articleId: string, tagIds: string[]) {
-    const { error: deleteError } = await this.client
-      .from("article_tag_links")
-      .delete()
-      .eq("article_id", articleId);
-    if (deleteError) throw deleteError;
-    if (tagIds.length === 0) return;
-
-    const { error } = await this.client.from("article_tag_links").insert(
-      tagIds.map((tagId) => ({ article_id: articleId, tag_id: tagId })),
-    );
+  private async mutate<T = void>(name: string, args: Record<string, unknown>): Promise<T> {
+    const { data, error } = await this.client.rpc(name, args);
     if (error) throw error;
+    return data as T;
   }
 
   private async hydrate(rows: ArticleRow[]): Promise<Article[]> {
@@ -338,6 +251,9 @@ export class ArticleRepository {
     return rows.map((row) => ({
       id: row.id,
       authorId: row.author_id,
+      scientificReviewerId: row.scientific_reviewer_id,
+      contentVersion: row.content_version,
+      approvedVersion: row.approved_version,
       authorName:
         profiles.find((profile) => profile.id === row.author_id)?.display_name ??
         null,

@@ -2,9 +2,9 @@
 import type { Metadata } from "next";
 import { ArrowLeft, ArrowUpRight, Building2, Mail, Microscope } from "lucide-react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { CommunityHeader } from "@/components/scientists/CommunityHeader";
-import { getPublicScientistBySlug } from "@/server/services/scientist.service";
+import { getPublicScientistBySlug, PublicScientistService } from "@/server/services/scientist.service";
 import type { ScientistLocale } from "@/types/domain/scientist";
 
 type Props = { params: Promise<{ locale: string; slug: string }> };
@@ -35,7 +35,11 @@ export default async function ScientistProfilePage({ params }: Props) {
   const { locale: rawLocale, slug } = await params;
   const locale = localeOrNotFound(rawLocale);
   const scientist = await getPublicScientistBySlug(locale, slug);
-  if (!scientist) notFound();
+  if (!scientist) {
+    const currentSlug = await new PublicScientistService().getSlugRedirect(locale, slug);
+    if (currentSlug) permanentRedirect(`/scientists/${locale}/${currentSlug}`);
+    notFound();
+  }
   const copy = profileCopy[locale];
   const organizationName = scientist.organization
     ? locale === "ru" ? scientist.organization.nameRu : scientist.organization.nameKk

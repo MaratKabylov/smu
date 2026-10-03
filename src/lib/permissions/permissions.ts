@@ -24,8 +24,14 @@ export const canEditArticle = (
   (articleAuthorId === access.userId &&
     hasPermission(access, "articles.edit_own"));
 
-export const canReviewArticle = (access: AccessContext) =>
-  hasPermission(access, "articles.review");
+export const canReviewArticle = (
+  access: AccessContext,
+  reviewerId: string | null = null,
+) =>
+  hasPermission(access, "articles.review") &&
+  (hasPermission(access, "articles.edit_any") ||
+    hasPermission(access, "articles.publish") ||
+    reviewerId === access.userId);
 
 export const canPublishArticle = (access: AccessContext) =>
   hasPermission(access, "articles.publish");

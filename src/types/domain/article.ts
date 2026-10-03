@@ -40,6 +40,9 @@ export type ArticleTaxonomyItem = {
 export type Article = {
   id: string;
   authorId: string;
+  scientificReviewerId: string | null;
+  contentVersion: number;
+  approvedVersion: number | null;
   authorName: string | null;
   categoryId: string | null;
   category: ArticleTaxonomyItem | null;

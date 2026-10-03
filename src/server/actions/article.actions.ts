@@ -50,10 +50,28 @@ async function requireAccess(fallback: string) {
 
 function errorReason(error: unknown) {
   if (!(error instanceof ArticleServiceError)) return "action_failed";
-  if (error.code === "forbidden") return "forbidden";
-  if (error.code === "invalid_transition") return "invalid_transition";
-  if (error.code === "invalid_reference") return "invalid_reference";
-  return "action_failed";
+  return error.code;
+}
+
+function invalidateArticles() {
+  revalidatePath("/admin/content/articles", "layout");
+  revalidatePath("/journal", "layout");
+}
+
+export async function assignArticleReviewer(id: string, formData: FormData) {
+  const parsedId = articleIdSchema.safeParse(id);
+  const reviewerId = formData.get("reviewerId");
+  if (!parsedId.success || (reviewerId !== "" && !articleIdSchema.safeParse(reviewerId).success)) {
+    redirect("/admin/content/articles?error=validation");
+  }
+  const access = await requireAccess(`/admin/content/articles/${parsedId.data}`);
+  try {
+    await new ArticleService().assignReviewer(access, parsedId.data, reviewerId === "" ? null : String(reviewerId));
+  } catch (error) {
+    redirect(`/admin/content/articles/${parsedId.data}?error=${errorReason(error)}`);
+  }
+  invalidateArticles();
+  redirect(`/admin/content/articles/${parsedId.data}?reviewer_saved=1`);
 }
 
 export async function createArticle(formData: FormData) {
@@ -69,7 +87,7 @@ export async function createArticle(formData: FormData) {
       `/admin/content/articles/new?error=${errorReason(error)}`,
     );
   }
-  revalidatePath("/admin/content/articles");
+  invalidateArticles();
   redirect(`/admin/content/articles/${articleId}?created=1`);
 }
 
@@ -88,7 +106,7 @@ export async function updateArticle(id: string, formData: FormData) {
       `/admin/content/articles/${parsedId.data}?error=${errorReason(error)}`,
     );
   }
-  revalidatePath("/admin/content/articles");
+  invalidateArticles();
   revalidatePath(`/admin/content/articles/${parsedId.data}`);
   redirect(`/admin/content/articles/${parsedId.data}?saved=1`);
 }
@@ -96,10 +114,12 @@ export async function updateArticle(id: string, formData: FormData) {
 export async function changeArticleStatus(
   id: string,
   status: string,
+  expectedVersion: number,
 ) {
   const parsedId = articleIdSchema.safeParse(id);
   const parsedStatus = articleStatusSchema.safeParse(status);
-  if (!parsedId.success || !parsedStatus.success) {
+  const version = z.number().int().positive().safeParse(expectedVersion);
+  if (!parsedId.success || !parsedStatus.success || !version.success) {
     redirect(`/admin/content/articles/${id}?error=invalid_transition`);
   }
   const access = await requireAccess(`/admin/content/articles/${id}`);
@@ -109,13 +129,14 @@ export async function changeArticleStatus(
       access,
       parsedId.data,
       parsedStatus.data,
+      version.data,
     );
   } catch (error) {
     redirect(
       `/admin/content/articles/${parsedId.data}?error=${errorReason(error)}`,
     );
   }
-  revalidatePath("/admin/content/articles");
+  invalidateArticles();
   revalidatePath(`/admin/content/articles/${parsedId.data}`);
   redirect(`/admin/content/articles/${parsedId.data}?status_changed=1`);
 }
@@ -133,7 +154,7 @@ export async function softDeleteArticle(id: string, formData: FormData) {
       `/admin/content/articles/${parsedId.data}?error=${errorReason(error)}`,
     );
   }
-  revalidatePath("/admin/content/articles");
+  invalidateArticles();
   redirect("/admin/content/articles?deleted=1");
 }
 

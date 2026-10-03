@@ -5,11 +5,16 @@ import { isSupabaseConfigured } from "@/lib/env";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { PublicArticleFilters } from "@/lib/validation/article";
 import { PublicArticleRepository } from "@/server/repositories/public-article.repository";
+import { getPublicSlugRedirect } from "@/server/repositories/slug.repository";
 import type { ArticleLocale, ArticleTaxonomy } from "@/types/domain/article";
 
 const emptyTaxonomy: ArticleTaxonomy = { categories: [], tags: [] };
 
 export class PublicArticleService {
+  async getSlugRedirect(locale: ArticleLocale, slug: string) {
+    if (!isSupabaseConfigured()) return null;
+    return getPublicSlugRedirect(await createServerSupabaseClient(), "article", locale, slug);
+  }
   async list(filters: PublicArticleFilters) {
     if (!isSupabaseConfigured()) {
       return { articles: [], taxonomy: emptyTaxonomy };

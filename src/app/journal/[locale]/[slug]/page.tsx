@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { ArrowLeft, CalendarDays, Languages } from "lucide-react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { JournalHeader } from "@/components/journal/JournalHeader";
 import { articleContentTypeLabels } from "@/lib/articles/presentation";
-import { getPublishedArticleBySlug } from "@/server/services/public-article.service";
+import { getPublishedArticleBySlug, PublicArticleService } from "@/server/services/public-article.service";
 import type { ArticleLocale } from "@/types/domain/article";
 
 type PublicArticlePageProps = {
@@ -41,7 +41,11 @@ export default async function PublicArticlePage({ params }: PublicArticlePagePro
   if (!isArticleLocale(rawLocale)) notFound();
   const locale = rawLocale;
   const article = await getPublishedArticleBySlug(locale, slug);
-  if (!article) notFound();
+  if (!article) {
+    const currentSlug = await new PublicArticleService().getSlugRedirect(locale, slug);
+    if (currentSlug) permanentRedirect(`/journal/${locale}/${currentSlug}`);
+    notFound();
+  }
 
   const copy = detailCopy[locale];
   const categoryName = article.category

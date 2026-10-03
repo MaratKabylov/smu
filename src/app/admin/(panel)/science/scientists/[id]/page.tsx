@@ -21,6 +21,9 @@ const errors: Record<string, string> = {
   invalid_transition: "Это изменение статуса недоступно.",
   confirm_delete: "Подтвердите перенос профиля в удалённые.",
   action_failed: "Не удалось сохранить изменения. Проверьте уникальность slug.",
+  invalid_input: "Проверьте обязательные поля профиля.",
+  slug_conflict: "Этот slug уже используется. Выберите другой адрес.",
+  slug_reserved: "Этот адрес принадлежит другому профилю и сохранён в истории ссылок.",
 };
 
 export default async function ScientistDetailPage({ params, searchParams }: Props) {
