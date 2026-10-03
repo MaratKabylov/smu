@@ -1,5 +1,12 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Save } from "lucide-react";
 import Link from "next/link";
+import { RichTextEditor } from "./RichTextEditor";
+import { ArticleAutosave, type SaveState } from "@/lib/articles/autosave";
+import { saveArticleDraft } from "@/server/actions/article.actions";
 import { articleContentTypeLabels } from "@/lib/articles/presentation";
 import {
   articleContentTypes,
@@ -15,6 +22,7 @@ type ArticleFormProps = {
   media: MediaAsset[];
   disabled?: boolean;
   submitLabel?: string;
+  canPreview?: boolean;
 };
 
 export function ArticleForm({
@@ -24,13 +32,68 @@ export function ArticleForm({
   media,
   disabled = false,
   submitLabel = "Сохранить статью",
+  canPreview = true,
 }: ArticleFormProps) {
+  const form = useRef<HTMLFormElement>(null);
+  const controller = useRef<ArticleAutosave | null>(null);
+  const router = useRouter();
+  const [saveState, setSaveState] = useState<SaveState>({ status: "saved" });
+  const id = article?.id;
+  const version = article?.contentVersion;
+  const status = article?.status;
+  useEffect(() => {
+    if (disabled) return;
+    let currentId = id ?? null;
+    const autosave = new ArticleAutosave(version, () => new FormData(form.current!), async data => {
+      const result = await saveArticleDraft(currentId, data);
+      if (result.ok) currentId = result.id;
+      return result;
+    }, (state, result) => {
+      setSaveState(state);
+      if (result?.ok && state.status === "saved") {
+        if (!id) router.replace(`/admin/content/articles/${result.id}?created=1`);
+        else router.refresh();
+      }
+    }, !!id && status === "draft");
+    controller.current = autosave;
+    const unload = (event: BeforeUnloadEvent) => {
+      if (autosave.hasUnsavedChanges) { event.preventDefault(); event.returnValue = ""; }
+    };
+    const navigation = (event: MouseEvent | SubmitEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const anchor = target.closest("a[href]");
+      if (event.type === "click" && (!anchor || anchor.getAttribute("target") === "_blank")) return;
+      if (event.type === "submit" && target === form.current) return;
+      if (autosave.isSaving || (autosave.hasUnsavedChanges && !window.confirm("Покинуть редактор без сохранения изменений?"))) {
+        event.preventDefault(); event.stopPropagation();
+        if (autosave.isSaving) window.alert("Дождитесь завершения сохранения перед переходом или изменением статуса.");
+      }
+    };
+    window.addEventListener("beforeunload", unload);
+    document.addEventListener("click", navigation, true);
+    document.addEventListener("submit", navigation, true);
+    return () => {
+      autosave.dispose(); controller.current = null;
+      window.removeEventListener("beforeunload", unload);
+      document.removeEventListener("click", navigation, true);
+      document.removeEventListener("submit", navigation, true);
+    };
+    // A refreshed server version must not replace edits made during a save.
+    // The coordinator advances its version only from the successful response.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, disabled, router]);
+  const changed = () => controller.current?.changed();
   const ru = article?.translations.find((translation) => translation.locale === "ru");
   const kk = article?.translations.find((translation) => translation.locale === "kk");
   const selectedTags = new Set(article?.tags.map((tag) => tag.id) ?? []);
 
   return (
-    <form action={action} className="article-form">
+    <form ref={form} action={action} className="article-form" onChange={event => {
+      const target = event.target;
+      if ((target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) && target.name) changed();
+    }} onSubmit={event => { event.preventDefault(); void controller.current?.save(); }}>
+      {version ? <input type="hidden" name="expectedVersion" value={version} /> : null}
       <section className="article-editor-panel">
         <div className="panel-title">
           <div>
@@ -90,18 +153,24 @@ export function ArticleForm({
       </section>
 
       <div className="translation-grid">
-        <TranslationFields locale="Ru" language="Русская версия" value={ru} disabled={disabled} />
-        <TranslationFields locale="Kk" language="Қазақша нұсқа" value={kk} disabled={disabled} />
+        <TranslationFields locale="Ru" language="Русская версия" value={ru} disabled={disabled} media={media} onChange={changed} />
+        <TranslationFields locale="Kk" language="Қазақша нұсқа" value={kk} disabled={disabled} media={media} onChange={changed} />
       </div>
 
       {!disabled ? (
         <div className="article-form-actions">
-          <button className="primary-button" type="submit">
+          <button className="primary-button" type="submit" disabled={saveState.status === "saving" || saveState.error === "stale_version"}>
             <Save aria-hidden="true" />
             {submitLabel}
           </button>
+          <span role="status" aria-live="polite">{saveState.status === "saving" ? "Сохранение…" : saveState.status === "dirty" ? "Есть несохранённые изменения" : saveState.status === "saved" ? (article ? "Сохранено" : "Черновик ещё не создан") : saveErrorMessages[saveState.error ?? ""] ?? "Не удалось сохранить. Правки остаются в редакторе; попробуйте снова."}</span>
+          {saveState.error === "stale_version" && id ? <a className="secondary-button" href={`/admin/content/articles/${id}`} target="_blank" rel="noopener noreferrer">Открыть актуальную версию</a> : null}
         </div>
       ) : null}
+      {article && canPreview ? <div className="preview-links">
+        {(["ru", "kk"] as const).map(locale => <a className="secondary-button" key={locale} href={`/admin/content/articles/${article.id}/preview/${locale}`} target="_blank" rel="noopener noreferrer">Предпросмотр {locale.toUpperCase()}</a>)}
+        <small>Предпросмотр показывает последнюю сохранённую версию.</small>
+      </div> : null}
     </form>
   );
 }
@@ -111,9 +180,11 @@ type TranslationFieldsProps = {
   language: string;
   value?: Article["translations"][number];
   disabled: boolean;
+  media: MediaAsset[];
+  onChange: () => void;
 };
 
-function TranslationFields({ locale, language, value, disabled }: TranslationFieldsProps) {
+function TranslationFields({ locale, language, value, disabled, media, onChange }: TranslationFieldsProps) {
   return (
     <section className="article-editor-panel translation-panel">
       <div className="panel-title">
@@ -136,10 +207,7 @@ function TranslationFields({ locale, language, value, disabled }: TranslationFie
           Краткое описание
           <textarea name={`excerpt${locale}`} defaultValue={value?.excerpt ?? ""} minLength={10} maxLength={1000} rows={4} required disabled={disabled} />
         </label>
-        <label>
-          Основной текст
-          <textarea className="article-body-field" name={`body${locale}`} defaultValue={value?.body ?? ""} minLength={20} rows={18} required disabled={disabled} />
-        </label>
+        <RichTextEditor locale={locale} value={value} disabled={disabled} media={media} onChange={onChange} />
         <label>
           SEO title
           <input name={`seoTitle${locale}`} defaultValue={value?.seoTitle ?? ""} maxLength={70} disabled={disabled} />
@@ -152,3 +220,12 @@ function TranslationFields({ locale, language, value, disabled }: TranslationFie
     </section>
   );
 }
+
+const saveErrorMessages: Record<string, string> = {
+  validation: "Заполните обе версии: заголовок, slug, описание и основной текст (минимум 20 символов). Правки остаются в редакторе.",
+  stale_version: "Статья изменена в другой вкладке. Ваши правки остаются здесь; откройте актуальную версию отдельно и перенесите изменения.",
+  forbidden: "Недостаточно прав для сохранения. Правки остаются в редакторе.",
+  slug_conflict: "Этот slug уже занят. Измените адрес и сохраните снова.",
+  slug_reserved: "Этот адрес сохранён в истории другого материала. Выберите другой slug.",
+  invalid_reference: "Выбранные файлы или рубрики недоступны. Обновите выбор и сохраните снова.",
+};

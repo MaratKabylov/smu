@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { plainTextDocument, richTextDocumentSchema, richTextToPlainText } from "../articles/rich-text";
 import { articleContentTypes, articleStatuses } from "../../types/domain/article";
 
 const nullableUuid = z
@@ -23,12 +24,17 @@ const translationSchema = z.object({
   title: z.string().trim().min(3).max(240),
   slug: slugSchema,
   excerpt: z.string().trim().min(10).max(1_000),
-  body: z.string().trim().min(20).max(200_000),
+  body: z.string().max(200_000),
+  contentJson: richTextDocumentSchema.optional(),
   seoTitle: optionalText(70),
   seoDescription: optionalText(170),
-});
+}).transform(value => {
+  const contentJson = value.contentJson ?? plainTextDocument(value.body);
+  return { ...value, contentJson, body: richTextToPlainText(contentJson) };
+}).refine(value => value.body.trim().length >= 20 && value.body.length <= 200_000, { message: "Основной текст должен содержать от 20 до 200000 символов." });
 
 export const articleInputSchema = z.object({
+  expectedVersion: z.number().int().positive().optional(),
   contentType: z.enum(articleContentTypes),
   categoryId: nullableUuid,
   coverMediaId: nullableUuid,

@@ -17,7 +17,13 @@ import {
 const articleIdSchema = z.uuid();
 
 function articleInputFromFormData(formData: FormData) {
+  function document(field: string) {
+    const value = formData.get(field);
+    if (!value) return undefined;
+    try { return JSON.parse(String(value)); } catch { return null; }
+  }
   return articleInputSchema.safeParse({
+    expectedVersion: formData.get("expectedVersion") ? Number(formData.get("expectedVersion")) : undefined,
     contentType: formData.get("contentType"),
     categoryId: formData.get("categoryId"),
     coverMediaId: formData.get("coverMediaId"),
@@ -27,6 +33,7 @@ function articleInputFromFormData(formData: FormData) {
       slug: formData.get("slugRu"),
       excerpt: formData.get("excerptRu"),
       body: formData.get("bodyRu"),
+      contentJson: document("contentJsonRu"),
       seoTitle: formData.get("seoTitleRu"),
       seoDescription: formData.get("seoDescriptionRu"),
     },
@@ -35,10 +42,30 @@ function articleInputFromFormData(formData: FormData) {
       slug: formData.get("slugKk"),
       excerpt: formData.get("excerptKk"),
       body: formData.get("bodyKk"),
+      contentJson: document("contentJsonKk"),
       seoTitle: formData.get("seoTitleKk"),
       seoDescription: formData.get("seoDescriptionKk"),
     },
   });
+}
+
+export async function saveArticleDraft(id: string | null, formData: FormData): Promise<
+  { ok: true; id: string; version: number } | { ok: false; error: string }
+> {
+  if (id !== null && !articleIdSchema.safeParse(id).success) return { ok: false, error: "validation" };
+  const input = articleInputFromFormData(formData);
+  if (!input.success || (id && !input.data.expectedVersion)) return { ok: false, error: "validation" };
+  const result = await getAdminAccess();
+  if (result.state !== "allowed") return { ok: false, error: "forbidden" };
+  try {
+    const service = new ArticleService();
+    const version = id ? await service.update(result.access, id, input.data) : 1;
+    const savedId = id ?? await service.create(result.access, input.data);
+    // Keep the editing form mounted; the client refreshes workflow data only after
+    // a save has completed and no further edits are waiting.
+    revalidatePath("/journal", "layout");
+    return { ok: true, id: savedId, version };
+  } catch (error) { return { ok: false, error: errorReason(error) }; }
 }
 
 async function requireAccess(fallback: string) {

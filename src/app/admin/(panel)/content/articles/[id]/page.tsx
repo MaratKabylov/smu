@@ -147,7 +147,7 @@ export default async function ArticleDetailPage({ params, searchParams }: Articl
       {mayEdit && article.status !== "draft" ? (
         <div className="notice">Сохранение изменений вернёт материал в черновики. Перед публикацией потребуется повторное одобрение.</div>
       ) : null}
-      <ArticleForm action={updateAction} article={article} taxonomy={taxonomy} media={media} disabled={!mayEdit} />
+      <ArticleForm action={updateAction} article={article} taxonomy={taxonomy} media={media} disabled={!mayEdit} canPreview={canEditArticle(result.access, article.authorId) || mayReview || canPublish} />
 
       {mayDelete ? (
         <section className="danger-zone">

@@ -1977,6 +1977,27 @@ th {
   min-height: 340px;
 }
 
+.rich-text-editor-shell { min-width: 0; }
+.rich-text-toolbar, .rich-text-insert, .preview-links { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
+.rich-text-toolbar button, .rich-text-insert button { padding: 6px 9px; border: 1px solid #ccd5ce; border-radius: 6px; background: #f6f9f7; cursor: pointer; }
+.rich-text-toolbar button:disabled, .rich-text-insert button:disabled { cursor: default; opacity: .5; }
+.rich-text-insert label { flex: 1 1 160px; }
+.rich-text-editor { min-height: 360px; padding: 16px; border: 1px solid #ccd5ce; border-radius: 8px; outline-color: var(--forest-bright); overflow-wrap: anywhere; }
+.rich-text-editor p { min-height: 1.5em; }
+.rich-text-editor ul, .rich-text-content ul { list-style: disc; padding-left: 1.5em; }
+.rich-text-editor ol, .rich-text-content ol { list-style: decimal; padding-left: 1.5em; }
+.rich-text-editor h2, .rich-text-content h2 { font-size: 1.6em; }
+.rich-text-editor h3, .rich-text-content h3 { font-size: 1.35em; }
+.rich-text-editor h4, .rich-text-content h4 { font-size: 1.15em; }
+.rich-text-editor blockquote, .rich-text-content blockquote { border-left: 3px solid #91b29a; margin: 1em 0; padding-left: 1em; }
+.rich-text-editor pre, .rich-text-content pre { padding: 1em; background: #f1f5f2; overflow-x: auto; white-space: pre; }
+.rich-text-editor img, .rich-text-content img { max-width: 100%; height: auto; border-radius: 8px; }
+.rich-text-content figcaption { font-family: sans-serif; font-size: .8em; color: #64746b; }
+.rich-text-content figure { margin: 1.5em 0; }
+.rich-text-editor a, .rich-text-content a { color: #286540; text-decoration: underline; }
+.article-form-actions { flex-wrap: wrap; }
+.preview-links small { flex-basis: 100%; }
+
 .locale-badge {
   border-color: #bfd5c9;
   background: var(--mint);

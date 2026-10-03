@@ -1,4 +1,5 @@
 import "server-only";
+import type { RichTextNode } from "@/lib/articles/rich-text";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { PublicArticleFilters } from "@/lib/validation/article";
@@ -213,7 +214,7 @@ export class PublicArticleRepository {
     const { data: translationData, error: translationError } = await this.client
       .from("article_translations")
       .select(
-        "article_id, locale, title, slug, excerpt, body, seo_title, seo_description",
+        "article_id, locale, title, slug, excerpt, body, content_json, seo_title, seo_description",
       )
       .eq("locale", locale)
       .eq("slug", slug)
@@ -223,6 +224,7 @@ export class PublicArticleRepository {
 
     const translation = translationData as TranslationRow & {
       body: string;
+      content_json: RichTextNode | null;
       seo_title: string | null;
       seo_description: string | null;
     };
@@ -282,6 +284,7 @@ export class PublicArticleRepository {
       translation: {
         ...mapTranslation(translation),
         body: translation.body,
+        contentJson: translation.content_json,
         seoTitle: translation.seo_title,
         seoDescription: translation.seo_description,
       },

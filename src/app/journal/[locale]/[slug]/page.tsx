@@ -3,6 +3,9 @@ import { ArrowLeft, CalendarDays, Languages } from "lucide-react";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 import { JournalHeader } from "@/components/journal/JournalHeader";
+import { RichTextContent } from "@/components/articles/RichTextContent";
+import { getArticleImages } from "@/server/repositories/article-images.repository";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { articleContentTypeLabels } from "@/lib/articles/presentation";
 import { getPublishedArticleBySlug, PublicArticleService } from "@/server/services/public-article.service";
 import type { ArticleLocale } from "@/types/domain/article";
@@ -48,6 +51,7 @@ export default async function PublicArticlePage({ params }: PublicArticlePagePro
   }
 
   const copy = detailCopy[locale];
+  const images = await getArticleImages(await createServerSupabaseClient(), article.translation.contentJson, locale);
   const categoryName = article.category
     ? locale === "ru"
       ? article.category.nameRu
@@ -114,9 +118,7 @@ export default async function PublicArticlePage({ params }: PublicArticlePagePro
 
             <div className="public-article-layout">
               <div className="public-article-body">
-                {article.translation.body.split(/\n\s*\n/).map((paragraph, index) => (
-                  <p key={`${article.id}-${index}`}>{paragraph}</p>
-                ))}
+                <RichTextContent content={article.translation.contentJson} body={article.translation.body} images={images} />
               </div>
               <aside className="public-article-aside">
                 <div>

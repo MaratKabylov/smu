@@ -1,4 +1,5 @@
 import "server-only";
+import type { RichTextNode } from "@/lib/articles/rich-text";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
@@ -40,6 +41,7 @@ type TranslationRow = {
   slug: string;
   excerpt: string;
   body: string;
+  content_json: RichTextNode | null;
   seo_title: string | null;
   seo_description: string | null;
 };
@@ -70,6 +72,7 @@ function mapTranslation(row: TranslationRow): ArticleTranslation {
     slug: row.slug,
     excerpt: row.excerpt,
     body: row.body,
+    contentJson: row.content_json,
     seoTitle: row.seo_title,
     seoDescription: row.seo_description,
   };

@@ -1,3 +1,5 @@
+import type { RichTextNode } from "@/lib/articles/rich-text";
+
 export const articleStatuses = [
   "draft",
   "in_review",
@@ -25,6 +27,7 @@ export type ArticleTranslation = {
   slug: string;
   excerpt: string;
   body: string;
+  contentJson?: RichTextNode | null;
   seoTitle: string | null;
   seoDescription: string | null;
 };
@@ -90,6 +93,7 @@ export type PublicArticleCard = {
 export type PublicArticleDetail = Omit<PublicArticleCard, "translation"> & {
   translation: PublicArticleTranslation & {
     body: string;
+    contentJson?: RichTextNode | null;
     seoTitle: string | null;
     seoDescription: string | null;
   };

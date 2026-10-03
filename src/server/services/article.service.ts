@@ -66,10 +66,21 @@ export class ArticleService {
       assertAllowed(canEditArticle(access, article.authorId));
       assertAllowed(article.status === "draft" || hasPermission(access, "articles.edit_any"));
       assertAllowed(article.status !== "archived" || canPublishArticle(access));
+      if (!input.expectedVersion || input.expectedVersion !== article.contentVersion) {
+        throw new ArticleServiceError("stale_version", "Материал изменился. Ваши правки сохранены в редакторе; откройте актуальную версию отдельно.");
+      }
       // SQL rechecks current ownership/permissions under a lock and resets approval
       // together with content, translations, relations and the audit entry.
       await repository.update(id, input);
+      return input.expectedVersion + 1;
     });
+  }
+
+  async getPreview(access: AccessContext, id: string) {
+    const article = await this.getById(access, id);
+    if (!article || !(canEditArticle(access, article.authorId) ||
+      canReviewArticle(access, article.scientificReviewerId) || canPublishArticle(access))) return null;
+    return article;
   }
 
   async changeStatus(access: AccessContext, id: string, nextStatus: ArticleStatus, expectedVersion?: number) {

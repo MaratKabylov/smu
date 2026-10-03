@@ -15,6 +15,8 @@ const category = "00000000-0000-4000-a000-000000000009";
 const field = "00000000-0000-4000-a000-000000000010";
 let upgradedArticle: Record<string, unknown>;
 let upgradedScientist: Record<string, unknown>;
+let upgradedContent: Record<string, unknown>;
+const legacyBody = "  Legacy first line.\n\nSecond line with <script>literal text</script>.\n  ";
 const translation = { title: "A scientific article", slug: "article-ru", excerpt: "A description of regional scientific research.", body: "A detailed explanation of regional scientific research and its results.", seoTitle: null, seoDescription: null };
 const input = { contentType: "article", categoryId: null, coverMediaId: null, tagIds: [], ru: translation, kk: { ...translation, slug: "article-kk" } };
 const scientistTranslation = { fullName: "Regional Scientist", slug: "scientist-ru", position: "Researcher", academicDegree: null, shortBio: "A scientist researching the region's natural resources.", biography: "A scientist working on regional development, natural resources and practical research projects." };
@@ -30,6 +32,10 @@ async function asUser<T>(user: string | null, action: () => Promise<T>, role = "
   }
 }
 async function save(user = author, value: unknown = input, id: string | null = null) {
+  if (id && !(value as { expectedVersion?: number }).expectedVersion) {
+    const current = (await db.query<{ content_version: number }>("select content_version from public.articles where id = $1", [id])).rows[0];
+    value = { ...(value as object), expectedVersion: current?.content_version };
+  }
   return asUser(user, async () => (await db.query<{ id: string }>(
     "select public.save_article($1, $2::jsonb) as id", [id, JSON.stringify(value)],
   )).rows[0].id);
@@ -68,6 +74,9 @@ beforeAll(async () => {
   `);
   const files = (await readdir(new URL("./migrations/", import.meta.url))).filter(name => /^\d+.*\.sql$/.test(name)).sort();
   for (const file of files) {
+    if (file === "010_article_rich_text.sql") {
+      await db.query("insert into public.article_translations(article_id, locale, title, slug, excerpt, body) select id, 'ru', 'Legacy article', 'legacy-article', 'Legacy description', $1 from public.articles", [legacyBody]);
+    }
     if (file === "009_editorial_integrity.sql") {
       // Existing published/verified data must survive an upgrade unchanged.
       const legacyActor = "00000000-0000-4000-a000-000000000099";
@@ -77,6 +86,7 @@ beforeAll(async () => {
     }
     const sql = (await readFile(new URL("./migrations/" + file, import.meta.url), "utf8")).replace("create extension if not exists pgcrypto;", "");
     await db.exec(sql);
+    if (file === "010_article_rich_text.sql") upgradedContent = (await db.query<Record<string, unknown>>("select body, content_json, public.validate_smu_rich_text(content_json) as recovered from public.article_translations")).rows[0];
     if (file === "009_editorial_integrity.sql") {
       upgradedArticle = (await db.query<Record<string, unknown>>("select status, content_version, approved_version, first_published_at = published_at as preserved from public.articles")).rows[0];
       upgradedScientist = (await db.query<Record<string, unknown>>("select status, first_verified_at = verified_at as preserved from public.scientist_profiles")).rows[0];
@@ -97,6 +107,60 @@ beforeEach(async () => {
 });
 
 describe("session-authorized editorial transactions", () => {
+  it("migrates legacy text without losing blank lines, whitespace or literal HTML", () => {
+    expect(upgradedContent.body).toBe(legacyBody);
+    expect(upgradedContent.recovered).toBe(legacyBody);
+    expect(upgradedContent.content_json).toMatchObject({ type: "doc" });
+  });
+  it("stores JSON as the source of truth and derives searchable body", async () => {
+    const document = { type: "doc", content: [{ type: "heading", attrs: { level: 2 }, content: [{ type: "text", text: "Scientific results" }] }, { type: "paragraph", content: [{ type: "text", text: translation.body, marks: [{ type: "bold" }] }] }] };
+    const id = await save(author, { ...input, ru: { ...translation, body: "Forged plain text", contentJson: document } });
+    expect((await db.query("select body, content_json from public.article_translations where article_id = $1 and locale = 'ru'", [id])).rows[0]).toEqual({ body: "Scientific results\n" + translation.body, content_json: document });
+  });
+  it("rejects stale and missing edit versions without changing content or audit", async () => {
+    const id = await save();
+    await save(author, { ...input, expectedVersion: 1, ru: { ...translation, title: "Newer title" } }, id);
+    const audits = (await db.query("select * from public.audit_logs")).rows.length;
+    await expect(save(author, { ...input, expectedVersion: 1 }, id)).rejects.toThrow("stale_version");
+    await expect(asUser(author, () => db.query("select public.save_article($1, $2::jsonb)", [id, JSON.stringify(input)]))).rejects.toThrow("stale_version");
+    expect((await db.query("select content_version from public.articles where id = $1", [id])).rows[0]).toEqual({ content_version: 2 });
+    expect((await db.query("select title from public.article_translations where article_id = $1 and locale = 'ru'", [id])).rows[0]).toEqual({ title: "Newer title" });
+    expect((await db.query("select * from public.audit_logs")).rows).toHaveLength(audits);
+  });
+  it("rolls back unsafe structured content including direct RPC calls", async () => {
+    const id = await save(); await publish(id);
+    const invalid = [
+      { type: "doc", content: [{ type: "script", text: "alert(1)" }] },
+      { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: translation.body, marks: [{ type: "link", attrs: { href: "javascript:alert(1)" } }] }] }] },
+      { type: "doc", content: [{ type: "heading", attrs: { level: 1 }, content: [{ type: "text", text: translation.body }] }] },
+      { type: "doc", content: [{ type: "image", attrs: { mediaId: cover, src: "data:image/svg+xml,bad" } }] },
+    ];
+    const before = (await db.query("select * from public.articles where id = $1", [id])).rows[0];
+    const audits = (await db.query("select * from public.audit_logs")).rows.length;
+    for (const document of invalid) await expect(save(editor, { ...input, kk: { ...input.kk, contentJson: document } }, id)).rejects.toThrow("invalid_input");
+    expect((await db.query("select * from public.articles where id = $1", [id])).rows[0]).toEqual(before);
+    expect((await db.query("select * from public.audit_logs")).rows).toHaveLength(audits);
+  });
+  it("tracks inline media usages atomically and rejects unavailable assets", async () => {
+    const document = { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: translation.body }] }, { type: "image", attrs: { mediaId: cover, src: "https://example.kz/image.jpg", caption: "A caption" } }] };
+    const id = await save(author, { ...input, ru: { ...translation, contentJson: document } });
+    expect((await db.query("select media_asset_id, field_name from public.media_usages where entity_id = $1", [id])).rows).toEqual([{ media_asset_id: cover, field_name: "content_ru" }]);
+    await db.query("update public.media_assets set deleted_at = now() where id = $1", [cover]);
+    try { await expect(save(author, { ...input, ru: { ...translation, contentJson: document } }, id)).rejects.toThrow("invalid_reference"); }
+    finally { await db.query("update public.media_assets set deleted_at = null where id = $1", [cover]); }
+    await save(author, input, id);
+    expect((await db.query("select * from public.media_usages where entity_id = $1", [id])).rows).toHaveLength(0);
+  });
+  it("cleans inline media usages on soft and hard deletion", async () => {
+    const document = { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: translation.body }] }, { type: "image", attrs: { mediaId: cover, src: "https://example.kz/image.jpg" } }] };
+    const id = await save(author, { ...input, ru: { ...translation, contentJson: document } });
+    await state(admin, id, null, true);
+    expect((await db.query("select * from public.media_usages where entity_id = $1", [id])).rows).toHaveLength(0);
+    await db.query("delete from public.articles where id = $1", [id]);
+    const nextId = await save(author, { ...input, ru: { ...translation, contentJson: document } });
+    await db.query("delete from public.articles where id = $1", [nextId]);
+    expect((await db.query("select * from public.media_usages where entity_id = $1", [nextId])).rows).toHaveLength(0);
+  });
   it("preserves existing publications and verification when upgrading", () => {
     expect(upgradedArticle).toEqual({ status: "published", content_version: 1, approved_version: 1, preserved: true });
     expect(upgradedScientist).toEqual({ status: "verified", preserved: true });

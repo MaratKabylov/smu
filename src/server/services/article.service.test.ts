@@ -14,6 +14,19 @@ const access = (permissions: PermissionCode[], userId = "user"): AccessContext =
 const article = { id: "id", authorId: "author", scientificReviewerId: "assigned", contentVersion: 1, status: "published", deletedAt: null };
 beforeEach(() => { vi.clearAllMocks(); mocks.get.mockResolvedValue(article); });
 describe("article service authorization", () => {
+  it("rejects missing and stale edit versions before writing", async () => {
+    for (const input of [{}, { expectedVersion: 2 }]) await expect(new ArticleService().update(access(["articles.edit_any"]), "id", input as ArticleInput)).rejects.toMatchObject({ code: "stale_version" });
+    expect(mocks.update).not.toHaveBeenCalled();
+  });
+  it("restricts preview to authors, editorial staff and assigned reviewers", async () => {
+    mocks.get.mockResolvedValue({ ...article, status: "draft" });
+    expect(await new ArticleService().getPreview(access(["articles.review"], "other"), "id")).toBeNull();
+    expect(await new ArticleService().getPreview(access(["articles.edit_own"], "author"), "id")).toMatchObject({ id: "id" });
+    expect(await new ArticleService().getPreview(access(["articles.review"], "assigned"), "id")).toMatchObject({ id: "id" });
+    expect(await new ArticleService().getPreview(access(["articles.publish"]), "id")).toMatchObject({ id: "id" });
+    mocks.get.mockResolvedValue(article);
+    expect(await new ArticleService().getPreview(access(["admin.access"]), "id")).toBeNull();
+  });
   it("rejects a repeated published status from a non-editorial manager", async () => {
     await expect(new ArticleService().changeStatus(access(["admin.access", "scientists.edit"]), "id", "published")).rejects.toMatchObject({ code: "invalid_transition" });
     expect(mocks.status).not.toHaveBeenCalled();
@@ -45,15 +58,15 @@ describe("article service authorization", () => {
     expect(mocks.update).not.toHaveBeenCalled();
   });
   it("performs an editor's update through the single transactional repository method", async () => {
-    await new ArticleService().update(access(["articles.edit_any"]), "id", {} as ArticleInput);
+    await new ArticleService().update(access(["articles.edit_any"]), "id", { expectedVersion: 1 } as ArticleInput);
     expect(mocks.update).toHaveBeenCalledOnce();
     expect(mocks.status).not.toHaveBeenCalled();
   });
   it("surfaces database authorization and slug failures", async () => {
     mocks.update.mockRejectedValueOnce({ message: "forbidden" });
-    await expect(new ArticleService().update(access(["articles.edit_any"]), "id", {} as ArticleInput)).rejects.toMatchObject({ code: "forbidden" });
+    await expect(new ArticleService().update(access(["articles.edit_any"]), "id", { expectedVersion: 1 } as ArticleInput)).rejects.toMatchObject({ code: "forbidden" });
     mocks.update.mockRejectedValueOnce({ code: "23505", message: "duplicate key" });
-    await expect(new ArticleService().update(access(["articles.edit_any"]), "id", {} as ArticleInput)).rejects.toMatchObject({ code: "slug_conflict" });
+    await expect(new ArticleService().update(access(["articles.edit_any"]), "id", { expectedVersion: 1 } as ArticleInput)).rejects.toMatchObject({ code: "slug_conflict" });
   });
   it("rejects review of a newer version than the reviewer opened", async () => {
     mocks.get.mockResolvedValue({ ...article, status: "in_review", contentVersion: 2 });
