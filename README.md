@@ -72,7 +72,11 @@ SMU Admin используют одну доменную модель и одн�
 
 ## Локальный запуск
 
-1. Скопируйте `.env.example` в `.env.local` и заполните Supabase URL и ключи.
+1. Скопируйте `.env.example` в `.env.local` и заполните
+   `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+   (ключ `sb_publishable_...`) и серверный `SUPABASE_SERVICE_ROLE_KEY`.
+   Старый `NEXT_PUBLIC_SUPABASE_ANON_KEY` поддерживается как запасной вариант;
+   если заполнены оба публичных ключа, используется publishable key.
 2. Примените миграции из `supabase/migrations` по порядку.
 3. Выполните `supabase/seed.sql`.
 4. Создайте пользователя через Supabase Auth и один раз назначьте ему роль
