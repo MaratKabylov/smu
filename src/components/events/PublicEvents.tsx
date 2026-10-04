@@ -2,6 +2,7 @@
 import type { Metadata } from "next";
 import { ArrowLeft, ArrowUpRight, CalendarDays, Search } from "lucide-react";
 import Link from "next/link";
+import { RelatedArticles } from "@/components/articles/PublicArticleRelations";
 import { notFound } from "next/navigation";
 import { eventDate, eventFormatLabels, eventKindLabels, eventRegistrationOpen } from "@/lib/events";
 import { publicEventFiltersSchema } from "@/lib/validation/event";
@@ -130,7 +131,7 @@ export async function PublicEventDetail({ params }: { params: EventDetailParams 
           {eventRegistrationOpen(event) ? <a className="event-register" href={event.registrationUrl!} target="_blank" rel="noreferrer">{text.register}<ArrowUpRight aria-hidden="true" /></a> : event.registrationUrl && event.status !== "cancelled" ? <p>{text.closed}</p> : null}
           {event.externalUrl && event.status !== "cancelled" ? <a href={event.externalUrl} target="_blank" rel="noreferrer">{text.external}<ArrowUpRight aria-hidden="true" /></a> : null}
         </aside>
-      </div><div className="science-return"><Link href={"/events?lang=" + locale}>{text.catalog}</Link></div>
+      </div><RelatedArticles kind={"event"} id={event.id} locale={locale} /><div className="science-return"><Link href={"/events?lang=" + locale}>{text.catalog}</Link></div>
     </div></main><footer className="journal-footer"><span>© {new Date().getFullYear()} {text.footer}</span><Link href={"/events?lang=" + locale}>{text.title}</Link></footer>
   </>;
 }

@@ -2,6 +2,8 @@
 import type { Metadata } from "next";
 import { ArrowLeft, ArrowUpRight, Building2, Mail, Microscope } from "lucide-react";
 import Link from "next/link";
+import { ScientistPublications } from "@/components/science/PublicPublications";
+import { RelatedArticles } from "@/components/articles/PublicArticleRelations";
 import { notFound, permanentRedirect } from "next/navigation";
 import { CommunityHeader } from "@/components/scientists/CommunityHeader";
 import { getPublicScientistBySlug, PublicScientistService } from "@/server/services/scientist.service";
@@ -79,6 +81,8 @@ export default async function ScientistProfilePage({ params }: Props) {
             {scientist.organization?.websiteUrl ? <a href={scientist.organization.websiteUrl} target="_blank" rel="noreferrer">{copy.organizationSite}<ArrowUpRight aria-hidden="true" /></a> : null}
           </aside>
         </div>
+        <ScientistPublications id={scientist.id} locale={locale} />
+        <RelatedArticles kind="scientist" id={scientist.id} locale={locale} />
       </div>
     </main>
     <footer className="journal-footer"><span>© {new Date().getFullYear()} Совет молодых учёных</span><Link href={`/scientists?lang=${locale}`}>{copy.catalog}</Link></footer>

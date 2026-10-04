@@ -2,6 +2,7 @@
 import type { Metadata } from "next";
 import { ArrowLeft, ArrowUpRight, FlaskConical, Search } from "lucide-react";
 import Link from "next/link";
+import { RelatedArticles } from "@/components/articles/PublicArticleRelations";
 import { notFound } from "next/navigation";
 import { ScienceHeader } from "./ScienceHeader";
 import { scienceWorkPath, scienceWorkStageLabels, scienceWorkTitles } from "@/lib/science-work";
@@ -91,7 +92,7 @@ export async function PublicScienceWorkDetail({ kind, params }: { kind: ScienceW
           {work.doi ? <a href={"https://doi.org/" + work.doi} target="_blank" rel="noreferrer">DOI: {work.doi}<ArrowUpRight aria-hidden="true" /></a> : null}
           {work.externalUrl ? <a href={work.externalUrl} target="_blank" rel="noreferrer">{text.external}<ArrowUpRight aria-hidden="true" /></a> : null}
         </aside>
-      </div><div className="science-return"><Link href={base + "?lang=" + locale}>{text.catalog}</Link></div>
+      </div><RelatedArticles kind={kind} id={work.id} locale={locale} /><div className="science-return"><Link href={base + "?lang=" + locale}>{text.catalog}</Link></div>
     </div></main><footer className="journal-footer"><span>© {new Date().getFullYear()} {text.footer}</span><Link href={base + "?lang=" + locale}>{scienceWorkTitles[locale][kind]}</Link></footer>
   </>;
 }

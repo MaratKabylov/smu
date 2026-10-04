@@ -6,6 +6,13 @@ const translation = { title: "Заголовок", slug: "article", excerpt: "О
 const snapshot: ArticleSnapshot = { contentType: "article", categoryId: null, coverMediaId: null, tagIds: ["b", "a"], ru: translation, kk: { ...translation, title: "Тақырып" } };
 
 describe("revision comparison", () => {
+  it("detects changed relation roles and order while treating missing legacy relations as empty", () => {
+    const relations = [{ kind: "scientist" as const, entityId: "first", relationType: "expert" as const }, { kind: "project" as const, entityId: "second", relationType: "subject" as const }];
+    expect(snapshotComparison(snapshot, { ...snapshot, relations: [] }, "kk").filter(field => field.changed)).toEqual([]);
+    for (const next of [[...relations].reverse(), [{ ...relations[0], relationType: "mentioned" as const }, relations[1]]]) {
+      expect(snapshotComparison({ ...snapshot, relations }, { ...snapshot, relations: next }, "ru").filter(field => field.changed).map(field => field.label)).toEqual(["Связанные научные объекты"]);
+    }
+  });
   it("detects changed credit roles, author order and primary category", () => {
     const authors = [{ authorId: "first", role: "author" as const }, { authorId: "second", role: "coauthor" as const }];
     const left = { ...snapshot, authors, categoryIds: ["first", "second"] };

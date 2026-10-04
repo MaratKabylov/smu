@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { Save } from "lucide-react";
 import Link from "next/link";
 import { RichTextEditor } from "./RichTextEditor";
+import { ArticleRelationsEditor } from "./ArticleRelationsEditor";
+import type { ArticleRelationLink } from "@/types/domain/article-relations";
 import { ArticleAuthorsEditor } from "./ArticleAuthorsEditor";
 import { ArticleAutosave, type SaveState } from "@/lib/articles/autosave";
 import { saveArticleDraft } from "@/server/actions/article.actions";
@@ -39,6 +41,7 @@ export function ArticleForm({
   const router = useRouter();
   const [saveState, setSaveState] = useState<SaveState>({ status: "saved" });
   const [authors, setAuthors] = useState<ArticleAuthorLink[]>(() => article?.authors.map(item => ({ authorId: item.id, role: item.role })) ?? []);
+  const [relations, setRelations] = useState<ArticleRelationLink[]>(() => article?.relations ?? []);
   const [categoryIds, setCategoryIds] = useState<string[]>(() => article?.categories.map(item => item.id) ?? []);
   const id = article?.id;
   const version = article?.contentVersion;
@@ -172,6 +175,7 @@ export function ArticleForm({
         </fieldset>
       </section>
 
+      <ArticleRelationsEditor value={relations} disabled={disabled} onChange={value => { setRelations(value); changed(); }} />
       <div className="translation-grid">
         <TranslationFields locale="Ru" language="Русская версия" value={ru} disabled={disabled} media={media} onChange={changed} />
         <TranslationFields locale="Kk" language="Қазақша нұсқа" value={kk} disabled={disabled} media={media} onChange={changed} />
@@ -247,5 +251,5 @@ const saveErrorMessages: Record<string, string> = {
   forbidden: "Недостаточно прав для сохранения. Правки остаются в редакторе.",
   slug_conflict: "Этот slug уже занят. Измените адрес и сохраните снова.",
   slug_reserved: "Этот адрес сохранён в истории другого материала. Выберите другой slug.",
-  invalid_reference: "Выбранные авторы, тип, категории или файлы недоступны. Обновите выбор и сохраните снова.",
+  invalid_reference: "Выбранные связи, авторы, тип, категории или файлы недоступны. Обновите выбор и сохраните снова.",
 };

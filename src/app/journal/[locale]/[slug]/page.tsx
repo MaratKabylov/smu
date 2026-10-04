@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ArrowLeft, CalendarDays, Languages } from "lucide-react";
 import Link from "next/link";
+import { PublicArticleRelations } from "@/components/articles/PublicArticleRelations";
 import { notFound, permanentRedirect } from "next/navigation";
 import { JournalHeader } from "@/components/journal/JournalHeader";
 import { RichTextContent } from "@/components/articles/RichTextContent";
@@ -143,6 +144,7 @@ export default async function PublicArticlePage({ params }: PublicArticlePagePro
             <ArticleCredits authors={article.authors} locale={locale} detailed />
           </article>
 
+          <PublicArticleRelations id={article.id} locale={locale} />
           <section className="public-article-end">
             <span>СМУ</span>
             <div>

@@ -29,6 +29,26 @@ beforeEach(() => {
 });
 
 describe("inline editorial saves", () => {
+  it("passes relations through autosave and invalidates reverse-link pages", async () => {
+    const data = form(); const relations = [{ kind: "scientist", entityId: id, relationType: "expert" }];
+    data.set("relations", JSON.stringify(relations));
+    expect(await saveArticleDraft(id, data)).toMatchObject({ ok: true });
+    expect(mocks.update).toHaveBeenCalledWith(expect.anything(), id, expect.objectContaining({ relations }));
+    for (const path of ["/scientists", "/projects", "/research", "/events", "/publications"]) expect(mocks.invalidate).toHaveBeenCalledWith(path, "layout");
+  });
+  it("rejects malformed, duplicate and invalid-role relations before any writes", async () => {
+    for (const relations of ["{broken", "null", JSON.stringify([{ kind: "scientist", entityId: id, relationType: "owner" }]), JSON.stringify(Array(2).fill({ kind: "project", entityId: id, relationType: "subject" }))]) {
+      const data = form(); data.set("relations", relations);
+      expect(await saveArticleDraft(id, data)).toEqual({ ok: false, error: "validation" });
+    }
+    expect(mocks.update).not.toHaveBeenCalled(); expect(mocks.access).not.toHaveBeenCalled();
+  });
+  it("distinguishes an omitted relation field from explicit clearing", async () => {
+    const data = form(); await saveArticleDraft(id, data);
+    expect(mocks.update.mock.calls[0][2].relations).toBeUndefined();
+    data.set("relations", "[]"); await saveArticleDraft(id, data);
+    expect(mocks.update.mock.calls[1][2].relations).toEqual([]);
+  });
   it("passes ordered credits and categories through autosave for a managed type", async () => {
     const data = form(); data.set("creditsVersion", "1"); data.set("contentType", "report");
     data.append("categoryIds", id); data.set("authors", JSON.stringify([{ authorId: id, role: "translator" }]));

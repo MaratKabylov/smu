@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { articleRelationKinds, articleRelationTypes } from "../../types/domain/article-relations";
 import { plainTextDocument, richTextDocumentSchema, richTextToPlainText } from "../articles/rich-text";
 import { articleAuthorRoles, articleStatuses } from "../../types/domain/article";
 
@@ -34,6 +35,8 @@ const translationSchema = z.object({
 }).refine(value => value.body.trim().length >= 20 && value.body.length <= 200_000, { message: "Основной текст должен содержать от 20 до 200000 символов." });
 
 export const articleInputSchema = z.object({
+  relations: z.array(z.object({ kind: z.enum(articleRelationKinds), entityId: z.uuid(), relationType: z.enum(articleRelationTypes) }))
+    .max(50).refine(items => new Set(items.map(item => `${item.kind}:${item.entityId}`)).size === items.length).optional(),
   expectedVersion: z.number().int().positive().optional(),
   contentType: slugSchema,
   categoryId: nullableUuid.default(""),

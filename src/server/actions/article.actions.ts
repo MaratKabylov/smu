@@ -24,6 +24,7 @@ function articleInputFromFormData(formData: FormData) {
   }
   return articleInputSchema.safeParse({
     expectedVersion: formData.get("expectedVersion") ? Number(formData.get("expectedVersion")) : undefined,
+    relations: formData.has("relations") ? document("relations") : undefined,
     contentType: formData.get("contentType"),
     categoryId: formData.get("categoryId") ?? "",
     categoryIds: formData.has("creditsVersion") ? formData.getAll("categoryIds") : undefined,
@@ -66,6 +67,7 @@ export async function saveArticleDraft(id: string | null, formData: FormData): P
     // Keep the editing form mounted; the client refreshes workflow data only after
     // a save has completed and no further edits are waiting.
     revalidatePath("/journal", "layout");
+    for (const path of ["/scientists", "/projects", "/research", "/events", "/publications"]) revalidatePath(path, "layout");
     return { ok: true, id: savedId, version };
   } catch (error) { return { ok: false, error: errorReason(error) }; }
 }
@@ -85,6 +87,7 @@ function errorReason(error: unknown) {
 function invalidateArticles() {
   revalidatePath("/admin/content/articles", "layout");
   revalidatePath("/journal", "layout");
+  for (const path of ["/scientists", "/projects", "/research", "/events", "/publications"]) revalidatePath(path, "layout");
 }
 
 export async function assignArticleReviewer(id: string, formData: FormData) {

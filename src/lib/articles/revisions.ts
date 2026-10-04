@@ -18,6 +18,7 @@ export function articleSnapshot(article: Article): ArticleSnapshot {
     };
   }
   return {
+    relations: article.relations ?? [],
     contentType: article.contentType, categoryId: article.categoryId, coverMediaId: article.coverMediaId,
     categoryIds: article.categories.map(item => item.id),
     authors: article.authors.map(item => ({ authorId: item.id, role: item.role })),
@@ -38,6 +39,7 @@ export function snapshotComparison(left: ArticleSnapshot, right: ArticleSnapshot
   const fields: Array<{ label: string; left: unknown; right: unknown; structured?: boolean }> = [
     { label: "Тип материала", left: left.contentType, right: right.contentType },
     { label: "Категории", left: left.categoryIds ?? (left.categoryId ? [left.categoryId] : []), right: right.categoryIds ?? (right.categoryId ? [right.categoryId] : []) },
+    { label: "Связанные научные объекты", left: left.relations ?? [], right: right.relations ?? [] },
     { label: "Авторы и роли", left: left.authors ?? [], right: right.authors ?? [] },
     { label: "Обложка", left: left.coverMediaId, right: right.coverMediaId },
     { label: "Теги", left: [...left.tagIds].sort(), right: [...right.tagIds].sort() },

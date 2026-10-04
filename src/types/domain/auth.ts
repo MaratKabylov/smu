@@ -33,6 +33,7 @@ export const permissionCodes = [
   "mentorship.manage",
   "research_program.manage",
   "events.manage",
+  "publications.manage",
   "users.manage",
   "roles.manage",
   "settings.manage",

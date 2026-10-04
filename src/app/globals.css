@@ -3028,3 +3028,18 @@ th {
 .article-editor-panel details { padding-block: 12px; border-bottom: 1px solid var(--border, #e5e7eb); }
 .article-editor-panel details > summary { cursor: pointer; line-height: 1.6; }
 .article-editor-panel details[open] > summary { margin-bottom: 16px; }
+
+/* Editorial links and scientific bibliographic records. */
+fieldset.article-editor-panel { min-width: 0; }
+.relation-options { list-style: none; padding: 0; display: grid; gap: 12px; }
+.relation-options li { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border, #e5e7eb); }
+.relation-options li > span:first-child { flex: 1 1 220px; overflow-wrap: anywhere; }
+.relation-options small { display: block; color: #64748b; }
+.relation-options label { display: grid; gap: 4px; }
+.relation-options li > a { overflow-wrap: anywhere; }
+.public-relations { margin: 40px 0; }
+.public-relations ul { list-style: none; padding: 0; display: grid; gap: 16px; }
+.public-relations li { padding: 18px; background: #f5f7fa; border-radius: 12px; overflow-wrap: anywhere; }
+.public-relations li > a { display: block; font-weight: 600; }
+.public-relations small { display: block; margin-bottom: 8px; color: #64748b; }
+.public-relations p { margin: 8px 0 0; }

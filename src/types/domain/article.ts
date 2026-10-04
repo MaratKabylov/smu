@@ -1,3 +1,4 @@
+import type { ArticleRelationLink } from "./article-relations";
 import type { RichTextNode } from "@/lib/articles/rich-text";
 
 export const articleStatuses = [
@@ -58,6 +59,7 @@ export type ArticleTaxonomyItem = {
 };
 
 export type Article = {
+  relations?: ArticleRelationLink[];
   id: string;
   authorId: string;
   scientificReviewerId: string | null;
@@ -88,6 +90,7 @@ export type ArticleTaxonomy = {
 };
 
 export type ArticleSnapshot = {
+  relations?: ArticleRelationLink[];
   contentType: ArticleContentType;
   categoryId: string | null;
   // Absent in revisions created before migration 012.

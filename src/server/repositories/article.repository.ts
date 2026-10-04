@@ -1,4 +1,5 @@
 import "server-only";
+import { ArticleRelationsRepository } from "./article-relations.repository";
 import { loadArticleCredits, mapAuthor, mapTaxonomyItem, authorPublicColumns, taxonomyColumns, type AuthorRow } from "./article-credits.repository";
 import type { RichTextNode } from "@/lib/articles/rich-text";
 
@@ -223,7 +224,7 @@ export class ArticleRepository {
     ];
     const authorIds = [...new Set(rows.map((row) => row.author_id))];
 
-    const [translationsResult, linksResult, profilesResult, categoriesResult, credits, typesResult] =
+    const [translationsResult, linksResult, profilesResult, categoriesResult, credits, typesResult, relations] =
       await Promise.all([
         this.client
           .from("article_translations")
@@ -245,6 +246,7 @@ export class ArticleRepository {
           : Promise.resolve({ data: [], error: null }),
         loadArticleCredits(this.client, articleIds),
         this.client.from("article_types").select(taxonomyColumns).in("slug", [...new Set(rows.map(row => row.content_type))]),
+        new ArticleRelationsRepository(this.client).loadLinks(articleIds),
       ]);
 
     if (translationsResult.error) throw translationsResult.error;
@@ -277,6 +279,7 @@ export class ArticleRepository {
 
     return rows.map((row) => ({
       id: row.id,
+      relations: relations.get(row.id) ?? [],
       authorId: row.author_id,
       scientificReviewerId: row.scientific_reviewer_id,
       contentVersion: row.content_version,

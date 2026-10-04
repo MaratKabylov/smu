@@ -42,5 +42,6 @@ export async function restoreArticleRevision(id: string, revisionId: string, exp
   catch (error) { redirect(`${path}?revision=${revisionId}&error=${errorReason(error)}`); }
   revalidatePath("/admin/content/articles", "layout");
   revalidatePath("/journal", "layout");
+  for (const path of ["/scientists", "/projects", "/research", "/events", "/publications"]) revalidatePath(path, "layout");
   redirect(`/admin/content/articles/${id}?restored=1`);
 }

@@ -18,6 +18,7 @@ let upgradedScientist: Record<string, unknown>;
 let upgradedContent: Record<string, unknown>;
 let revisionUpgrade: Record<string, unknown>;
 let creditsUpgrade: Record<string, unknown>;
+let relationsUpgrade: Record<string, unknown>;
 const legacyBody = "  Legacy first line.\n\nSecond line with <script>literal text</script>.\n  ";
 const translation = { title: "A scientific article", slug: "article-ru", excerpt: "A description of regional scientific research.", body: "A detailed explanation of regional scientific research and its results.", seoTitle: null, seoDescription: null };
 const input = { contentType: "article", categoryId: null, coverMediaId: null, tagIds: [], ru: translation, kk: { ...translation, slug: "article-kk" } };
@@ -100,6 +101,11 @@ beforeAll(async () => {
     }
     const sql = (await readFile(new URL("./migrations/" + file, import.meta.url), "utf8")).replace("create extension if not exists pgcrypto;", "");
     await db.exec(sql);
+    if (file === "013_article_relations.sql") relationsUpgrade = (await db.query<Record<string, unknown>>(`
+      select a.status, a.content_type, a.content_version, a.approved_version,
+        (select snapshot->'relations' from public.article_revisions where article_id = a.id) as relations,
+        (select count(*)::int from public.smu_article_links) as link_count from public.articles a
+    `)).rows[0];
     if (file === "012_article_credits_taxonomy.sql") creditsUpgrade = (await db.query<Record<string, unknown>>(`
       select a.status, a.content_type, a.content_version, a.approved_version,
         (select count(*)::int from public.article_authors where article_id = a.id) as author_count,
@@ -124,11 +130,205 @@ beforeAll(async () => {
 }, 30000);
 afterAll(async () => { await db.close(); });
 beforeEach(async () => {
-  await db.exec("delete from public.articles; delete from public.scientist_profiles; delete from public.slug_redirects; delete from public.audit_logs;");
+  await db.exec("delete from public.articles; delete from public.publications; delete from public.science_works; delete from public.events; delete from public.scientist_profiles; delete from public.slug_redirects; delete from public.audit_logs;");
   await db.exec("delete from public.authors; delete from public.article_types where slug not in ('article', 'news', 'interview', 'announcement'); update public.article_types set is_active = true; update public.article_categories set is_active = true;");
 });
 
 const authorInput = { profileId: null, nameRu: "Внешний автор", nameKk: "Сыртқы автор", bioRu: "Биография", bioKk: "Өмірбаян", organization: "University", position: "Researcher", websiteUrl: "https://example.kz", isActive: true };
+
+type EditorialLink = { kind: string; entityId: string; relationType: string };
+async function relationFixtures() {
+  const scientist = await saveScientist(); await verify(scientist);
+  const project = (await db.query<{ id: string }>(`insert into public.science_works(kind, field_id, created_by, status, published_at)
+    values('project', $1, $2, 'published', now() - interval '1 day') returning id`, [field, admin])).rows[0].id;
+  const research = (await db.query<{ id: string }>(`insert into public.science_works(kind, field_id, created_by, status, published_at)
+    values('research', $1, $2, 'published', now() - interval '1 day') returning id`, [field, admin])).rows[0].id;
+  for (const [id, kind] of [[project, "project"], [research, "research"]]) {
+    for (const locale of ["ru", "kk"]) await db.query(`insert into public.science_work_translations(work_id, locale, title, slug, summary, description)
+      values($1, $2, $3, $4, $5, $6)`, [id, locale, `${kind} ${locale}`, `${kind}-${locale}`, "A regional scientific work summary.", "A detailed description of the regional scientific work and research."]);
+  }
+  const event = (await db.query<{ id: string }>(`insert into public.events(kind, format, starts_at, ends_at, created_by, status, published_at)
+    values('seminar', 'offline', now() + interval '1 day', now() + interval '2 days', $1, 'published', now() - interval '1 day') returning id`, [admin])).rows[0].id;
+  for (const locale of ["ru", "kk"]) await db.query(`insert into public.event_translations(event_id, locale, title, slug, summary, description, organizer)
+    values($1, $2, $3, $4, $5, $6, 'Regional University')`, [event, locale, `Event ${locale}`, `event-${locale}`, "A regional scientific seminar summary.", "A detailed description of the scientific seminar at the university."]);
+  const publication = await savePublicationRecord(scientist);
+  const links = [
+    { kind: "scientist", entityId: scientist, relationType: "expert" },
+    { kind: "project", entityId: project, relationType: "subject" },
+    { kind: "research", entityId: research, relationType: "mentioned" },
+    { kind: "event", entityId: event, relationType: "mentioned" },
+    { kind: "publication", entityId: publication, relationType: "author" },
+  ];
+  return { scientist, project, research, event, publication, links };
+}
+async function savePublicationRecord(scientistId: string, user = scientistManager, patch: Record<string, unknown> = {}, id: string | null = null) {
+  return asUser(user, async () => (await db.query<{ id: string }>("select public.save_publication($1, $2::jsonb) as id", [id, JSON.stringify({
+    scientistId, title: "Regional scientific publication", year: 2026, journal: "Regional Science", doi: "10.1234/regional",
+    url: "https://example.kz/paper", publicationType: "article", status: "published", ...patch,
+  })])).rows[0].id);
+}
+const publicLinks = (id: string, locale = "ru", user: string | null = null) => asUser(user, () => db.query<{ kind: string; entity_id: string; title: string; href: string; relation_type: string }>(
+  "select * from public.public_article_relations($1, $2)", [id, locale]), user ? "authenticated" : "anon");
+const reverseLinks = (link: EditorialLink, locale = "ru", user: string | null = null) => asUser(user, () => db.query<{ id: string; title: string; href: string; relation_type: string }>(
+  "select * from public.public_related_articles($1, $2, $3)", [link.kind, link.entityId, locale]), user ? "authenticated" : "anon");
+
+describe("editorial relationships and scientific publications", () => {
+  it("upgrades old articles and snapshots without changing their workflow or inventing links", () => {
+    expect(relationsUpgrade).toEqual({ status: "published", content_type: "article", content_version: 1, approved_version: 1, relations: [], link_count: 0 });
+  });
+  it.each(["scientist", "project", "research", "event", "publication"])("rejects unavailable %s targets and filters public links in an editorial session", async kind => {
+    const { links } = await relationFixtures();
+    const link = links.find(item => item.kind === kind)!;
+    const id = await save(author, { ...input, relations: [link] }); await publish(id);
+    const table = kind === "scientist" ? "scientist_profiles" : kind === "project" || kind === "research" ? "science_works" : kind === "event" ? "events" : "publications";
+    for (const patch of ["status = 'draft'", "deleted_at = now()", ...(kind === "scientist" ? [] : ["published_at = now() + interval '1 day'"])]) {
+      await db.query(`update public.${table} set status = '${kind === "scientist" ? "verified" : "published"}', deleted_at = null${kind === "scientist" ? "" : ", published_at = now() - interval '1 day'"} where id = $1`, [link.entityId]);
+      await db.query(`update public.${table} set ${patch} where id = $1`, [link.entityId]);
+      expect((await publicLinks(id, "ru", admin)).rows).toEqual([]);
+      expect((await reverseLinks(link, "kk", admin)).rows).toEqual([]);
+      await expect(save(editor, { ...input, relations: [link] }, id)).rejects.toThrow("invalid_reference");
+    }
+  });
+  it("saves all five FK-backed kinds and roles in order with content and audit", async () => {
+    const { links } = await relationFixtures();
+    const id = await save(author, { ...input, relations: links });
+    const rows = (await db.query("select kind, entity_id, relation_type, sort_order from public.smu_article_links where article_id = $1 order by sort_order", [id])).rows;
+    expect(rows).toEqual(links.map((link, sort_order) => ({ kind: link.kind, entity_id: link.entityId, relation_type: link.relationType, sort_order })));
+    expect((await db.query<{ new_data: unknown }>("select new_data from public.audit_logs where entity_id = $1 and action = 'article.relations.save'", [id])).rows[0].new_data).toEqual({ relations: links });
+    expect((await publicLinks(id)).rows).toEqual([]);
+    await publish(id);
+    expect((await publicLinks(id, "kk")).rows.map(row => row.kind)).toEqual(links.map(link => link.kind));
+    for (const link of links) expect((await reverseLinks(link, "kk")).rows).toMatchObject([{ id, href: "/journal/kk/article-kk", relation_type: link.relationType }]);
+  });
+  it("omitted links are preserved and an explicit empty array clears them", async () => {
+    const { links } = await relationFixtures();
+    const id = await save(author, { ...input, relations: links });
+    await save(author, input, id);
+    expect((await db.query("select * from public.smu_article_links where article_id = $1", [id])).rows).toHaveLength(5);
+    await save(author, { ...input, relations: [] }, id);
+    expect((await db.query("select * from public.smu_article_links where article_id = $1", [id])).rows).toEqual([]);
+  });
+  it("rolls back content, versions, approval and audit for unavailable and wrong-kind targets", async () => {
+    const { links, research } = await relationFixtures();
+    const id = await save(author, { ...input, relations: links }); await publish(id);
+    const before = (await db.query("select * from public.articles where id = $1", [id])).rows[0];
+    const audit = (await db.query("select * from public.audit_logs")).rows.length;
+    for (const relation of [{ ...links[0], entityId: otherAuthor }, { ...links[1], entityId: research }]) {
+      await expect(save(editor, { ...input, relations: [relation] }, id)).rejects.toThrow("invalid_reference");
+    }
+    expect((await db.query("select * from public.articles where id = $1", [id])).rows[0]).toEqual(before);
+    expect((await db.query("select * from public.audit_logs")).rows).toHaveLength(audit);
+    expect((await publicLinks(id)).rows).toHaveLength(5);
+  });
+  it("rejects duplicates, invalid roles, null links and oversized arrays atomically", async () => {
+    const { links } = await relationFixtures();
+    for (const relations of [[links[0], links[0]], [{ ...links[0], relationType: "owner" }], null, Array(51).fill(links[0])]) {
+      await expect(save(author, { ...input, relations })).rejects.toThrow("invalid_input");
+    }
+    expect((await db.query("select * from public.articles")).rows).toEqual([]);
+    expect((await db.query("select * from public.audit_logs where entity_type = 'article'")).rows).toEqual([]);
+  });
+  it("linked scientists and reviewer roles do not grant article ownership or review rights", async () => {
+    const { links } = await relationFixtures();
+    const id = await save(author, { ...input, relations: [{ ...links[0], relationType: "reviewer" }] });
+    await expect(save(otherAuthor, { ...input, relations: [] }, id)).rejects.toThrow("forbidden");
+    await state(author, id, "in_review");
+    await expect(state(reviewer, id, "approved")).rejects.toThrow("forbidden");
+    expect((await asUser(otherAuthor, () => db.query("select * from public.article_scientists"))).rows).toEqual([]);
+    await assign(admin, id, reviewer);
+    expect((await asUser(reviewer, () => db.query("select * from public.article_scientists"))).rows).toHaveLength(1);
+    expect((await asUser(otherReviewer, () => db.query("select * from public.article_scientists"))).rows).toEqual([]);
+  });
+  it("cannot write link tables or call private helpers and views directly", async () => {
+    const { links } = await relationFixtures();
+    const id = await save(author, { ...input, relations: links });
+    await expect(asUser(author, () => db.query("delete from public.article_scientists where article_id = $1", [id]))).rejects.toThrow("permission denied");
+    await expect(asUser(admin, () => db.query("select public.save_article_content(null, $1::jsonb)", [JSON.stringify(input)]))).rejects.toThrow("permission denied");
+    await expect(asUser(admin, () => db.query("select * from public.smu_public_relation_targets"))).rejects.toThrow("permission denied");
+    await expect(asUser(null, () => db.query("select * from public.article_scientists"), "anon")).rejects.toThrow("permission denied");
+    await expect(asUser(null, () => db.query("select * from public.search_article_relation_targets('scientist')"), "anon")).rejects.toThrow("permission denied");
+  });
+  it("searches both languages, resolves selected IDs and refuses non-editorial callers", async () => {
+    const { project } = await relationFixtures();
+    const search = (user: string, kind: string, query: string, ids: string[] | null = null) => asUser(user, () => db.query("select * from public.search_article_relation_targets($1, $2, $3::uuid[])", [kind, query, ids]));
+    expect((await search(author, "project", "project kk")).rows).toMatchObject([{ entity_id: project, title_ru: "project ru", title_kk: "project kk" }]);
+    expect((await search(author, "project", "", [otherAuthor])).rows).toEqual([]);
+    await expect(search(author, "editorial-article", "")).rejects.toThrow("invalid_input");
+    await expect(search(scientistManager, "scientist", "")).resolves.toBeDefined();
+    await db.query("insert into auth.users(id, email) values('00000000-0000-4000-a000-000000000080', 'ordinary@example.kz') on conflict do nothing");
+    await expect(search("00000000-0000-4000-a000-000000000080", "scientist", "")).rejects.toThrow("forbidden");
+  });
+  it("hides draft, future and soft-deleted articles from reverse links even for administrators", async () => {
+    const { links } = await relationFixtures();
+    const id = await save(author, { ...input, relations: links });
+    for (const user of [null, admin]) expect((await reverseLinks(links[0], "ru", user)).rows).toEqual([]);
+    await publish(id);
+    await db.query("update public.articles set published_at = now() + interval '1 day' where id = $1", [id]);
+    expect((await reverseLinks(links[0], "ru", admin)).rows).toEqual([]);
+    expect((await publicLinks(id, "ru", admin)).rows).toEqual([]);
+    await db.query("update public.articles set published_at = now() - interval '1 day', deleted_at = now() where id = $1", [id]);
+    expect((await reverseLinks(links[0], "ru", admin)).rows).toEqual([]);
+  });
+  it("hides depublished targets on both sides and invalidates scientific publications when their scientist becomes private", async () => {
+    const { links, scientist, project, event, publication } = await relationFixtures();
+    const id = await save(author, { ...input, relations: links }); await publish(id);
+    await db.query("update public.scientist_profiles set status = 'draft' where id = $1", [scientist]);
+    await db.query("update public.science_works set deleted_at = now() where id = $1", [project]);
+    await db.query("update public.events set published_at = now() + interval '1 day' where id = $1", [event]);
+    for (const user of [null, admin]) {
+      expect((await publicLinks(id, "ru", user)).rows.map(row => row.kind)).toEqual(["research"]);
+      for (const link of links.filter(item => item.kind !== "research")) expect((await reverseLinks(link, "ru", user)).rows).toEqual([]);
+      expect((await asUser(user, () => db.query("select * from public.list_public_publications('ru', $1)", [publication]), user ? "authenticated" : "anon")).rows).toEqual([]);
+    }
+    await expect(save(editor, { ...input, relations: links }, id)).rejects.toThrow("invalid_reference");
+  });
+  it("allows cancelled public events but refuses archived ones", async () => {
+    const { links, event } = await relationFixtures();
+    await db.query("update public.events set status = 'cancelled' where id = $1", [event]);
+    const id = await save(author, { ...input, relations: [links[3]] }); await publish(id);
+    expect((await publicLinks(id)).rows).toHaveLength(1);
+    await db.query("update public.events set status = 'archived' where id = $1", [event]);
+    expect((await publicLinks(id, "ru", admin)).rows).toEqual([]);
+  });
+  it("includes relations in manual and workflow snapshots and restores order and roles", async () => {
+    const { links } = await relationFixtures();
+    const id = await save(author, { ...input, relations: links });
+    const revision = await createRevision(author, id);
+    await save(author, { ...input, relations: [{ ...links[4], relationType: "mentioned" }] }, id);
+    await restoreRevision(author, id, revision, 2);
+    const snapshot = (await db.query<{ snapshot: { relations: EditorialLink[] } }>("select snapshot from public.article_revisions where id = $1", [revision])).rows[0].snapshot;
+    expect(snapshot.relations).toEqual(links);
+    await publish(id);
+    const snapshots = (await db.query<{ snapshot: { relations: EditorialLink[] } }>("select snapshot from public.article_revisions where article_id = $1 and reason in ('review','publish')", [id])).rows;
+    expect(snapshots).toHaveLength(2);
+    expect(snapshots.every(row => JSON.stringify(row.snapshot.relations) === JSON.stringify(links))).toBe(true);
+    expect((await publicLinks(id)).rows.map(row => row.relation_type)).toEqual(links.map(link => link.relationType));
+  });
+  it("rolls back the restore checkpoint and audit when an old linked target is unavailable", async () => {
+    const { links, scientist } = await relationFixtures();
+    const id = await save(author, { ...input, relations: [links[0]] });
+    const revision = await createRevision(author, id);
+    await save(author, { ...input, relations: [] }, id);
+    await db.query("update public.scientist_profiles set deleted_at = now() where id = $1", [scientist]);
+    const auditCount = (await db.query("select * from public.audit_logs")).rows.length;
+    await expect(restoreRevision(author, id, revision, 2)).rejects.toThrow("invalid_reference");
+    expect((await db.query("select * from public.article_revisions where article_id = $1", [id])).rows).toHaveLength(1);
+    expect((await db.query("select * from public.audit_logs")).rows).toHaveLength(auditCount);
+    expect((await db.query("select content_version from public.articles where id = $1", [id])).rows[0]).toEqual({ content_version: 2 });
+  });
+  it("keeps scientific publication management separate and checks session, references, stale writes and URLs", async () => {
+    const scientist = await saveScientist(); await verify(scientist);
+    await expect(savePublicationRecord(scientist, author)).rejects.toThrow("forbidden");
+    await expect(savePublicationRecord(scientist, scientistManager, { url: "javascript:alert(1)" })).rejects.toThrow();
+    const id = await savePublicationRecord(scientist);
+    await expect(savePublicationRecord(scientist, scientistManager, {}, id)).rejects.toThrow("stale_version");
+    const updatedAt = (await db.query<{ updated_at: Date }>("select updated_at from public.publications where id = $1", [id])).rows[0].updated_at;
+    await savePublicationRecord(scientist, scientistManager, { expectedUpdatedAt: updatedAt, status: "archived" }, id);
+    expect((await asUser(admin, () => db.query("select * from public.list_public_publications('ru', $1)", [id]))).rows).toEqual([]);
+    await expect(asUser(scientistManager, () => db.query("update public.publications set title = 'Direct write' where id = $1", [id]))).rejects.toThrow("permission denied");
+    expect((await db.query("select * from public.articles")).rows).toEqual([]);
+  });
+});
 async function directoryAuthor(user = editor, value: unknown = authorInput, id: string | null = null) {
   return asUser(user, async () => (await db.query<{ id: string }>("select public.save_article_author($1, $2::jsonb) as id", [id, JSON.stringify(value)])).rows[0].id);
 }

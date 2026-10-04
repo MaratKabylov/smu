@@ -39,6 +39,7 @@ const navigation: AdminNavigationSection[] = [
       { label: "Организации", icon: Building2 },
       { label: "Исследования", href: "/admin/science/research", icon: FlaskConical },
       { label: "Проекты", href: "/admin/science/projects", icon: LayoutGrid },
+      { label: "Научные публикации", href: "/admin/science/publications", icon: BookOpenText },
     ],
   },
   {
