@@ -16,6 +16,7 @@ const field = "00000000-0000-4000-a000-000000000010";
 let upgradedArticle: Record<string, unknown>;
 let upgradedScientist: Record<string, unknown>;
 let upgradedContent: Record<string, unknown>;
+let revisionUpgrade: Record<string, unknown>;
 const legacyBody = "  Legacy first line.\n\nSecond line with <script>literal text</script>.\n  ";
 const translation = { title: "A scientific article", slug: "article-ru", excerpt: "A description of regional scientific research.", body: "A detailed explanation of regional scientific research and its results.", seoTitle: null, seoDescription: null };
 const input = { contentType: "article", categoryId: null, coverMediaId: null, tagIds: [], ru: translation, kk: { ...translation, slug: "article-kk" } };
@@ -59,6 +60,10 @@ async function saveScientist(value: unknown = scientistInput, id: string | null 
 }
 const verify = (id: string) => asUser(scientistManager, () => db.query("select public.change_scientist_state($1, 'verified', false)", [id]));
 const visible = (table: string, user: string | null = null) => asUser(user, () => db.query("select * from public." + table), user ? "authenticated" : "anon");
+const createRevision = (user: string, id: string, version: number | null = 1) => asUser(user, async () =>
+  (await db.query<{ id: string }>("select public.create_article_revision($1, $2) as id", [id, version])).rows[0].id);
+const restoreRevision = (user: string, id: string, revisionId: string, version: number | null) => asUser(user, () =>
+  db.query("select public.restore_article_revision($1, $2, $3) as version", [id, revisionId, version]));
 
 beforeAll(async () => {
   // No default table grants: the new migration must be usable on a fresh project.
@@ -86,6 +91,7 @@ beforeAll(async () => {
     }
     const sql = (await readFile(new URL("./migrations/" + file, import.meta.url), "utf8")).replace("create extension if not exists pgcrypto;", "");
     await db.exec(sql);
+    if (file === "011_article_revisions.sql") revisionUpgrade = (await db.query<Record<string, unknown>>("select status, content_version, approved_version, (select count(*)::int from public.article_revisions) as revision_count from public.articles")).rows[0];
     if (file === "010_article_rich_text.sql") upgradedContent = (await db.query<Record<string, unknown>>("select body, content_json, public.validate_smu_rich_text(content_json) as recovered from public.article_translations")).rows[0];
     if (file === "009_editorial_integrity.sql") {
       upgradedArticle = (await db.query<Record<string, unknown>>("select status, content_version, approved_version, first_published_at = published_at as preserved from public.articles")).rows[0];
@@ -343,5 +349,189 @@ describe("permanent slug reservations", () => {
     const id = await save();
     await save(author, { ...input, ru: { ...translation, slug: "draft-renamed" } }, id);
     expect((await db.query("select * from public.slug_redirects")).rows).toHaveLength(0);
+  });
+});
+
+describe("article revision history", () => {
+  it("upgrades existing publications without changing their approval or inventing history", () => {
+    expect(revisionUpgrade).toEqual({ status: "published", content_version: 1, approved_version: 1, revision_count: 0 });
+  });
+  it("snapshots manual/review/publish with sequential numbers, but never ordinary saves or approval", async () => {
+    const id = await save();
+    await save(author, { ...input, ru: { ...translation, title: "Updated Russian title" } }, id);
+    expect((await db.query("select * from public.article_revisions")).rows).toHaveLength(0);
+    const revisionId = await createRevision(author, id, 2);
+    await state(author, id, "in_review");
+    await state(admin, id, "approved");
+    expect((await db.query("select * from public.article_revisions")).rows).toHaveLength(2);
+    await state(admin, id, "published");
+    expect((await db.query("select revision_number, content_version, reason, created_by from public.article_revisions order by revision_number")).rows).toEqual([
+      { revision_number: 1, content_version: 2, reason: "manual", created_by: author },
+      { revision_number: 2, content_version: 2, reason: "review", created_by: author },
+      { revision_number: 3, content_version: 2, reason: "publish", created_by: admin },
+    ]);
+    const snapshot = (await db.query<{ snapshot: Record<string, unknown> }>("select snapshot from public.article_revisions where id = $1", [revisionId])).rows[0].snapshot;
+    expect(snapshot).toMatchObject({ ...input, ru: { ...translation, title: "Updated Russian title" } });
+    expect(snapshot).not.toHaveProperty("authorId");
+    expect(snapshot).not.toHaveProperty("status");
+    expect((await db.query("select * from public.audit_logs where action = 'article.revision.create'")).rows).toHaveLength(3);
+  });
+
+  it("keeps history private even when the article is published, and rechecks reviewer assignment", async () => {
+    const id = await save(); await createRevision(author, id);
+    await assign(editor, id, reviewer); await publish(id);
+    expect((await visible("article_revisions", author)).rows).toHaveLength(3);
+    expect((await visible("article_revisions", admin)).rows).toHaveLength(3);
+    expect((await visible("article_revisions", reviewer)).rows).toHaveLength(3);
+    expect((await visible("article_revisions", otherAuthor)).rows).toHaveLength(0);
+    expect((await visible("article_revisions", otherReviewer)).rows).toHaveLength(0);
+    expect((await visible("article_revisions", scientistManager)).rows).toHaveLength(0);
+    await expect(visible("article_revisions")).rejects.toThrow(/permission denied/);
+    await state(admin, id, "draft"); await assign(editor, id, otherReviewer);
+    expect((await visible("article_revisions", reviewer)).rows).toHaveLength(0);
+    expect((await visible("article_revisions", otherReviewer)).rows).toHaveLength(3);
+  });
+
+  it("denies direct revision writes, internal helper execution and non-session RPCs", async () => {
+    const id = await save(); const revisionId = await createRevision(author, id);
+    for (const command of ["delete from public.article_revisions", "update public.article_revisions set snapshot = '{}'::jsonb"]) {
+      await expect(asUser(admin, () => db.exec(command))).rejects.toThrow(/permission denied/);
+    }
+    await expect(asUser(admin, () => db.query("insert into public.article_revisions select * from public.article_revisions"))).rejects.toThrow(/permission denied/);
+    await expect(asUser(admin, () => db.query("select public.capture_article_revision($1, 'manual')", [id]))).rejects.toThrow(/permission denied/);
+    for (const role of ["anon", "service_role"]) {
+      await expect(asUser(null, () => db.query("select public.create_article_revision($1, 1)", [id]), role)).rejects.toThrow(/permission denied/);
+      await expect(asUser(null, () => db.query("select public.restore_article_revision($1, $2, 1)", [id, revisionId]), role)).rejects.toThrow(/permission denied/);
+    }
+    await expect(asUser(null, () => db.query("select public.create_article_revision($1, 1)", [id]))).rejects.toThrow("forbidden");
+  });
+
+  it("requires editorial write permissions for checkpoints and restore, beyond history read access", async () => {
+    const id = await save(); const revisionId = await createRevision(author, id);
+    await assign(editor, id, reviewer);
+    for (const user of [otherAuthor, reviewer, scientistManager]) {
+      await expect(createRevision(user, id)).rejects.toThrow("forbidden");
+      await expect(restoreRevision(user, id, revisionId, 1)).rejects.toThrow("forbidden");
+    }
+    await publish(id);
+    await expect(createRevision(author, id)).rejects.toThrow("forbidden");
+    await expect(restoreRevision(author, id, revisionId, 1)).rejects.toThrow("forbidden");
+    await state(admin, id, "archived");
+    await expect(restoreRevision(editor, id, revisionId, 1)).rejects.toThrow("forbidden");
+    await restoreRevision(admin, id, revisionId, 1);
+  });
+
+  it("rejects missing/stale versions without changing history or audit", async () => {
+    const id = await save(); const revisionId = await createRevision(author, id);
+    await save(author, input, id);
+    const auditCount = (await db.query("select * from public.audit_logs")).rows.length;
+    for (const version of [null, 1, 3]) {
+      await expect(createRevision(author, id, version)).rejects.toThrow("stale_version");
+      await expect(restoreRevision(author, id, revisionId, version)).rejects.toThrow("stale_version");
+    }
+    expect((await db.query("select * from public.article_revisions")).rows).toHaveLength(1);
+    expect((await db.query("select * from public.audit_logs")).rows).toHaveLength(auditCount);
+  });
+
+  it("restores both languages, rich text, SEO and metadata as a new draft with a recovery checkpoint", async () => {
+    const tag = "00000000-0000-4000-a000-000000000012";
+    await db.query("insert into public.article_tags(id, slug, name_ru, name_kk) values ($1, 'revision-tag', 'Тег', 'Тег')", [tag]);
+    const document = { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: translation.body, marks: [{ type: "bold" }] }] }, { type: "image", attrs: { mediaId: cover, caption: "Historical caption" } }] };
+    const original = { ...input, contentType: "news", categoryId: category, coverMediaId: cover, tagIds: [tag],
+      ru: { ...translation, contentJson: document, seoTitle: "Historical SEO", seoDescription: "Historical description" },
+      kk: { ...input.kk, title: "Қазақша тарихи тақырып" } };
+    try {
+      const id = await save(author, original); const revisionId = await createRevision(author, id);
+      await save(author, { ...input, ru: { ...translation, title: "Newer Russian title", slug: "newer-ru" }, kk: { ...input.kk, title: "Newer Kazakh title" } }, id);
+      await assign(editor, id, reviewer); await publish(id);
+      const restored = await restoreRevision(editor, id, revisionId, 2);
+      expect(restored.rows[0]).toEqual({ version: 3 });
+      expect((await db.query("select status, approved_version, content_version, scientific_reviewer_id, content_type, category_id, cover_media_id from public.articles where id = $1", [id])).rows[0]).toEqual({
+        status: "draft", approved_version: null, content_version: 3, scientific_reviewer_id: reviewer,
+        content_type: "news", category_id: category, cover_media_id: cover,
+      });
+      expect((await db.query("select locale, title, slug, seo_title from public.article_translations where article_id = $1 order by locale", [id])).rows).toEqual([
+        { locale: "kk", title: original.kk.title, slug: original.kk.slug, seo_title: null },
+        { locale: "ru", title: translation.title, slug: translation.slug, seo_title: "Historical SEO" },
+      ]);
+      expect((await db.query("select content_json from public.article_translations where article_id = $1 and locale = 'ru'", [id])).rows[0]).toEqual({ content_json: document });
+      expect((await db.query("select tag_id from public.article_tag_links where article_id = $1", [id])).rows).toEqual([{ tag_id: tag }]);
+      expect((await db.query("select * from public.media_usages where entity_type = 'article' and entity_id = $1", [id])).rows).toHaveLength(2);
+      const checkpoint = (await db.query<{ snapshot: { ru: { title: string }; kk: { title: string } } }>("select snapshot from public.article_revisions where article_id = $1 and reason = 'before_restore'", [id])).rows[0];
+      expect(checkpoint.snapshot.ru.title).toBe("Newer Russian title");
+      expect(checkpoint.snapshot.kk.title).toBe("Newer Kazakh title");
+      expect((await visible("articles")).rows).toHaveLength(0);
+      expect((await db.query("select user_id, new_data from public.audit_logs where action = 'article.revision.restore'")).rows[0]).toMatchObject({ user_id: editor, new_data: { revisionId, version: 3, status: "draft" } });
+      expect((await db.query("select old_slug from public.slug_redirects where entity_id = $1", [id])).rows).toEqual([{ old_slug: "newer-ru" }]);
+      await expect(state(admin, id, "published")).rejects.toThrow("forbidden");
+    } finally {
+      await db.query("delete from public.article_tag_links where tag_id = $1", [tag]);
+      await db.query("delete from public.article_tags where id = $1", [tag]);
+    }
+  });
+
+  it("rejects another article's revision even for editors", async () => {
+    const id = await save(); const revisionId = await createRevision(author, id);
+    const other = await save(otherAuthor, { ...input, ru: { ...translation, slug: "second-ru" }, kk: { ...input.kk, slug: "second-kk" } });
+    await expect(restoreRevision(admin, other, revisionId, 1)).rejects.toThrow("not_found");
+    expect((await db.query("select * from public.article_revisions")).rows).toHaveLength(1);
+  });
+
+  it("rolls back a conflicting historical slug including checkpoint, state, media, translations and audit", async () => {
+    const id = await save(); const revisionId = await createRevision(author, id);
+    await save(author, { ...input, ru: { ...translation, slug: "changed-ru" }, kk: { ...input.kk, slug: "changed-kk" } }, id);
+    await save(otherAuthor, { ...input, ru: { ...translation, slug: "free-ru" } });
+    await publish(id);
+    const before = (await db.query("select * from public.articles where id = $1", [id])).rows[0];
+    const translations = (await db.query("select * from public.article_translations where article_id = $1 order by locale", [id])).rows;
+    const audits = (await db.query("select * from public.audit_logs")).rows.length;
+    await expect(restoreRevision(editor, id, revisionId, 2)).rejects.toThrow(/unique constraint/);
+    expect((await db.query("select * from public.articles where id = $1", [id])).rows[0]).toEqual(before);
+    expect((await db.query("select * from public.article_translations where article_id = $1 order by locale", [id])).rows).toEqual(translations);
+    expect((await db.query("select * from public.article_revisions where reason = 'before_restore'")).rows).toHaveLength(0);
+    expect((await db.query("select * from public.slug_redirects")).rows).toHaveLength(0);
+    expect((await db.query("select * from public.audit_logs")).rows).toHaveLength(audits);
+  });
+
+  it.each(["cover", "inline", "category"])("rolls back restoration when historical %s is unavailable", async reference => {
+    const document = { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: translation.body }] }, { type: "image", attrs: { mediaId: cover } }] };
+    const value = { ...input, coverMediaId: reference === "cover" ? cover : null, categoryId: reference === "category" ? category : null,
+      ru: { ...translation, contentJson: reference === "inline" ? document : undefined } };
+    const id = await save(author, value); const revisionId = await createRevision(author, id);
+    await save(author, input, id);
+    const audits = (await db.query("select * from public.audit_logs")).rows.length;
+    if (reference === "category") await db.query("update public.article_categories set is_active = false where id = $1", [category]);
+    else await db.query("update public.media_assets set deleted_at = now() where id = $1", [cover]);
+    try {
+      await expect(restoreRevision(author, id, revisionId, 2)).rejects.toThrow("invalid_reference");
+      expect((await db.query("select content_version from public.articles where id = $1", [id])).rows[0]).toEqual({ content_version: 2 });
+      expect((await db.query("select * from public.article_revisions")).rows).toHaveLength(1);
+      expect((await db.query("select * from public.audit_logs")).rows).toHaveLength(audits);
+    } finally {
+      await db.query("update public.article_categories set is_active = true where id = $1", [category]);
+      await db.query("update public.media_assets set deleted_at = null where id = $1", [cover]);
+    }
+  });
+
+  it("keeps historical media references after edits and soft deletion and cleans them on hard deletion", async () => {
+    const id = await save(author, { ...input, coverMediaId: cover }); const revisionId = await createRevision(author, id);
+    await save(author, input, id);
+    expect((await db.query("select entity_type, entity_id from public.media_usages where media_asset_id = $1", [cover])).rows).toEqual([{ entity_type: "article_revision", entity_id: revisionId }]);
+    await state(admin, id, null, true);
+    expect((await visible("article_revisions", admin)).rows).toHaveLength(0);
+    await expect(restoreRevision(admin, id, revisionId, 2)).rejects.toThrow("not_found");
+    expect((await db.query("select * from public.media_usages where entity_id = $1", [revisionId])).rows).toHaveLength(1);
+    await db.query("delete from public.articles where id = $1", [id]);
+    expect((await db.query("select * from public.article_revisions")).rows).toHaveLength(0);
+    expect((await db.query("select * from public.media_usages where entity_id = $1", [revisionId])).rows).toHaveLength(0);
+  });
+
+  it("does not create a revision or audit entry when the workflow transaction fails", async () => {
+    const id = await save();
+    await db.query("delete from public.article_translations where article_id = $1 and locale = 'kk'", [id]);
+    await expect(state(author, id, "in_review")).rejects.toThrow("invalid_input");
+    expect((await db.query("select status from public.articles where id = $1", [id])).rows[0]).toEqual({ status: "draft" });
+    expect((await db.query("select * from public.article_revisions")).rows).toHaveLength(0);
+    expect((await db.query("select * from public.audit_logs")).rows).toHaveLength(1);
   });
 });

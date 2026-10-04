@@ -2928,6 +2928,30 @@ th {
 
 /* Research and project catalogs */
 .mentorship-card { border-top: 3px solid var(--forest); }
+.revision-list { display: grid; gap: 12px; padding: 0; list-style: none; }
+.revision-list li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 14px; border: 1px solid #d5dad6; border-radius: 8px; }
+.revision-list a { color: var(--forest); font-size: 13px; }
+.revision-list li > a:first-child { display: grid; gap: 6px; text-decoration: none; min-width: 0; overflow-wrap: anywhere; }
+.revision-list a[aria-current="page"] { border-left: 3px solid var(--forest); padding-left: 12px; }
+.revision-list span { font-size: 12px; color: var(--muted); }
+.revision-table-scroll { overflow-x: auto; }
+.revision-comparison { border-collapse: collapse; width: 100%; table-layout: fixed; font-size: 13px; }
+.revision-comparison caption { text-align: left; margin: 12px 0; }
+.revision-comparison th, .revision-comparison td { text-align: left; vertical-align: top; padding: 12px; border: 1px solid #d5dad6; overflow-wrap: anywhere; }
+.revision-comparison th:first-child { width: 22%; }
+.revision-comparison th span { display: block; font-size: 11px; margin-top: 6px; color: #805800; }
+.revision-changed { background: #fff8e7; }
+.revision-value { white-space: pre-wrap; margin: 0; max-height: 320px; overflow: auto; }
+.revision-previews { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin-top: 24px; }
+.revision-previews section { min-width: 0; overflow-wrap: anywhere; }
+.revision-previews img { max-width: 100%; }
+.revision-cover { margin: 0; }
+.revision-cover img { max-width: 100%; max-height: 180px; object-fit: contain; }
+.revision-page .workflow-panel form { display: grid; gap: 12px; }
+@media (max-width: 760px) {
+  .revision-previews { grid-template-columns: 1fr; }
+  .revision-comparison { min-width: 640px; }
+}
 .mentorship-card .public-card-content { display: grid; gap: 12px; height: 100%; }
 .mentorship-card .public-card-content h2 { margin: 0; }
 .mentorship-mentor a, .mentorship-card-link { color: var(--forest); text-decoration: none; font-size: 13px; }

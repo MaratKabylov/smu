@@ -65,6 +65,30 @@ export type ArticleTaxonomy = {
   tags: ArticleTaxonomyItem[];
 };
 
+export type ArticleSnapshot = {
+  contentType: ArticleContentType;
+  categoryId: string | null;
+  coverMediaId: string | null;
+  tagIds: string[];
+  ru: Omit<ArticleTranslation, "id" | "locale">;
+  kk: Omit<ArticleTranslation, "id" | "locale">;
+};
+
+export type ArticleRevisionReason = "manual" | "review" | "publish" | "before_restore";
+export type ArticleRevisionSummary = {
+  id: string;
+  articleId: string;
+  revisionNumber: number;
+  contentVersion: number;
+  reason: ArticleRevisionReason;
+  titleRu: string;
+  titleKk: string;
+  createdBy: string | null;
+  createdByName: string | null;
+  createdAt: string;
+};
+export type ArticleRevision = ArticleRevisionSummary & { snapshot: ArticleSnapshot };
+
 export type PublicArticleCover = {
   url: string;
   altRu: string | null;

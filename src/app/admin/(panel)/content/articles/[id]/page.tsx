@@ -19,6 +19,7 @@ import {
 } from "@/server/actions/article.actions";
 import { getAdminAccess } from "@/server/services/access.service";
 import { ArticleService } from "@/server/services/article.service";
+import { canReadArticleRevisions } from "@/server/services/article-revision.service";
 import { MediaService } from "@/server/services/media.service";
 import type { ArticleStatus } from "@/types/domain/article";
 
@@ -29,6 +30,7 @@ type ArticleDetailPageProps = {
     saved?: string;
     status_changed?: string;
     reviewer_saved?: string;
+    restored?: string;
     error?: string;
   }>;
 };
@@ -110,6 +112,7 @@ export default async function ArticleDetailPage({ params, searchParams }: Articl
       {state.saved === "1" ? <div className="notice success-notice">Изменения сохранены.</div> : null}
       {state.status_changed === "1" ? <div className="notice success-notice">Редакционный статус обновлён.</div> : null}
       {state.reviewer_saved === "1" ? <div className="notice success-notice">Назначение рецензента сохранено.</div> : null}
+      {state.restored === "1" ? <div className="notice success-notice">Версия восстановлена. Статья возвращена в черновики; перед публикацией нужно повторное одобрение.</div> : null}
       {state.error ? <div className="notice error-notice" role="alert">{errorMessages[state.error] ?? errorMessages.action_failed}</div> : null}
 
       <section className="workflow-panel">
@@ -129,6 +132,10 @@ export default async function ArticleDetailPage({ params, searchParams }: Articl
           />
         </div>
       </section>
+
+      {canReadArticleRevisions(result.access, article) ? <div className="preview-links">
+        <Link href={`/admin/content/articles/${article.id}/revisions`}>История версий и сравнение</Link>
+      </div> : null}
 
       {mayAssignReviewer && (article.status === "draft" || article.status === "in_review") ? (
         <section className="workflow-panel">

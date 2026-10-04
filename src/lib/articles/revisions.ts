@@ -1,0 +1,58 @@
+import type { Article, ArticleLocale, ArticleRevisionReason, ArticleSnapshot } from "@/types/domain/article";
+
+export const revisionReasonLabels: Record<ArticleRevisionReason, string> = {
+  manual: "Создана вручную", review: "Отправка на рецензию",
+  publish: "Публикация", before_restore: "Перед восстановлением",
+};
+
+export function articleSnapshot(article: Article): ArticleSnapshot {
+  function translation(locale: ArticleLocale): ArticleSnapshot[ArticleLocale] {
+    const value = article.translations.find(item => item.locale === locale);
+    if (!value) return {
+      title: "", slug: "", excerpt: "", body: "", contentJson: { type: "doc", content: [] },
+      seoTitle: null, seoDescription: null,
+    };
+    return {
+      title: value.title, slug: value.slug, excerpt: value.excerpt, body: value.body,
+      contentJson: value.contentJson, seoTitle: value.seoTitle, seoDescription: value.seoDescription,
+    };
+  }
+  return {
+    contentType: article.contentType, categoryId: article.categoryId, coverMediaId: article.coverMediaId,
+    tagIds: article.tags.map(tag => tag.id), ru: translation("ru"), kk: translation("kk"),
+  };
+}
+
+// JSON key order does not represent an editorial change. Array order does,
+// except for the set of tags, which is sorted separately below.
+function canonical(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonical);
+  if (value && typeof value === "object") return Object.fromEntries(
+    Object.entries(value).sort(([a], [b]) => a.localeCompare(b)).map(([key, child]) => [key, canonical(child)]),
+  );
+  return value ?? null;
+}
+export function snapshotComparison(left: ArticleSnapshot, right: ArticleSnapshot, locale: ArticleLocale) {
+  const fields: Array<{ label: string; left: unknown; right: unknown; structured?: boolean }> = [
+    { label: "Тип материала", left: left.contentType, right: right.contentType },
+    { label: "Категория", left: left.categoryId, right: right.categoryId },
+    { label: "Обложка", left: left.coverMediaId, right: right.coverMediaId },
+    { label: "Теги", left: [...left.tagIds].sort(), right: [...right.tagIds].sort() },
+    ...([
+      ["title", "Заголовок"], ["slug", "Адрес (slug)"], ["excerpt", "Краткое описание"],
+      ["body", "Текст"], ["seoTitle", "SEO-заголовок"], ["seoDescription", "SEO-описание"],
+      ["contentJson", "Форматирование и изображения"],
+    ] as const).map(([key, label]) => ({
+      label, left: left[locale][key], right: right[locale][key], structured: key === "contentJson",
+    })),
+  ];
+  return fields.map(field => ({
+    ...field,
+    changed: JSON.stringify(canonical(field.left)) !== JSON.stringify(canonical(field.right)),
+    leftText: display(field.left), rightText: display(field.right),
+  }));
+}
+function display(value: unknown) {
+  if (value === null || value === undefined || value === "") return "—";
+  return typeof value === "string" ? value : JSON.stringify(canonical(value), null, 2);
+}
