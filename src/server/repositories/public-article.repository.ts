@@ -1,4 +1,5 @@
 import "server-only";
+import { loadArticleCredits, taxonomyColumns, mapTaxonomyItem } from "./article-credits.repository";
 import type { RichTextNode } from "@/lib/articles/rich-text";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -78,11 +79,10 @@ export class PublicArticleRepository {
   constructor(private readonly client: SupabaseClient) {}
 
   async listTaxonomy(): Promise<ArticleTaxonomy> {
-    const [categoriesResult, tagsResult] = await Promise.all([
+    const [categoriesResult, tagsResult, typesResult] = await Promise.all([
       this.client
         .from("article_categories")
         .select("id, slug, name_ru, name_kk, is_active")
-        .eq("is_active", true)
         .order("sort_order")
         .order("name_ru"),
       this.client
@@ -90,13 +90,16 @@ export class PublicArticleRepository {
         .select("id, slug, name_ru, name_kk, is_active")
         .eq("is_active", true)
         .order("name_ru"),
+      this.client.from("article_types").select(taxonomyColumns).order("name_ru"),
     ]);
     if (categoriesResult.error) throw categoriesResult.error;
     if (tagsResult.error) throw tagsResult.error;
+    if (typesResult.error) throw typesResult.error;
 
     return {
       categories: ((categoriesResult.data ?? []) as TaxonomyRow[]).map(mapTaxonomy),
       tags: ((tagsResult.data ?? []) as TaxonomyRow[]).map(mapTaxonomy),
+      contentTypes: ((typesResult.data ?? []) as TaxonomyRow[]).map(mapTaxonomyItem), authors: [],
     };
   }
 
@@ -123,6 +126,12 @@ export class PublicArticleRepository {
     if (translationsResult.error) throw translationsResult.error;
     let translations = (translationsResult.data ?? []) as TranslationRow[];
 
+    if (category) {
+      const { data, error } = await this.client.from("article_category_links").select("article_id").eq("category_id", category.id);
+      if (error) throw error;
+      const ids = new Set(((data ?? []) as Array<{ article_id: string }>).map(row => row.article_id));
+      translations = translations.filter(row => ids.has(row.article_id));
+    }
     if (tag) {
       const { data, error } = await this.client
         .from("article_tag_links")
@@ -136,7 +145,7 @@ export class PublicArticleRepository {
     }
     if (translations.length === 0) return [];
 
-    let articlesQuery = this.client
+    const articlesQuery = this.client
       .from("articles")
       .select("id, category_id, cover_media_id, content_type, published_at")
       .eq("status", "published")
@@ -145,7 +154,6 @@ export class PublicArticleRepository {
       .in("id", translations.map((row) => row.article_id))
       .order("published_at", { ascending: false })
       .limit(60);
-    if (category) articlesQuery = articlesQuery.eq("category_id", category.id);
 
     const { data, error } = await articlesQuery;
     if (error) throw error;
@@ -156,7 +164,7 @@ export class PublicArticleRepository {
     const coverIds = articles.flatMap((article) =>
       article.cover_media_id ? [article.cover_media_id] : [],
     );
-    const [linksResult, coversResult] = await Promise.all([
+    const [linksResult, coversResult, credits] = await Promise.all([
       this.client
         .from("article_tag_links")
         .select("article_id, tag_id")
@@ -172,6 +180,7 @@ export class PublicArticleRepository {
             .is("deleted_at", null)
             .in("storage_bucket", publicMediaBuckets)
         : Promise.resolve({ data: [], error: null }),
+      loadArticleCredits(this.client, articleIds),
     ]);
     if (linksResult.error) throw linksResult.error;
     if (coversResult.error) throw coversResult.error;
@@ -188,6 +197,8 @@ export class PublicArticleRepository {
       return [
         {
           id: article.id,
+          categories: credits.get(article.id)?.categories ?? [], authors: credits.get(article.id)?.authors ?? [],
+          contentTypeItem: taxonomy.contentTypes.find(item => item.slug === article.content_type) ?? null,
           contentType: article.content_type,
           publishedAt: article.published_at,
           category:
@@ -240,7 +251,7 @@ export class PublicArticleRepository {
     if (!articleData) return null;
     const article = articleData as ArticleRow;
 
-    const [alternateResult, taxonomy, linksResult, coverResult] = await Promise.all([
+    const [alternateResult, taxonomy, linksResult, coverResult, credits] = await Promise.all([
       this.client
         .from("article_translations")
         .select("article_id, locale, title, slug, excerpt")
@@ -264,6 +275,7 @@ export class PublicArticleRepository {
             .in("storage_bucket", publicMediaBuckets)
             .maybeSingle()
         : Promise.resolve({ data: null, error: null }),
+      loadArticleCredits(this.client, [article.id]),
     ]);
     if (alternateResult.error) throw alternateResult.error;
     if (linksResult.error) throw linksResult.error;
@@ -272,6 +284,8 @@ export class PublicArticleRepository {
     const links = (linksResult.data ?? []) as Array<{ tag_id: string }>;
     return {
       id: article.id,
+      categories: credits.get(article.id)?.categories ?? [], authors: credits.get(article.id)?.authors ?? [],
+      contentTypeItem: taxonomy.contentTypes.find(item => item.slug === article.content_type) ?? null,
       contentType: article.content_type,
       publishedAt: article.published_at,
       category:

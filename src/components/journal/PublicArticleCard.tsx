@@ -1,17 +1,13 @@
 import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
-import { articleContentTypeLabels } from "@/lib/articles/presentation";
+import { articleTypeLabel } from "@/lib/articles/presentation";
+import { ArticleCredits } from "@/components/articles/ArticleCredits";
 import type {
   ArticleLocale,
   PublicArticleCard as PublicArticleCardType,
 } from "@/types/domain/article";
 
-const typeLabelsKk = {
-  article: "Мақала",
-  news: "Жаңалық",
-  interview: "Сұхбат",
-  announcement: "Хабарландыру",
-} as const;
+
 
 export function PublicArticleCard({
   article,
@@ -54,7 +50,7 @@ export function PublicArticleCard({
       </Link>
       <div className="public-card-content">
         <div className="public-card-meta">
-          <span>{categoryName ?? (locale === "ru" ? articleContentTypeLabels[article.contentType] : typeLabelsKk[article.contentType])}</span>
+          <span>{categoryName ?? articleTypeLabel(article.contentType, article.contentTypeItem, locale)}</span>
           <time dateTime={article.publishedAt}>{date}</time>
         </div>
         <h2>
@@ -63,6 +59,7 @@ export function PublicArticleCard({
           </Link>
         </h2>
         <p>{article.translation.excerpt}</p>
+        <ArticleCredits authors={article.authors} locale={locale} />
         <Link className="public-card-link" href={`/journal/${locale}/${article.translation.slug}`}>
           {locale === "ru" ? "Читать материал" : "Материалды оқу"}
           <ArrowUpRight aria-hidden="true" />

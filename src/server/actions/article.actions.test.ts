@@ -29,6 +29,19 @@ beforeEach(() => {
 });
 
 describe("inline editorial saves", () => {
+  it("passes ordered credits and categories through autosave for a managed type", async () => {
+    const data = form(); data.set("creditsVersion", "1"); data.set("contentType", "report");
+    data.append("categoryIds", id); data.set("authors", JSON.stringify([{ authorId: id, role: "translator" }]));
+    expect(await saveArticleDraft(id, data)).toMatchObject({ ok: true });
+    expect(mocks.update).toHaveBeenCalledWith(expect.anything(), id, expect.objectContaining({ contentType: "report", categoryIds: [id], authors: [{ authorId: id, role: "translator" }] }));
+  });
+  it("refuses malformed credits and preserves an explicit empty selection", async () => {
+    const data = form(); data.set("creditsVersion", "1"); data.set("authors", "{broken");
+    expect(await saveArticleDraft(id, data)).toEqual({ ok: false, error: "validation" });
+    expect(mocks.update).not.toHaveBeenCalled();
+    data.set("authors", "[]"); await saveArticleDraft(id, data);
+    expect(mocks.update).toHaveBeenCalledWith(expect.anything(), id, expect.objectContaining({ authors: [], categoryIds: [] }));
+  });
   it("returns the saved version without redirecting or creating a second article", async () => {
     expect(await saveArticleDraft(id, form())).toEqual({ ok: true, id, version: 4 });
     expect(mocks.update).toHaveBeenCalledWith({ userId: id }, id, expect.objectContaining({ expectedVersion: 3 }));

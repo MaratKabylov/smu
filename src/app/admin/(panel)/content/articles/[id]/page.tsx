@@ -39,7 +39,7 @@ const errorMessages: Record<string, string> = {
   validation: "Проверьте обязательные поля, длину текстов и формат slug.",
   forbidden: "Недостаточно прав для этого действия.",
   invalid_transition: "Этот переход редакционного статуса недоступен.",
-  invalid_reference: "Выбранная категория, тег или обложка недоступны.",
+  invalid_reference: "Выбранные авторы, тип, категории, теги или файлы недоступны.",
   confirm_delete: "Подтвердите перенос статьи в удалённые.",
   action_failed: "Не удалось сохранить изменения. Проверьте уникальность slug.",
   invalid_input: "Проверьте обязательные поля материала.",
@@ -58,7 +58,7 @@ export default async function ArticleDetailPage({ params, searchParams }: Articl
   if (!article || article.deletedAt) notFound();
 
   const [taxonomy, initialMedia] = await Promise.all([
-    service.listTaxonomy(result.access),
+    service.listTaxonomy(result.access, true),
     canViewMedia(result.access)
       ? new MediaService()
           .list(result.access, { query: "", type: "image" })

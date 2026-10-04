@@ -1,3 +1,5 @@
+import { ArticleCredits } from "@/components/articles/ArticleCredits";
+import { articleTypeLabel } from "@/lib/articles/presentation";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -31,13 +33,13 @@ export default async function ArticlePreviewPage({ params }: { params: Promise<{
       <Link href={`/admin/content/articles/${id}/preview/${locale === "ru" ? "kk" : "ru"}`}>{locale === "ru" ? "Қазақша нұсқа" : "Русская версия"}</Link>
     </div>
     <article className="public-article">
-      <header className="public-article-header"><h1>{translation.title}</h1><p className="public-article-lead">{translation.excerpt}</p></header>
+      <header className="public-article-header"><p>{articleTypeLabel(article.contentType, article.contentTypeItem, locale)} · {article.categories.map(item => locale === "ru" ? item.nameRu : item.nameKk).join(", ")}</p><h1>{translation.title}</h1><p className="public-article-lead">{translation.excerpt}</p></header>
       {coverImages[0] ? <figure className="public-article-cover">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={coverImages[0].url} alt={coverImages[0].alt} />
         {coverImages[0].caption ? <figcaption>{coverImages[0].caption}</figcaption> : null}
       </figure> : null}
-      <div className="public-article-body"><RichTextContent content={translation.contentJson} body={translation.body} images={images} /></div>
+      <ArticleCredits authors={article.authors} locale={locale} detailed /><div className="public-article-body"><RichTextContent content={translation.contentJson} body={translation.body} images={images} /></div>
     </article>
   </div>;
 }

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { plainTextDocument, richTextDocumentSchema, richTextToPlainText } from "../articles/rich-text";
-import { articleContentTypes, articleStatuses } from "../../types/domain/article";
+import { articleAuthorRoles, articleStatuses } from "../../types/domain/article";
 
 const nullableUuid = z
   .union([z.literal(""), z.uuid()])
@@ -35,8 +35,11 @@ const translationSchema = z.object({
 
 export const articleInputSchema = z.object({
   expectedVersion: z.number().int().positive().optional(),
-  contentType: z.enum(articleContentTypes),
-  categoryId: nullableUuid,
+  contentType: slugSchema,
+  categoryId: nullableUuid.default(""),
+  categoryIds: z.array(z.uuid()).max(20).refine(items => new Set(items).size === items.length).optional(),
+  authors: z.array(z.object({ authorId: z.uuid(), role: z.enum(articleAuthorRoles) }))
+    .max(20).refine(items => new Set(items.map(item => item.authorId)).size === items.length).optional(),
   coverMediaId: nullableUuid,
   tagIds: z
     .array(z.uuid())
@@ -54,11 +57,28 @@ export const articleListFiltersSchema = z.object({
 export const articleStatusSchema = z.enum(articleStatuses);
 
 export const taxonomyInputSchema = z.object({
-  kind: z.enum(["category", "tag"]),
+  kind: z.enum(["category", "tag", "type"]),
   slug: slugSchema,
   nameRu: z.string().trim().min(2).max(120),
   nameKk: z.string().trim().min(2).max(120),
 });
+
+export const taxonomyUpdateSchema = taxonomyInputSchema.extend({
+  id: z.uuid(), isActive: z.boolean(),
+});
+
+export const articleAuthorInputSchema = z.object({
+  profileId: nullableUuid,
+  nameRu: z.string().trim().min(2).max(160),
+  nameKk: z.string().trim().min(2).max(160),
+  bioRu: optionalText(2000), bioKk: optionalText(2000),
+  organization: optionalText(240), position: optionalText(240),
+  websiteUrl: z.union([z.literal(""), z.url().max(500).refine(value => /^https?:\/\//i.test(value))])
+    .transform(value => value || null),
+  isActive: z.boolean(),
+});
+export type ArticleAuthorInput = z.infer<typeof articleAuthorInputSchema>;
+export type TaxonomyUpdateInput = z.infer<typeof taxonomyUpdateSchema>;
 
 export const publicArticleFiltersSchema = z.object({
   locale: z.enum(["ru", "kk"]).default("ru"),

@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 import { RichTextContent } from "@/components/articles/RichTextContent";
 import { articleSnapshot, revisionReasonLabels, snapshotComparison } from "@/lib/articles/revisions";
-import { articleContentTypeLabels } from "@/lib/articles/presentation";
+import { articleContentTypeLabels, articleAuthorRoleLabels } from "@/lib/articles/presentation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createArticleRevision, restoreArticleRevision } from "@/server/actions/article-revision.actions";
 import { getArticleImages } from "@/server/repositories/article-images.repository";
@@ -25,7 +25,7 @@ const querySchema = z.object({
 const errors: Record<string, string> = {
   forbidden: "Недостаточно прав для этого действия.", not_found: "Версия или статья недоступна.",
   stale_version: "Материал изменился после открытия страницы. Обновите страницу и сравните версии ещё раз.",
-  invalid_reference: "Категория, тег или изображение этой версии недоступны. Восстановление отменено.",
+  invalid_reference: "Автор, тип, категория, тег или изображение этой версии недоступны. Восстановление отменено.",
   invalid_input: "Содержимое версии не прошло проверку. Восстановление отменено.",
   slug_conflict: "Адрес этой версии уже занят другим материалом. Восстановление отменено.",
   slug_reserved: "Адрес этой версии зарезервирован другим материалом. Восстановление отменено.",
@@ -73,9 +73,12 @@ export default async function ArticleRevisionsPage({ params, searchParams }: {
   const taxonomy = await new ArticleRepository(client).listTaxonomy(true);
   function displayField(label: string, value: string, snapshot: ArticleSnapshot) {
     const nameKey = state.locale === "ru" ? "nameRu" : "nameKk";
-    if (label === "Тип материала") return articleContentTypeLabels[value as ArticleContentType] ?? value;
-    if (label === "Категория") return snapshot.categoryId
-      ? taxonomy.categories.find(item => item.id === snapshot.categoryId)?.[nameKey] ?? "Недоступная категория" : "—";
+    if (label === "Тип материала") return taxonomy.contentTypes.find(item => item.slug === value)?.[nameKey] ?? articleContentTypeLabels[value as ArticleContentType] ?? value;
+    if (label === "Категории") return (snapshot.categoryIds ?? (snapshot.categoryId ? [snapshot.categoryId] : []))
+      .map(id => taxonomy.categories.find(item => item.id === id)?.[nameKey] ?? "Недоступная категория").join(", ") || "—";
+    if (label === "Авторы и роли") return (snapshot.authors ?? []).map(link =>
+      `${taxonomy.authors.find(item => item.id === link.authorId)?.[nameKey] ?? "Недоступный автор"} · ${articleAuthorRoleLabels[state.locale][link.role]}`
+    ).join(", ") || "—";
     if (label === "Теги") return snapshot.tagIds.length
       ? snapshot.tagIds.map(id => taxonomy.tags.find(item => item.id === id)?.[nameKey] ?? "Недоступный тег").join(", ") : "—";
     return value;
@@ -90,7 +93,7 @@ export default async function ArticleRevisionsPage({ params, searchParams }: {
     <Link className="back-link" href={`/admin/content/articles/${id}`}>Вернуться в редактор</Link>
     <div className="media-detail-heading">
       <div><p className="page-kicker">История версий</p><h1>{current.ru.title || current.kk.title || "Статья"}</h1>
-        <p>Сохраняются обе языковые версии, адреса, SEO, категория, теги и обложка.</p></div>
+        <p>Сохраняются обе языковые версии, адреса, SEO, авторы и роли, категории, тип, теги и обложка.</p></div>
       {mayManage ? <form action={createArticleRevision.bind(null, id, article.contentVersion)}>
         <button className="primary-button" type="submit">Создать версию</button>
       </form> : null}

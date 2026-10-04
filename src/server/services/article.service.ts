@@ -6,7 +6,7 @@ import {
 } from "@/lib/permissions/permissions";
 import { databaseErrorCode } from "@/lib/security/database-error";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import type { ArticleInput, ArticleListFilters, TaxonomyInput } from "@/lib/validation/article";
+import type { ArticleInput, ArticleListFilters, TaxonomyInput, ArticleAuthorInput, TaxonomyUpdateInput } from "@/lib/validation/article";
 import { ArticleRepository } from "@/server/repositories/article.repository";
 import type { AccessContext } from "@/types/domain/auth";
 import type { ArticleStatus } from "@/types/domain/article";
@@ -105,6 +105,21 @@ export class ArticleService {
   async createTaxonomyItem(access: AccessContext, input: TaxonomyInput) {
     assertAllowed(hasPermission(access, "articles.edit_any"));
     return this.repository((repository) => repository.createTaxonomyItem(input));
+  }
+
+  async updateTaxonomyItem(access: AccessContext, input: TaxonomyUpdateInput) {
+    assertAllowed(hasPermission(access, "articles.edit_any"));
+    return this.repository(repository => repository.updateTaxonomyItem(input));
+  }
+
+  async saveAuthor(access: AccessContext, id: string | null, input: ArticleAuthorInput) {
+    assertAllowed(hasPermission(access, "articles.edit_any"));
+    return this.repository(repository => repository.saveAuthor(id, input));
+  }
+
+  async listAuthorProfiles(access: AccessContext) {
+    assertAllowed(hasPermission(access, "articles.edit_any"));
+    return this.repository(repository => repository.listAuthorProfiles());
   }
 
   async listReviewers(access: AccessContext) {

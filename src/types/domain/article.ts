@@ -17,8 +17,25 @@ export const articleContentTypes = [
   "announcement",
 ] as const;
 
-export type ArticleContentType = (typeof articleContentTypes)[number];
+export type ArticleContentType = string;
 export type ArticleLocale = "ru" | "kk";
+
+export const articleAuthorRoles = ["author", "coauthor", "editor", "translator"] as const;
+export type ArticleAuthorRole = (typeof articleAuthorRoles)[number];
+export type ArticleAuthor = {
+  id: string;
+  profileId?: string | null;
+  nameRu: string;
+  nameKk: string;
+  bioRu: string | null;
+  bioKk: string | null;
+  organization: string | null;
+  position: string | null;
+  websiteUrl: string | null;
+  isActive: boolean;
+};
+export type ArticleAuthorCredit = ArticleAuthor & { role: ArticleAuthorRole };
+export type ArticleAuthorLink = { authorId: string; role: ArticleAuthorRole };
 
 export type ArticleTranslation = {
   id: string;
@@ -49,6 +66,9 @@ export type Article = {
   authorName: string | null;
   categoryId: string | null;
   category: ArticleTaxonomyItem | null;
+  categories: ArticleTaxonomyItem[];
+  authors: ArticleAuthorCredit[];
+  contentTypeItem: ArticleTaxonomyItem | null;
   coverMediaId: string | null;
   contentType: ArticleContentType;
   status: ArticleStatus;
@@ -63,11 +83,16 @@ export type Article = {
 export type ArticleTaxonomy = {
   categories: ArticleTaxonomyItem[];
   tags: ArticleTaxonomyItem[];
+  contentTypes: ArticleTaxonomyItem[];
+  authors: ArticleAuthor[];
 };
 
 export type ArticleSnapshot = {
   contentType: ArticleContentType;
   categoryId: string | null;
+  // Absent in revisions created before migration 012.
+  categoryIds?: string[];
+  authors?: ArticleAuthorLink[];
   coverMediaId: string | null;
   tagIds: string[];
   ru: Omit<ArticleTranslation, "id" | "locale">;
@@ -109,6 +134,9 @@ export type PublicArticleCard = {
   contentType: ArticleContentType;
   publishedAt: string;
   category: ArticleTaxonomyItem | null;
+  categories: ArticleTaxonomyItem[];
+  authors: ArticleAuthorCredit[];
+  contentTypeItem: ArticleTaxonomyItem | null;
   tags: ArticleTaxonomyItem[];
   cover: PublicArticleCover | null;
   translation: PublicArticleTranslation;

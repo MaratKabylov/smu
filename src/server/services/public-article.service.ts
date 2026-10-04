@@ -8,7 +8,7 @@ import { PublicArticleRepository } from "@/server/repositories/public-article.re
 import { getPublicSlugRedirect } from "@/server/repositories/slug.repository";
 import type { ArticleLocale, ArticleTaxonomy } from "@/types/domain/article";
 
-const emptyTaxonomy: ArticleTaxonomy = { categories: [], tags: [] };
+const emptyTaxonomy: ArticleTaxonomy = { categories: [], tags: [], authors: [], contentTypes: [] };
 
 export class PublicArticleService {
   async getSlugRedirect(locale: ArticleLocale, slug: string) {

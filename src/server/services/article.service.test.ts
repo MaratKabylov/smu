@@ -14,6 +14,12 @@ const access = (permissions: PermissionCode[], userId = "user"): AccessContext =
 const article = { id: "id", authorId: "author", scientificReviewerId: "assigned", contentVersion: 1, status: "published", deletedAt: null };
 beforeEach(() => { vi.clearAllMocks(); mocks.get.mockResolvedValue(article); });
 describe("article service authorization", () => {
+  it("denies author directory writes and profile listings before constructing a client", async () => {
+    await expect(new ArticleService().saveAuthor(access(["articles.create"]), null, {} as never)).rejects.toMatchObject({ code: "forbidden" });
+    await expect(new ArticleService().updateTaxonomyItem(access(["articles.review"]), {} as never)).rejects.toMatchObject({ code: "forbidden" });
+    await expect(new ArticleService().listAuthorProfiles(access(["articles.edit_own"]))).rejects.toMatchObject({ code: "forbidden" });
+    expect(mocks.client).not.toHaveBeenCalled();
+  });
   it("rejects missing and stale edit versions before writing", async () => {
     for (const input of [{}, { expectedVersion: 2 }]) await expect(new ArticleService().update(access(["articles.edit_any"]), "id", input as ArticleInput)).rejects.toMatchObject({ code: "stale_version" });
     expect(mocks.update).not.toHaveBeenCalled();

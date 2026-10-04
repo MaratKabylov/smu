@@ -17,6 +17,7 @@ let upgradedArticle: Record<string, unknown>;
 let upgradedScientist: Record<string, unknown>;
 let upgradedContent: Record<string, unknown>;
 let revisionUpgrade: Record<string, unknown>;
+let creditsUpgrade: Record<string, unknown>;
 const legacyBody = "  Legacy first line.\n\nSecond line with <script>literal text</script>.\n  ";
 const translation = { title: "A scientific article", slug: "article-ru", excerpt: "A description of regional scientific research.", body: "A detailed explanation of regional scientific research and its results.", seoTitle: null, seoDescription: null };
 const input = { contentType: "article", categoryId: null, coverMediaId: null, tagIds: [], ru: translation, kk: { ...translation, slug: "article-kk" } };
@@ -59,7 +60,7 @@ async function saveScientist(value: unknown = scientistInput, id: string | null 
   )).rows[0].id);
 }
 const verify = (id: string) => asUser(scientistManager, () => db.query("select public.change_scientist_state($1, 'verified', false)", [id]));
-const visible = (table: string, user: string | null = null) => asUser(user, () => db.query("select * from public." + table), user ? "authenticated" : "anon");
+const visible = (table: string, user: string | null = null) => asUser(user, () => db.query<Record<string, unknown>>("select * from public." + table), user ? "authenticated" : "anon");
 const createRevision = (user: string, id: string, version: number | null = 1) => asUser(user, async () =>
   (await db.query<{ id: string }>("select public.create_article_revision($1, $2) as id", [id, version])).rows[0].id);
 const restoreRevision = (user: string, id: string, revisionId: string, version: number | null) => asUser(user, () =>
@@ -79,6 +80,14 @@ beforeAll(async () => {
   `);
   const files = (await readdir(new URL("./migrations/", import.meta.url))).filter(name => /^\d+.*\.sql$/.test(name)).sort();
   for (const file of files) {
+    if (file === "012_article_credits_taxonomy.sql") {
+      await db.exec(`
+        insert into public.article_categories(id, slug, name_ru, name_kk) values ('00000000-0000-4000-a000-000000000098', 'legacy-category', 'Legacy RU', 'Legacy KK');
+        update public.articles set category_id = '00000000-0000-4000-a000-000000000098';
+        insert into public.article_revisions(article_id, revision_number, content_version, reason, title_ru, title_kk, snapshot)
+          select id, 1, 1, 'manual', 'Legacy RU', 'Legacy KK', jsonb_build_object('categoryId', category_id, 'contentType', content_type) from public.articles;
+      `);
+    }
     if (file === "010_article_rich_text.sql") {
       await db.query("insert into public.article_translations(article_id, locale, title, slug, excerpt, body) select id, 'ru', 'Legacy article', 'legacy-article', 'Legacy description', $1 from public.articles", [legacyBody]);
     }
@@ -91,6 +100,12 @@ beforeAll(async () => {
     }
     const sql = (await readFile(new URL("./migrations/" + file, import.meta.url), "utf8")).replace("create extension if not exists pgcrypto;", "");
     await db.exec(sql);
+    if (file === "012_article_credits_taxonomy.sql") creditsUpgrade = (await db.query<Record<string, unknown>>(`
+      select a.status, a.content_type, a.content_version, a.approved_version,
+        (select count(*)::int from public.article_authors where article_id = a.id) as author_count,
+        (select count(*)::int from public.article_category_links where article_id = a.id and category_id = a.category_id) as category_count,
+        (select snapshot from public.article_revisions where article_id = a.id) as snapshot from public.articles a
+    `)).rows[0];
     if (file === "011_article_revisions.sql") revisionUpgrade = (await db.query<Record<string, unknown>>("select status, content_version, approved_version, (select count(*)::int from public.article_revisions) as revision_count from public.articles")).rows[0];
     if (file === "010_article_rich_text.sql") upgradedContent = (await db.query<Record<string, unknown>>("select body, content_json, public.validate_smu_rich_text(content_json) as recovered from public.article_translations")).rows[0];
     if (file === "009_editorial_integrity.sql") {
@@ -110,6 +125,144 @@ beforeAll(async () => {
 afterAll(async () => { await db.close(); });
 beforeEach(async () => {
   await db.exec("delete from public.articles; delete from public.scientist_profiles; delete from public.slug_redirects; delete from public.audit_logs;");
+  await db.exec("delete from public.authors; delete from public.article_types where slug not in ('article', 'news', 'interview', 'announcement'); update public.article_types set is_active = true; update public.article_categories set is_active = true;");
+});
+
+const authorInput = { profileId: null, nameRu: "Внешний автор", nameKk: "Сыртқы автор", bioRu: "Биография", bioKk: "Өмірбаян", organization: "University", position: "Researcher", websiteUrl: "https://example.kz", isActive: true };
+async function directoryAuthor(user = editor, value: unknown = authorInput, id: string | null = null) {
+  return asUser(user, async () => (await db.query<{ id: string }>("select public.save_article_author($1, $2::jsonb) as id", [id, JSON.stringify(value)])).rows[0].id);
+}
+async function directoryType(user = editor) {
+  return asUser(user, async () => (await db.query<{ id: string }>("select public.create_article_taxonomy($1::jsonb) as id", [JSON.stringify({ kind: "type", slug: "report", nameRu: "Отчёт", nameKk: "Есеп" })])).rows[0].id);
+}
+describe("article credits and managed taxonomy", () => {
+  it("backfills owners, primary categories and old revisions without changing workflow", () => {
+    expect(creditsUpgrade).toMatchObject({ status: "published", content_type: "article", content_version: 1, approved_version: 1, author_count: 1, category_count: 1 });
+    expect(creditsUpgrade.snapshot).toMatchObject({ categoryIds: ["00000000-0000-4000-a000-000000000098"], authors: [{ role: "author" }] });
+  });
+  it("saves ordered external/internal credits and multiple categories with a custom type", async () => {
+    await directoryType();
+    const external = await directoryAuthor();
+    const internal = await directoryAuthor(editor, { ...authorInput, profileId: otherAuthor });
+    const categories = [category, "00000000-0000-4000-a000-000000000098"];
+    const authors = [{ authorId: external, role: "translator" }, { authorId: internal, role: "coauthor" }];
+    const id = await save(author, { ...input, contentType: "report", categoryIds: categories, authors });
+    expect((await db.query<Record<string, unknown>>("select author_id, content_type, category_id from public.articles where id = $1", [id])).rows[0]).toEqual({ author_id: author, content_type: "report", category_id: category });
+    expect((await db.query<Record<string, unknown>>("select author_id, role, sort_order from public.article_authors where article_id = $1 order by sort_order", [id])).rows).toEqual([{ author_id: external, role: "translator", sort_order: 0 }, { author_id: internal, role: "coauthor", sort_order: 1 }]);
+    expect((await db.query<Record<string, unknown>>("select category_id from public.article_category_links where article_id = $1 order by sort_order", [id])).rows.map(row => row.category_id)).toEqual(categories);
+    await expect(save(otherAuthor, { ...input, authors }, id)).rejects.toThrow("forbidden");
+    expect((await visible("article_authors", otherAuthor)).rows).toHaveLength(0);
+  });
+  it("preserves credits on old-client saves and clears explicit empty arrays", async () => {
+    const external = await directoryAuthor();
+    const id = await save(author, { ...input, categoryIds: [category], authors: [{ authorId: external, role: "author" }] });
+    await save(author, { ...input, categoryId: category }, id);
+    expect((await db.query<Record<string, unknown>>("select author_id from public.article_authors where article_id = $1", [id])).rows).toEqual([{ author_id: external }]);
+    await save(author, { ...input, categoryIds: [], authors: [] }, id);
+    expect((await db.query<Record<string, unknown>>("select * from public.article_authors where article_id = $1", [id])).rows).toHaveLength(0);
+    expect((await db.query<Record<string, unknown>>("select * from public.article_category_links where article_id = $1", [id])).rows).toHaveLength(0);
+    expect((await db.query<Record<string, unknown>>("select category_id from public.articles where id = $1", [id])).rows[0]).toEqual({ category_id: null });
+  });
+  it("allows only editors to manage directories and select profile identities", async () => {
+    for (const user of [author, reviewer, scientistManager]) {
+      await expect(directoryAuthor(user)).rejects.toThrow("forbidden");
+      await expect(directoryType(user)).rejects.toThrow("forbidden");
+      await expect(asUser(user, () => db.query<Record<string, unknown>>("select * from public.list_article_author_profiles()"))).rejects.toThrow("forbidden");
+    }
+    const profiles = await asUser(editor, () => db.query<Record<string, unknown>>("select * from public.list_article_author_profiles()"));
+    expect(profiles.rows.some(row => row.id === otherAuthor)).toBe(true);
+    const external = await directoryAuthor();
+    expect((await db.query<Record<string, unknown>>("select profile_id from public.authors where id = $1", [external])).rows[0]).toEqual({ profile_id: null });
+  });
+  it("denies direct writes and anonymous/service-role management calls", async () => {
+    for (const table of ["authors", "article_authors", "article_category_links", "article_types"]) {
+      await expect(asUser(editor, () => db.exec(`delete from public.${table}`))).rejects.toThrow(/permission denied/);
+    }
+    for (const role of ["anon", "service_role"]) {
+      await expect(asUser(null, () => db.query<Record<string, unknown>>("select public.save_article_author(null, $1::jsonb)", [JSON.stringify(authorInput)]), role)).rejects.toThrow(/permission denied/);
+      await expect(asUser(null, () => db.query<Record<string, unknown>>("select public.save_article_taxonomy(null, '{}'::jsonb)"), role)).rejects.toThrow(/permission denied/);
+      await expect(asUser(null, () => db.query<Record<string, unknown>>("select * from public.list_article_author_profiles()"), role)).rejects.toThrow(/permission denied/);
+    }
+  });
+  it("rolls back content, approvals, relations and audit on invalid credit/category/type input", async () => {
+    const external = await directoryAuthor();
+    const id = await save(author, { ...input, categoryIds: [category], authors: [{ authorId: external, role: "author" }] }); await publish(id);
+    const before = (await db.query<Record<string, unknown>>("select * from public.articles where id = $1", [id])).rows[0];
+    const audits = (await db.query<Record<string, unknown>>("select * from public.audit_logs")).rows.length;
+    const bad = [
+      { authors: [{ authorId: external, role: "owner" }] }, { authors: [{ authorId: external, role: "author" }, { authorId: external, role: "coauthor" }] },
+      { authors: [{ authorId: cover, role: "author" }] }, { authors: null },
+      { categoryIds: [category, category] }, { categoryIds: [cover] }, { categoryIds: null }, { contentType: "unknown-type" },
+    ];
+    for (const patch of bad) await expect(save(editor, { ...input, ...patch }, id)).rejects.toThrow(/invalid_input|invalid_reference/);
+    expect((await db.query<Record<string, unknown>>("select * from public.articles where id = $1", [id])).rows[0]).toEqual(before);
+    expect((await db.query<Record<string, unknown>>("select * from public.audit_logs")).rows).toHaveLength(audits);
+    expect((await db.query<Record<string, unknown>>("select author_id from public.article_authors where article_id = $1", [id])).rows).toEqual([{ author_id: external }]);
+    expect((await db.query<Record<string, unknown>>("select category_id from public.article_category_links where article_id = $1", [id])).rows).toEqual([{ category_id: category }]);
+  });
+  it("hides draft credits and unpublished directory people from anonymous readers", async () => {
+    const external = await directoryAuthor(); const unattached = await directoryAuthor();
+    const id = await save(author, { ...input, categoryIds: [category], authors: [{ authorId: external, role: "author" }] });
+    const read = () => asUser(null, () => db.query<Record<string, unknown>>("select id, name_ru from public.authors"), "anon");
+    expect((await read()).rows).toHaveLength(0); expect((await visible("article_authors")).rows).toHaveLength(0);
+    await publish(id);
+    expect((await read()).rows).toEqual([{ id: external, name_ru: authorInput.nameRu }]);
+    expect((await read()).rows.some(row => row.id === unattached)).toBe(false);
+    expect((await visible("article_category_links")).rows).toHaveLength(1);
+    await expect(asUser(null, () => db.query<Record<string, unknown>>("select profile_id from public.authors"), "anon")).rejects.toThrow(/permission denied/);
+    await state(admin, id, null, true);
+    expect((await read()).rows).toHaveLength(0); expect((await visible("article_authors")).rows).toHaveLength(0);
+  });
+  it("keeps inactive attached credits/categories/types visible while denying new attachment", async () => {
+    const type = await directoryType(); const external = await directoryAuthor();
+    const value = { ...input, contentType: "report", categoryIds: [category], authors: [{ authorId: external, role: "author" }] };
+    const id = await save(author, value); await publish(id);
+    await directoryAuthor(editor, { ...authorInput, isActive: false }, external);
+    for (const [kind, taxonomyId, slug] of [["type", type, "report"], ["category", category, "research"]]) {
+      await asUser(editor, () => db.query<Record<string, unknown>>("select public.save_article_taxonomy($1, $2::jsonb)", [taxonomyId, JSON.stringify({ kind, slug, nameRu: "Inactive RU", nameKk: "Inactive KK", isActive: false })]));
+    }
+    expect((await asUser(null, () => db.query<Record<string, unknown>>("select id from public.authors"), "anon")).rows).toEqual([{ id: external }]);
+    expect((await visible("article_types")).rows.some(row => row.slug === "report")).toBe(true);
+    expect((await visible("article_categories")).rows.some(row => row.id === category)).toBe(true);
+    await save(editor, value, id);
+    for (const patch of [{ authors: value.authors }, { categoryIds: [category] }, { contentType: "report" }]) {
+      await expect(save(author, { ...input, ...patch })).rejects.toThrow("invalid_reference");
+    }
+    await directoryAuthor(editor, { ...authorInput, isActive: true }, external);
+    await save(author, { ...input, authors: value.authors, ru: { ...translation, slug: "active-again" }, kk: { ...input.kk, slug: "active-again" } });
+  });
+  it("restores ordered credits, roles, categories and custom types with fresh approval", async () => {
+    await directoryType(); const first = await directoryAuthor(); const second = await directoryAuthor();
+    const authors = [{ authorId: second, role: "editor" }, { authorId: first, role: "author" }];
+    const categories = ["00000000-0000-4000-a000-000000000098", category];
+    const id = await save(author, { ...input, contentType: "report", categoryIds: categories, authors });
+    const revision = await createRevision(author, id);
+    await save(author, { ...input, categoryIds: [category], authors: [{ authorId: first, role: "translator" }] }, id);
+    await publish(id);
+    const version = (await db.query<{ content_version: number }>("select content_version from public.articles where id = $1", [id])).rows[0].content_version;
+    await restoreRevision(editor, id, revision, version);
+    expect((await db.query<Record<string, unknown>>("select snapshot from public.article_revisions where id = $1", [revision])).rows[0].snapshot).toMatchObject({ authors, categoryIds: categories, contentType: "report" });
+    expect((await db.query<Record<string, unknown>>("select author_id, role from public.article_authors where article_id = $1 order by sort_order", [id])).rows).toEqual([{ author_id: second, role: "editor" }, { author_id: first, role: "author" }]);
+    expect((await db.query<Record<string, unknown>>("select category_id from public.article_category_links where article_id = $1 order by sort_order", [id])).rows.map(row => row.category_id)).toEqual(categories);
+    expect((await db.query<Record<string, unknown>>("select status, approved_version, content_type, author_id from public.articles where id = $1", [id])).rows[0]).toEqual({ status: "draft", approved_version: null, content_type: "report", author_id: author });
+  });
+  it("rolls back restoration and checkpoint when a removed credit becomes inactive", async () => {
+    const external = await directoryAuthor();
+    const id = await save(author, { ...input, authors: [{ authorId: external, role: "author" }] });
+    const revision = await createRevision(author, id);
+    await save(author, { ...input, authors: [] }, id); await directoryAuthor(editor, { ...authorInput, isActive: false }, external);
+    const audits = (await db.query<Record<string, unknown>>("select * from public.audit_logs")).rows.length;
+    await expect(restoreRevision(author, id, revision, 2)).rejects.toThrow("invalid_reference");
+    expect((await db.query<Record<string, unknown>>("select * from public.article_revisions where article_id = $1", [id])).rows).toHaveLength(1);
+    expect((await db.query<Record<string, unknown>>("select * from public.audit_logs")).rows).toHaveLength(audits);
+    expect((await db.query<Record<string, unknown>>("select content_version from public.articles where id = $1", [id])).rows[0]).toEqual({ content_version: 2 });
+  });
+  it("rejects unsafe author URLs, invalid profile references and mutable taxonomy codes", async () => {
+    await expect(directoryAuthor(editor, { ...authorInput, websiteUrl: "javascript:alert(1)" })).rejects.toThrow("invalid_input");
+    await expect(directoryAuthor(editor, { ...authorInput, profileId: cover })).rejects.toThrow("invalid_reference");
+    const type = await directoryType();
+    await expect(asUser(editor, () => db.query<Record<string, unknown>>("select public.save_article_taxonomy($1, $2::jsonb)", [type, JSON.stringify({ kind: "type", slug: "renamed", nameRu: "Name", nameKk: "Name", isActive: true })]))).rejects.toThrow("invalid_input");
+  });
 });
 
 describe("session-authorized editorial transactions", () => {

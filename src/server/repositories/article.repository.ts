@@ -1,4 +1,5 @@
 import "server-only";
+import { loadArticleCredits, mapAuthor, mapTaxonomyItem, authorPublicColumns, taxonomyColumns, type AuthorRow } from "./article-credits.repository";
 import type { RichTextNode } from "@/lib/articles/rich-text";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -14,7 +15,7 @@ import type {
 import type {
   ArticleInput,
   ArticleListFilters,
-  TaxonomyInput,
+  TaxonomyInput, ArticleAuthorInput, TaxonomyUpdateInput,
 } from "@/lib/validation/article";
 
 type ArticleRow = {
@@ -143,18 +144,26 @@ export class ArticleRepository {
       tagQuery = tagQuery.eq("is_active", true);
     }
 
-    const [categoriesResult, tagsResult] = await Promise.all([
+    const [categoriesResult, tagsResult, typesResult, authorsResult] = await Promise.all([
       categoryQuery,
       tagQuery,
+      includeInactive ? this.client.from("article_types").select(taxonomyColumns).order("name_ru")
+        : this.client.from("article_types").select(taxonomyColumns).eq("is_active", true).order("name_ru"),
+      includeInactive ? this.client.from("authors").select(`${authorPublicColumns}, profile_id`).order("name_ru")
+        : this.client.from("authors").select(`${authorPublicColumns}, profile_id`).eq("is_active", true).order("name_ru"),
     ]);
     if (categoriesResult.error) throw categoriesResult.error;
     if (tagsResult.error) throw tagsResult.error;
+    if (typesResult.error) throw typesResult.error;
+    if (authorsResult.error) throw authorsResult.error;
 
     return {
       categories: ((categoriesResult.data ?? []) as TaxonomyRow[]).map(
         mapTaxonomy,
       ),
       tags: ((tagsResult.data ?? []) as TaxonomyRow[]).map(mapTaxonomy),
+      contentTypes: ((typesResult.data ?? []) as TaxonomyRow[]).map(mapTaxonomyItem),
+      authors: ((authorsResult.data ?? []) as AuthorRow[]).map(mapAuthor),
     };
   }
 
@@ -176,6 +185,18 @@ export class ArticleRepository {
 
   async createTaxonomyItem(input: TaxonomyInput) {
     return this.mutate<string>("create_article_taxonomy", { p_input: input });
+  }
+
+  async updateTaxonomyItem(input: TaxonomyUpdateInput) {
+    return this.mutate<string>("save_article_taxonomy", { p_id: input.id, p_input: input });
+  }
+
+  async saveAuthor(id: string | null, input: ArticleAuthorInput) {
+    return this.mutate<string>("save_article_author", { p_id: id, p_input: input });
+  }
+
+  async listAuthorProfiles() {
+    return this.mutate<Array<{ id: string; display_name: string | null }>>("list_article_author_profiles", {});
   }
 
   async listReviewers() {
@@ -202,7 +223,7 @@ export class ArticleRepository {
     ];
     const authorIds = [...new Set(rows.map((row) => row.author_id))];
 
-    const [translationsResult, linksResult, profilesResult, categoriesResult] =
+    const [translationsResult, linksResult, profilesResult, categoriesResult, credits, typesResult] =
       await Promise.all([
         this.client
           .from("article_translations")
@@ -222,12 +243,15 @@ export class ArticleRepository {
               .select("id, slug, name_ru, name_kk, is_active")
               .in("id", categoryIds)
           : Promise.resolve({ data: [], error: null }),
+        loadArticleCredits(this.client, articleIds),
+        this.client.from("article_types").select(taxonomyColumns).in("slug", [...new Set(rows.map(row => row.content_type))]),
       ]);
 
     if (translationsResult.error) throw translationsResult.error;
     if (linksResult.error) throw linksResult.error;
     if (profilesResult.error) throw profilesResult.error;
     if (categoriesResult.error) throw categoriesResult.error;
+    if (typesResult.error) throw typesResult.error;
 
     const links = (linksResult.data ?? []) as Array<{
       article_id: string;
@@ -260,6 +284,9 @@ export class ArticleRepository {
       authorName:
         profiles.find((profile) => profile.id === row.author_id)?.display_name ??
         null,
+      categories: credits.get(row.id)?.categories ?? [],
+      authors: credits.get(row.id)?.authors ?? [],
+      contentTypeItem: ((typesResult.data ?? []) as TaxonomyRow[]).map(mapTaxonomyItem).find(item => item.slug === row.content_type) ?? null,
       categoryId: row.category_id,
       category:
         categories.find((category) => category.id === row.category_id)

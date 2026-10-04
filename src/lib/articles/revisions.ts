@@ -19,6 +19,8 @@ export function articleSnapshot(article: Article): ArticleSnapshot {
   }
   return {
     contentType: article.contentType, categoryId: article.categoryId, coverMediaId: article.coverMediaId,
+    categoryIds: article.categories.map(item => item.id),
+    authors: article.authors.map(item => ({ authorId: item.id, role: item.role })),
     tagIds: article.tags.map(tag => tag.id), ru: translation("ru"), kk: translation("kk"),
   };
 }
@@ -35,7 +37,8 @@ function canonical(value: unknown): unknown {
 export function snapshotComparison(left: ArticleSnapshot, right: ArticleSnapshot, locale: ArticleLocale) {
   const fields: Array<{ label: string; left: unknown; right: unknown; structured?: boolean }> = [
     { label: "Тип материала", left: left.contentType, right: right.contentType },
-    { label: "Категория", left: left.categoryId, right: right.categoryId },
+    { label: "Категории", left: left.categoryIds ?? (left.categoryId ? [left.categoryId] : []), right: right.categoryIds ?? (right.categoryId ? [right.categoryId] : []) },
+    { label: "Авторы и роли", left: left.authors ?? [], right: right.authors ?? [] },
     { label: "Обложка", left: left.coverMediaId, right: right.coverMediaId },
     { label: "Теги", left: [...left.tagIds].sort(), right: [...right.tagIds].sort() },
     ...([

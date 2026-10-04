@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 import { Save } from "lucide-react";
 import Link from "next/link";
 import { RichTextEditor } from "./RichTextEditor";
+import { ArticleAuthorsEditor } from "./ArticleAuthorsEditor";
 import { ArticleAutosave, type SaveState } from "@/lib/articles/autosave";
 import { saveArticleDraft } from "@/server/actions/article.actions";
-import { articleContentTypeLabels } from "@/lib/articles/presentation";
 import {
-  articleContentTypes,
+  type ArticleAuthorLink,
   type Article,
   type ArticleTaxonomy,
 } from "@/types/domain/article";
@@ -38,6 +38,8 @@ export function ArticleForm({
   const controller = useRef<ArticleAutosave | null>(null);
   const router = useRouter();
   const [saveState, setSaveState] = useState<SaveState>({ status: "saved" });
+  const [authors, setAuthors] = useState<ArticleAuthorLink[]>(() => article?.authors.map(item => ({ authorId: item.id, role: item.role })) ?? []);
+  const [categoryIds, setCategoryIds] = useState<string[]>(() => article?.categories.map(item => item.id) ?? []);
   const id = article?.id;
   const version = article?.contentVersion;
   const status = article?.status;
@@ -94,6 +96,8 @@ export function ArticleForm({
       if ((target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) && target.name) changed();
     }} onSubmit={event => { event.preventDefault(); void controller.current?.save(); }}>
       {version ? <input type="hidden" name="expectedVersion" value={version} /> : null}
+      <input type="hidden" name="creditsVersion" value="1" />
+      {categoryIds.map(id => <input type="hidden" name="categoryIds" value={id} key={id} />)}
       <section className="article-editor-panel">
         <div className="panel-title">
           <div>
@@ -105,16 +109,18 @@ export function ArticleForm({
           <label>
             Тип материала
             <select name="contentType" defaultValue={article?.contentType ?? "article"} disabled={disabled}>
-              {articleContentTypes.map((type) => (
-                <option value={type} key={type}>{articleContentTypeLabels[type]}</option>
+              {taxonomy.contentTypes.filter(type => type.isActive || type.slug === article?.contentType).map((type) => (
+                <option value={type.slug} key={type.id}>{type.nameRu} / {type.nameKk}{type.isActive ? "" : " (неактивен)"}</option>
               ))}
             </select>
           </label>
           <label>
-            Категория
-            <select name="categoryId" defaultValue={article?.categoryId ?? ""} disabled={disabled}>
-              <option value="">Без категории</option>
-              {taxonomy.categories.map((category) => (
+            Основная категория
+            <select value={categoryIds[0] ?? ""} disabled={disabled || !categoryIds.length} onChange={event => {
+              setCategoryIds([event.target.value, ...categoryIds.filter(id => id !== event.target.value)]); changed();
+            }}>
+              {!categoryIds.length ? <option value="">Без категории</option> : null}
+              {taxonomy.categories.filter(item => categoryIds.includes(item.id)).map((category) => (
                 <option value={category.id} key={category.id}>
                   {category.nameRu} / {category.nameKk}
                 </option>
@@ -133,6 +139,20 @@ export function ArticleForm({
         </div>
 
         <fieldset className="tag-fieldset" disabled={disabled}>
+          <legend>Категории · до 20</legend>
+          <div className="tag-options">
+            {taxonomy.categories.filter(item => item.isActive || categoryIds.includes(item.id)).map(category => <label key={category.id}>
+              <input type="checkbox" checked={categoryIds.includes(category.id)} disabled={!categoryIds.includes(category.id) && categoryIds.length >= 20} onChange={event => {
+                setCategoryIds(event.target.checked ? [...categoryIds, category.id] : categoryIds.filter(id => id !== category.id)); changed();
+              }} />
+              <span>{category.nameRu}{category.isActive ? "" : " (неактивна)"}</span>
+            </label>)}
+          </div>
+        </fieldset>
+        <ArticleAuthorsEditor authors={taxonomy.authors} value={authors} disabled={disabled} onChange={value => { setAuthors(value); changed(); }} />
+        <p className="field-hint"><Link href="/admin/content/articles/taxonomy">Авторы и справочники журнала</Link></p>
+
+        <fieldset className="tag-fieldset" disabled={disabled}>
           <legend>Теги</legend>
           {taxonomy.tags.length > 0 ? (
             <div className="tag-options">
@@ -146,7 +166,7 @@ export function ArticleForm({
           ) : (
             <p className="field-hint">
               Тегов пока нет. Создайте их в разделе{" "}
-              <Link href="/admin/content/articles/taxonomy">«Категории и теги»</Link>.
+              <Link href="/admin/content/articles/taxonomy">«Авторы и справочники»</Link>.
             </p>
           )}
         </fieldset>
@@ -227,5 +247,5 @@ const saveErrorMessages: Record<string, string> = {
   forbidden: "Недостаточно прав для сохранения. Правки остаются в редакторе.",
   slug_conflict: "Этот slug уже занят. Измените адрес и сохраните снова.",
   slug_reserved: "Этот адрес сохранён в истории другого материала. Выберите другой slug.",
-  invalid_reference: "Выбранные файлы или рубрики недоступны. Обновите выбор и сохраните снова.",
+  invalid_reference: "Выбранные авторы, тип, категории или файлы недоступны. Обновите выбор и сохраните снова.",
 };

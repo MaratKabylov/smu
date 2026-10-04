@@ -45,7 +45,7 @@ export default async function ArticlesPage({ searchParams }: ArticlesPageProps) 
         </div>
         <div className="heading-actions">
           <Link className="secondary-button" href="/admin/content/articles/taxonomy">
-            <Tags aria-hidden="true" />Категории и теги
+            <Tags aria-hidden="true" />Авторы и справочники
           </Link>
           {mayCreate ? (
             <Link className="primary-button" href="/admin/content/articles/new">
@@ -92,8 +92,8 @@ export default async function ArticlesPage({ searchParams }: ArticlesPageProps) 
             <table className="articles-table">
               <thead>
                 <tr>
-                  <th>Заголовок</th><th>Категория</th><th>Тип</th>
-                  <th>Автор</th><th>Статус</th><th>Обновлено</th>
+                  <th>Заголовок</th><th>Категории</th><th>Тип</th>
+                  <th>Авторы</th><th>Статус</th><th>Обновлено</th>
                 </tr>
               </thead>
               <tbody>
@@ -105,9 +105,9 @@ export default async function ArticlesPage({ searchParams }: ArticlesPageProps) 
                         <Link href={`/admin/content/articles/${article.id}`}>{translation?.title ?? "Без заголовка"}</Link>
                         <small>RU / KK</small>
                       </td>
-                      <td>{article.category?.nameRu ?? "—"}</td>
-                      <td>{articleContentTypeLabels[article.contentType]}</td>
-                      <td>{article.authorName ?? "—"}</td>
+                      <td>{article.categories.map(item => item.nameRu).join(", ") || "—"}</td>
+                      <td>{article.contentTypeItem?.nameRu ?? articleContentTypeLabels[article.contentType] ?? article.contentType}</td>
+                      <td>{article.authors.map(item => item.nameRu).join(", ") || "—"}<small>Владелец: {article.authorName ?? "Пользователь редакции"}</small></td>
                       <td><span className={`status-badge status-${article.status}`}>{articleStatusLabels[article.status]}</span></td>
                       <td>{dateFormatter.format(new Date(article.updatedAt))}</td>
                     </tr>

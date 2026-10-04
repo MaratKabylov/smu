@@ -6,7 +6,8 @@ import { JournalHeader } from "@/components/journal/JournalHeader";
 import { RichTextContent } from "@/components/articles/RichTextContent";
 import { getArticleImages } from "@/server/repositories/article-images.repository";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { articleContentTypeLabels } from "@/lib/articles/presentation";
+import { articleTypeLabel } from "@/lib/articles/presentation";
+import { ArticleCredits } from "@/components/articles/ArticleCredits";
 import { getPublishedArticleBySlug, PublicArticleService } from "@/server/services/public-article.service";
 import type { ArticleLocale } from "@/types/domain/article";
 
@@ -56,9 +57,7 @@ export default async function PublicArticlePage({ params }: PublicArticlePagePro
     ? locale === "ru"
       ? article.category.nameRu
       : article.category.nameKk
-    : locale === "ru"
-      ? articleContentTypeLabels[article.contentType]
-      : typeLabelsKk[article.contentType];
+    : articleTypeLabel(article.contentType, article.contentTypeItem, locale);
   const date = new Intl.DateTimeFormat(locale === "ru" ? "ru-RU" : "kk-KZ", {
     day: "numeric",
     month: "long",
@@ -92,10 +91,11 @@ export default async function PublicArticlePage({ params }: PublicArticlePagePro
             <header className="public-article-header">
               <div className="public-article-kicker">
                 <Link href={`/journal?lang=${locale}&category=${article.category?.slug ?? ""}`}>{categoryName}</Link>
-                <span>{locale.toUpperCase()}</span>
+                <span>{articleTypeLabel(article.contentType, article.contentTypeItem, locale)} · {locale.toUpperCase()}</span>
               </div>
               <h1>{article.translation.title}</h1>
               <p className="public-article-lead">{article.translation.excerpt}</p>
+              <ArticleCredits authors={article.authors} locale={locale} />
               <div className="public-article-byline">
                 <span><CalendarDays aria-hidden="true" />{date}</span>
                 <span>{readingMinutes} {copy.minutes}</span>
@@ -123,7 +123,8 @@ export default async function PublicArticlePage({ params }: PublicArticlePagePro
               <aside className="public-article-aside">
                 <div>
                   <small>{copy.category}</small>
-                  <strong>{categoryName}</strong>
+                  <div className="public-article-tags">{article.categories.map(category => <Link key={category.id} href={`/journal?lang=${locale}&category=${category.slug}`}>{locale === "ru" ? category.nameRu : category.nameKk}</Link>)}</div>
+                  {!article.categories.length ? <strong>{categoryName}</strong> : null}
                 </div>
                 {article.tags.length > 0 ? (
                   <div>
@@ -139,6 +140,7 @@ export default async function PublicArticlePage({ params }: PublicArticlePagePro
                 ) : null}
               </aside>
             </div>
+            <ArticleCredits authors={article.authors} locale={locale} detailed />
           </article>
 
           <section className="public-article-end">
@@ -163,12 +165,7 @@ function isArticleLocale(value: string): value is ArticleLocale {
   return value === "ru" || value === "kk";
 }
 
-const typeLabelsKk = {
-  article: "Мақала",
-  news: "Жаңалық",
-  interview: "Сұхбат",
-  announcement: "Хабарландыру",
-} as const;
+
 
 const detailCopy = {
   ru: {

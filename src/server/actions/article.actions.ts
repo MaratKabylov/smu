@@ -6,7 +6,7 @@ import { z } from "zod";
 import {
   articleInputSchema,
   articleStatusSchema,
-  taxonomyInputSchema,
+  taxonomyInputSchema, taxonomyUpdateSchema, articleAuthorInputSchema,
 } from "@/lib/validation/article";
 import { getAdminAccess } from "@/server/services/access.service";
 import {
@@ -25,7 +25,9 @@ function articleInputFromFormData(formData: FormData) {
   return articleInputSchema.safeParse({
     expectedVersion: formData.get("expectedVersion") ? Number(formData.get("expectedVersion")) : undefined,
     contentType: formData.get("contentType"),
-    categoryId: formData.get("categoryId"),
+    categoryId: formData.get("categoryId") ?? "",
+    categoryIds: formData.has("creditsVersion") ? formData.getAll("categoryIds") : undefined,
+    authors: formData.has("creditsVersion") ? document("authors") : undefined,
     coverMediaId: formData.get("coverMediaId"),
     tagIds: formData.getAll("tagIds"),
     ru: {
@@ -206,4 +208,33 @@ export async function createArticleTaxonomy(formData: FormData) {
   revalidatePath("/admin/content/articles/taxonomy");
   revalidatePath("/admin/content/articles/new");
   redirect("/admin/content/articles/taxonomy?created=1");
+}
+
+export async function updateArticleTaxonomy(formData: FormData) {
+  const input = taxonomyUpdateSchema.safeParse({
+    id: formData.get("id"), kind: formData.get("kind"), slug: formData.get("slug"),
+    nameRu: formData.get("nameRu"), nameKk: formData.get("nameKk"), isActive: formData.get("isActive") === "yes",
+  });
+  if (!input.success) redirect("/admin/content/articles/taxonomy?error=validation");
+  const access = await requireAccess("/admin/content/articles/taxonomy");
+  try { await new ArticleService().updateTaxonomyItem(access, input.data); }
+  catch (error) { redirect(`/admin/content/articles/taxonomy?error=${errorReason(error)}`); }
+  invalidateArticles();
+  redirect("/admin/content/articles/taxonomy?saved=1");
+}
+
+export async function saveArticleAuthor(formData: FormData) {
+  const rawId = formData.get("id");
+  const id = rawId ? articleIdSchema.safeParse(rawId) : null;
+  const input = articleAuthorInputSchema.safeParse({
+    profileId: formData.get("profileId") ?? "", nameRu: formData.get("nameRu"), nameKk: formData.get("nameKk"),
+    bioRu: formData.get("bioRu"), bioKk: formData.get("bioKk"), organization: formData.get("organization"),
+    position: formData.get("position"), websiteUrl: formData.get("websiteUrl"), isActive: formData.get("isActive") === "yes",
+  });
+  if (!input.success || (id && !id.success)) redirect("/admin/content/articles/taxonomy?error=validation");
+  const access = await requireAccess("/admin/content/articles/taxonomy");
+  try { await new ArticleService().saveAuthor(access, id?.success ? id.data : null, input.data); }
+  catch (error) { redirect(`/admin/content/articles/taxonomy?error=${errorReason(error)}`); }
+  invalidateArticles();
+  redirect("/admin/content/articles/taxonomy?saved=1");
 }

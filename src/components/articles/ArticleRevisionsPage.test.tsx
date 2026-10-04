@@ -24,6 +24,7 @@ const category = "00000000-0000-4000-a000-000000000004";
 const translation = { title: "Старая версия <script>", slug: "article", excerpt: "Описание исследования", body: "Текст исследования и результаты.", contentJson: plainTextDocument("Текст исследования и результаты."), seoTitle: null, seoDescription: null };
 const article: Article = {
   id, authorId: "author", scientificReviewerId: "reviewer", contentVersion: 3, approvedVersion: null,
+  categories: [], authors: [], contentTypeItem: null,
   authorName: "Автор", categoryId: category, category: null, coverMediaId: null, contentType: "article",
   status: "draft", publishedAt: null, createdAt: "2026-10-04T12:00:00Z", updatedAt: "2026-10-04T12:00:00Z", deletedAt: null,
   translations: [
@@ -44,7 +45,7 @@ beforeEach(() => {
   mocks.access.mockResolvedValue({ state: "allowed", access: { userId: "editor", roles: new Set(), permissions: new Set(["admin.access", "articles.edit_any"]) } });
   mocks.article.mockResolvedValue(article); mocks.list.mockResolvedValue({ revisions: [revision], total: 21 });
   mocks.revision.mockResolvedValue(revision); mocks.images.mockResolvedValue([]);
-  mocks.taxonomy.mockResolvedValue({ categories: [{ id: category, nameRu: "Исследования", nameKk: "Зерттеулер" }], tags: [] });
+  mocks.taxonomy.mockResolvedValue({ authors: [], contentTypes: [], categories: [{ id: category, nameRu: "Исследования", nameKk: "Зерттеулер" }], tags: [] });
 });
 describe("article revision page", () => {
   it("shows safe comparison, meaningful taxonomy labels, pagination and explicit restore confirmation", async () => {
