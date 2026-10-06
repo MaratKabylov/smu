@@ -6,7 +6,10 @@ import {
 } from "@/lib/permissions/permissions";
 import { databaseErrorCode } from "@/lib/security/database-error";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import type { ArticleInput, ArticleListFilters, TaxonomyInput, ArticleAuthorInput, TaxonomyUpdateInput } from "@/lib/validation/article";
+import type {
+  ArticleInput, ArticleListFilters, TaxonomyInput, ArticleAuthorInput, TaxonomyUpdateInput,
+  ArticleReviewConfigurationInput, ArticleReviewDecisionInput,
+} from "@/lib/validation/article";
 import { ArticleRepository } from "@/server/repositories/article.repository";
 import type { AccessContext } from "@/types/domain/auth";
 import type { ArticleStatus } from "@/types/domain/article";
@@ -87,6 +90,9 @@ export class ArticleService {
     return this.repository(async (repository) => {
       const article = await repository.getById(id);
       if (!article || article.deletedAt) throw new ArticleServiceError("not_found", "Статья не найдена.");
+      if (nextStatus === "in_review" && article.requiresScientificReview && !article.scientificReviewerId) {
+        throw new ArticleServiceError("invalid_transition", "Сначала назначьте научного рецензента.");
+      }
       if (!this.canTransition(access, article.authorId, article.scientificReviewerId, article.status, nextStatus)) {
         throw new ArticleServiceError("invalid_transition", "Недоступный переход редакционного статуса.");
       }
@@ -132,6 +138,43 @@ export class ArticleService {
     return this.repository((repository) => repository.assignReviewer(id, reviewerId));
   }
 
+  async configureReview(access: AccessContext, id: string, input: ArticleReviewConfigurationInput) {
+    assertAllowed(canAssignReviewer(access));
+    return this.repository((repository) => repository.configureReview(
+      id,
+      input.requiresScientificReview,
+      input.reviewerId,
+    ));
+  }
+
+  async listReviews(access: AccessContext, id: string) {
+    return this.repository(async (repository) => {
+      const article = await repository.getById(id);
+      if (!article || article.deletedAt) throw new ArticleServiceError("not_found", "Статья не найдена.");
+      assertAllowed(canEditArticle(access, article.authorId) ||
+        canReviewArticle(access, article.scientificReviewerId) || canPublishArticle(access));
+      return repository.listReviews(id);
+    });
+  }
+
+  async submitReview(access: AccessContext, id: string, expectedVersion: number, input: ArticleReviewDecisionInput) {
+    return this.repository(async (repository) => {
+      const article = await repository.getById(id);
+      if (!article || article.deletedAt) throw new ArticleServiceError("not_found", "Статья не найдена.");
+      assertAllowed(canReviewArticle(access, article.scientificReviewerId));
+      if (article.requiresScientificReview && article.scientificReviewerId !== access.userId) {
+        throw new ArticleServiceError("forbidden", "Решение должен принять назначенный научный рецензент.");
+      }
+      if (article.status !== "in_review") {
+        throw new ArticleServiceError("invalid_transition", "Материал не находится на рецензии.");
+      }
+      if (expectedVersion !== article.contentVersion) {
+        throw new ArticleServiceError("stale_version", "Материал изменился. Обновите страницу перед рецензированием.");
+      }
+      return repository.submitReview(id, expectedVersion, input.decision, input.comment);
+    });
+  }
+
   private canTransition(access: AccessContext, authorId: string, reviewerId: string | null,
     current: ArticleStatus, next: ArticleStatus) {
     if (current === next) return false;
@@ -139,8 +182,8 @@ export class ArticleService {
     const review = canReviewArticle(access, reviewerId);
     const publish = canPublishArticle(access);
     if (current === "draft" && next === "in_review") return edit;
+    if (current === "changes_requested" && next === "draft") return edit;
     if (current === "in_review" && next === "draft") return review || edit;
-    if (current === "in_review" && next === "approved") return review;
     if (current === "approved" && next === "draft") return review || publish;
     if (current === "approved" && next === "published") return publish;
     if (current === "published" && (next === "archived" || next === "draft")) return publish;

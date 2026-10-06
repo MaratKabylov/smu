@@ -1845,6 +1845,27 @@ th {
   font-size: 11px;
 }
 
+.review-decision-panel,
+.review-history {
+  display: grid;
+  gap: 18px;
+  margin: 18px 0;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  padding: 20px;
+}
+
+.review-decision-panel h2,
+.review-history h2 { margin: 2px 0 0; }
+.review-decision-panel form { display: grid; gap: 14px; }
+.review-history ol { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.review-history li { display: grid; gap: 8px; border-top: 1px solid var(--border); padding-top: 12px; }
+.review-history li:first-child { border-top: 0; padding-top: 0; }
+.review-history li div { display: flex; justify-content: space-between; gap: 16px; }
+.review-history li span { color: var(--muted); font-size: 12px; }
+.review-history li p { margin: 0; white-space: pre-wrap; }
+
 .article-form {
   display: grid;
   gap: 18px;

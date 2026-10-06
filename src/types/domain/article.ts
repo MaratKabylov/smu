@@ -4,6 +4,7 @@ import type { RichTextNode } from "@/lib/articles/rich-text";
 export const articleStatuses = [
   "draft",
   "in_review",
+  "changes_requested",
   "approved",
   "published",
   "archived",
@@ -63,6 +64,7 @@ export type Article = {
   id: string;
   authorId: string;
   scientificReviewerId: string | null;
+  requiresScientificReview: boolean;
   contentVersion: number;
   approvedVersion: number | null;
   authorName: string | null;
@@ -80,6 +82,19 @@ export type Article = {
   deletedAt: string | null;
   translations: ArticleTranslation[];
   tags: ArticleTaxonomyItem[];
+};
+
+export const articleReviewDecisions = ["approved", "changes_requested"] as const;
+export type ArticleReviewDecision = (typeof articleReviewDecisions)[number];
+export type ArticleReview = {
+  id: string;
+  articleId: string;
+  contentVersion: number;
+  reviewerId: string;
+  reviewerName: string;
+  decision: ArticleReviewDecision;
+  comment: string;
+  createdAt: string;
 };
 
 export type ArticleTaxonomy = {

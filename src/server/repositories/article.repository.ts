@@ -8,6 +8,8 @@ import type {
   Article,
   ArticleContentType,
   ArticleLocale,
+  ArticleReview,
+  ArticleReviewDecision,
   ArticleStatus,
   ArticleTaxonomy,
   ArticleTaxonomyItem,
@@ -23,6 +25,7 @@ type ArticleRow = {
   id: string;
   author_id: string;
   scientific_reviewer_id: string | null;
+  requires_scientific_review: boolean;
   content_version: number;
   approved_version: number | null;
   category_id: string | null;
@@ -209,6 +212,40 @@ export class ArticleRepository {
     await this.mutate("assign_article_reviewer", { p_id: id, p_reviewer: reviewerId });
   }
 
+  async configureReview(id: string, requiresScientificReview: boolean, reviewerId: string | null) {
+    await this.mutate("configure_article_review", {
+      p_id: id,
+      p_requires_scientific_review: requiresScientificReview,
+      p_reviewer: reviewerId,
+    });
+  }
+
+  async submitReview(id: string, expectedVersion: number, decision: ArticleReviewDecision, comment: string) {
+    return this.mutate<string>("submit_article_review", {
+      p_id: id,
+      p_expected_version: expectedVersion,
+      p_decision: decision,
+      p_comment: comment,
+    });
+  }
+
+  async listReviews(id: string): Promise<ArticleReview[]> {
+    const rows = await this.mutate<Array<{
+      id: string; article_id: string; content_version: number; reviewer_id: string;
+      reviewer_name: string; decision: ArticleReviewDecision; comment: string; created_at: string;
+    }>>("list_article_reviews", { p_id: id });
+    return rows.map(row => ({
+      id: row.id,
+      articleId: row.article_id,
+      contentVersion: row.content_version,
+      reviewerId: row.reviewer_id,
+      reviewerName: row.reviewer_name,
+      decision: row.decision,
+      comment: row.comment,
+      createdAt: row.created_at,
+    }));
+  }
+
   private async mutate<T = void>(name: string, args: Record<string, unknown>): Promise<T> {
     const { data, error } = await this.client.rpc(name, args);
     if (error) throw error;
@@ -282,6 +319,7 @@ export class ArticleRepository {
       relations: relations.get(row.id) ?? [],
       authorId: row.author_id,
       scientificReviewerId: row.scientific_reviewer_id,
+      requiresScientificReview: row.requires_scientific_review,
       contentVersion: row.content_version,
       approvedVersion: row.approved_version,
       authorName:

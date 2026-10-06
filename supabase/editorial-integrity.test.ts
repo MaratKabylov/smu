@@ -50,9 +50,16 @@ async function state(user: string, id: string, status: string | null, remove = f
 const assign = (user: string, id: string, reviewerId: string | null) => asUser(user, () => db.query(
   "select public.assign_article_reviewer($1, $2)", [id, reviewerId],
 ));
+const configureReview = (user: string, id: string, required: boolean, reviewerId: string | null) => asUser(user, () => db.query(
+  "select public.configure_article_review($1, $2, $3)", [id, required, reviewerId],
+));
+const review = (user: string, id: string, decision: "approved" | "changes_requested", comment = "Review completed.", version?: number) => asUser(user, async () => {
+  const current = version ?? (await db.query<{ content_version: number }>("select content_version from public.articles where id = $1", [id])).rows[0]?.content_version;
+  return db.query("select public.submit_article_review($1, $2, $3, $4)", [id, current, decision, comment]);
+});
 async function publish(id: string) {
   await state(author, id, "in_review");
-  await state(admin, id, "approved");
+  await review(admin, id, "approved");
   await state(admin, id, "published");
 }
 async function saveScientist(value: unknown = scientistInput, id: string | null = null, user = scientistManager) {
@@ -584,7 +591,7 @@ describe("session-authorized editorial transactions", () => {
     expect((await visible("article_translations", reviewer)).rows).toHaveLength(2);
     expect((await visible("articles", otherReviewer)).rows).toHaveLength(0);
     await expect(state(otherReviewer, id, "approved")).rejects.toThrow("forbidden");
-    await state(reviewer, id, "approved");
+    await review(reviewer, id, "approved");
     expect((await db.query("select approved_version, content_version from public.articles where id = $1", [id])).rows[0]).toEqual({ approved_version: 1, content_version: 1 });
   });
   it("validates reviewer assignment and locks it after approval", async () => {
@@ -592,7 +599,7 @@ describe("session-authorized editorial transactions", () => {
     await expect(assign(author, id, reviewer)).rejects.toThrow("forbidden");
     await expect(assign(editor, id, author)).rejects.toThrow("invalid_reference");
     await assign(editor, id, reviewer);
-    await state(author, id, "in_review"); await state(reviewer, id, "approved");
+    await state(author, id, "in_review"); await review(reviewer, id, "approved");
     await expect(assign(editor, id, otherReviewer)).rejects.toThrow("invalid_transition");
   });
   it("rejects repeated published status without changing timestamps or audit", async () => {
@@ -615,7 +622,7 @@ describe("session-authorized editorial transactions", () => {
   });
   it("denies publication when approval is for an older version", async () => {
     const id = await save();
-    await state(author, id, "in_review"); await state(admin, id, "approved");
+    await state(author, id, "in_review"); await review(admin, id, "approved");
     await db.query("update public.articles set content_version = 2 where id = $1", [id]);
     await expect(state(admin, id, "published")).rejects.toThrow("invalid_transition");
   });
@@ -625,9 +632,9 @@ describe("session-authorized editorial transactions", () => {
     await state(author, id, "in_review");
     await save(editor, { ...input, ru: { ...translation, title: "An updated scientific article" } }, id);
     await state(author, id, "in_review");
-    await expect(asUser(reviewer, () => db.query("select public.change_article_state($1, 'approved', false, 1)", [id]))).rejects.toThrow("stale_version");
-    await expect(asUser(reviewer, () => db.query("select public.change_article_state($1, 'approved', false)", [id]))).rejects.toThrow("stale_version");
-    await state(reviewer, id, "approved");
+    await expect(review(reviewer, id, "approved", "Stale decision.", 1)).rejects.toThrow("stale_version");
+    await expect(asUser(reviewer, () => db.query("select public.submit_article_review($1, null, 'approved', 'Missing version')", [id]))).rejects.toThrow("stale_version");
+    await review(reviewer, id, "approved");
   });
   it("supports unpublish and atomically audits soft delete", async () => {
     const id = await save(); await publish(id);
@@ -641,6 +648,51 @@ describe("session-authorized editorial transactions", () => {
     await expect(save(author, { ...input, kk: { ...input.kk, body: "short" } })).rejects.toThrow("invalid_input");
     await expect(save(author, { ...input, coverMediaId: otherAuthor })).rejects.toThrow("invalid_reference");
     expect((await db.query("select * from public.articles")).rows).toHaveLength(0);
+  });
+});
+
+describe("versioned scientific review", () => {
+  it("requires a reviewer before mandatory review and records an assigned decision", async () => {
+    const id = await save();
+    await expect(configureReview(author, id, true, reviewer)).rejects.toThrow("forbidden");
+    await expect(configureReview(editor, id, true, null)).rejects.toThrow("invalid_input");
+    await configureReview(editor, id, true, reviewer);
+    await state(author, id, "in_review");
+    await expect(review(editor, id, "approved", "Editorial approval." )).rejects.toThrow("forbidden");
+    await expect(state(reviewer, id, "approved")).rejects.toThrow("forbidden");
+    await review(reviewer, id, "changes_requested", "Please clarify the research method.");
+    expect((await db.query<Record<string, unknown>>("select status, approved_version from public.articles where id = $1", [id])).rows[0])
+      .toEqual({ status: "changes_requested", approved_version: null });
+    expect((await db.query<Record<string, unknown>>("select content_version, reviewer_id, decision, comment from public.article_reviews where article_id = $1", [id])).rows)
+      .toEqual([{ content_version: 1, reviewer_id: reviewer, decision: "changes_requested", comment: "Please clarify the research method." }]);
+  });
+
+  it("keeps old feedback as history and requires a fresh decision after changes", async () => {
+    const id = await save();
+    await configureReview(editor, id, true, reviewer);
+    await state(author, id, "in_review");
+    await review(reviewer, id, "changes_requested", "Add supporting evidence.");
+    await state(author, id, "draft");
+    await expect(state(author, id, "in_review")).rejects.toThrow("invalid_transition");
+    await save(author, { ...input, ru: { ...translation, body: "A revised explanation with supporting evidence and scientific results." } }, id);
+    await state(author, id, "in_review");
+    await expect(review(reviewer, id, "approved", "Stale approval.", 1)).rejects.toThrow("stale_version");
+    await review(reviewer, id, "approved", "The revised evidence is sufficient.");
+    expect((await db.query<Record<string, unknown>>("select content_version, decision from public.article_reviews where article_id = $1 order by content_version", [id])).rows)
+      .toEqual([{ content_version: 1, decision: "changes_requested" }, { content_version: 2, decision: "approved" }]);
+    await state(admin, id, "published");
+  });
+
+  it("supports optional editorial review and protects review writes", async () => {
+    const id = await save();
+    await state(author, id, "in_review");
+    await review(editor, id, "approved", "Editorial review passed.");
+    const listed = await asUser(author, () => db.query<Record<string, unknown>>("select * from public.list_article_reviews($1)", [id]));
+    expect(listed.rows).toMatchObject([{ content_version: 1, reviewer_id: editor, decision: "approved", comment: "Editorial review passed." }]);
+    await expect(asUser(editor, () => db.query("delete from public.article_reviews"))).rejects.toThrow(/permission denied/);
+    for (const role of ["anon", "service_role"]) {
+      await expect(asUser(null, () => db.query("select public.submit_article_review($1, 1, 'approved', 'Bypass')", [id]), role)).rejects.toThrow(/permission denied/);
+    }
   });
 });
 
@@ -715,7 +767,7 @@ describe("article revision history", () => {
     expect((await db.query("select * from public.article_revisions")).rows).toHaveLength(0);
     const revisionId = await createRevision(author, id, 2);
     await state(author, id, "in_review");
-    await state(admin, id, "approved");
+    await review(admin, id, "approved");
     expect((await db.query("select * from public.article_revisions")).rows).toHaveLength(2);
     await state(admin, id, "published");
     expect((await db.query("select revision_number, content_version, reason, created_by from public.article_revisions order by revision_number")).rows).toEqual([

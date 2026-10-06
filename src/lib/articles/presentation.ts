@@ -7,6 +7,7 @@ import type {
 export const articleStatusLabels: Record<ArticleStatus, string> = {
   draft: "Черновик",
   in_review: "На рецензии",
+  changes_requested: "Требуются изменения",
   approved: "Одобрено",
   published: "Опубликовано",
   archived: "В архиве",

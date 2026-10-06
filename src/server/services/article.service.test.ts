@@ -1,17 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
-const mocks = vi.hoisted(() => ({ client: vi.fn(), get: vi.fn(), create: vi.fn(), update: vi.fn(), status: vi.fn(), assign: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  client: vi.fn(), get: vi.fn(), create: vi.fn(), update: vi.fn(), status: vi.fn(), assign: vi.fn(),
+  configure: vi.fn(), submitReview: vi.fn(), listReviews: vi.fn(),
+}));
 vi.mock("@/lib/supabase/server", () => ({ createServerSupabaseClient: mocks.client }));
 vi.mock("@/server/repositories/article.repository", () => ({ ArticleRepository: class {
   getById = mocks.get; create = mocks.create; update = mocks.update;
   changeStatus = mocks.status; assignReviewer = mocks.assign;
+  configureReview = mocks.configure; submitReview = mocks.submitReview; listReviews = mocks.listReviews;
 } }));
 import { ArticleService } from "./article.service";
 import type { AccessContext, PermissionCode } from "@/types/domain/auth";
 import type { ArticleInput } from "@/lib/validation/article";
 
 const access = (permissions: PermissionCode[], userId = "user"): AccessContext => ({ userId, roles: new Set(), permissions: new Set(permissions) });
-const article = { id: "id", authorId: "author", scientificReviewerId: "assigned", contentVersion: 1, status: "published", deletedAt: null };
+const article = { id: "id", authorId: "author", scientificReviewerId: "assigned", requiresScientificReview: false, contentVersion: 1, status: "published", deletedAt: null };
 beforeEach(() => { vi.clearAllMocks(); mocks.get.mockResolvedValue(article); });
 describe("article service authorization", () => {
   it("denies author directory writes and profile listings before constructing a client", async () => {
@@ -49,12 +53,12 @@ describe("article service authorization", () => {
     mocks.get.mockResolvedValue({ ...article, status: "in_review" });
     await expect(new ArticleService().changeStatus(access(["articles.review"], "other"), "id", "approved")).rejects.toMatchObject({ code: "invalid_transition" });
     expect(mocks.status).not.toHaveBeenCalled();
-    await new ArticleService().changeStatus(access(["articles.review"], "assigned"), "id", "approved");
-    expect(mocks.status).toHaveBeenCalledWith("id", "approved", 1);
+    await new ArticleService().submitReview(access(["articles.review"], "assigned"), "id", 1, { decision: "approved", comment: "Accurate results." });
+    expect(mocks.submitReview).toHaveBeenCalledWith("id", 1, "approved", "Accurate results.");
   });
   it("allows editorial review and explicit unpublish with separate permissions", async () => {
     mocks.get.mockResolvedValue({ ...article, status: "in_review" });
-    await new ArticleService().changeStatus(access(["articles.review", "articles.edit_any"]), "id", "approved");
+    await new ArticleService().submitReview(access(["articles.review", "articles.edit_any"]), "id", 1, { decision: "approved", comment: "Editorial review complete." });
     mocks.get.mockResolvedValue(article);
     await new ArticleService().changeStatus(access(["articles.publish"]), "id", "draft");
     expect(mocks.status).toHaveBeenLastCalledWith("id", "draft", 1);
@@ -76,7 +80,18 @@ describe("article service authorization", () => {
   });
   it("rejects review of a newer version than the reviewer opened", async () => {
     mocks.get.mockResolvedValue({ ...article, status: "in_review", contentVersion: 2 });
-    await expect(new ArticleService().changeStatus(access(["articles.review"], "assigned"), "id", "approved", 1)).rejects.toMatchObject({ code: "stale_version" });
+    await expect(new ArticleService().submitReview(access(["articles.review"], "assigned"), "id", 1, { decision: "approved", comment: "Old review." })).rejects.toMatchObject({ code: "stale_version" });
+    expect(mocks.submitReview).not.toHaveBeenCalled();
+  });
+  it("requires the assigned reviewer for mandatory scientific review", async () => {
+    mocks.get.mockResolvedValue({ ...article, status: "in_review", requiresScientificReview: true });
+    await expect(new ArticleService().submitReview(access(["articles.review", "articles.edit_any"], "editor"), "id", 1, { decision: "approved", comment: "Editorial approval." })).rejects.toMatchObject({ code: "forbidden" });
+    await new ArticleService().submitReview(access(["articles.review"], "assigned"), "id", 1, { decision: "changes_requested", comment: "Clarify the method." });
+    expect(mocks.submitReview).toHaveBeenCalledWith("id", 1, "changes_requested", "Clarify the method.");
+  });
+  it("does not send a mandatory review without an assigned reviewer", async () => {
+    mocks.get.mockResolvedValue({ ...article, status: "draft", requiresScientificReview: true, scientificReviewerId: null });
+    await expect(new ArticleService().changeStatus(access(["articles.edit_own"], "author"), "id", "in_review", 1)).rejects.toMatchObject({ code: "invalid_transition" });
     expect(mocks.status).not.toHaveBeenCalled();
   });
 });

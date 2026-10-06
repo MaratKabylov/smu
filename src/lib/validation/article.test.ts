@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   articleInputSchema,
+  articleReviewConfigurationSchema,
+  articleReviewDecisionSchema,
   publicArticleFiltersSchema,
   taxonomyInputSchema,
   articleAuthorInputSchema,
@@ -91,5 +93,15 @@ describe("article validation", () => {
         tag: "",
       }).success,
     ).toBe(false);
+  });
+
+  it("validates versioned review configuration and decisions", () => {
+    const reviewerId = "f3576689-3d41-43f6-a17d-56bca5d9dc18";
+    expect(articleReviewConfigurationSchema.safeParse({ requiresScientificReview: true, reviewerId }).success).toBe(true);
+    expect(articleReviewConfigurationSchema.safeParse({ requiresScientificReview: true, reviewerId: "" }).success).toBe(false);
+    expect(articleReviewConfigurationSchema.safeParse({ requiresScientificReview: false, reviewerId: "" }).success).toBe(true);
+    expect(articleReviewDecisionSchema.parse({ decision: "changes_requested", comment: "  Clarify the method.  " }))
+      .toEqual({ decision: "changes_requested", comment: "Clarify the method." });
+    expect(articleReviewDecisionSchema.safeParse({ decision: "approved", comment: "" }).success).toBe(false);
   });
 });

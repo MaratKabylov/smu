@@ -23,7 +23,7 @@ const revisionId = "00000000-0000-4000-a000-000000000003";
 const category = "00000000-0000-4000-a000-000000000004";
 const translation = { title: "Старая версия <script>", slug: "article", excerpt: "Описание исследования", body: "Текст исследования и результаты.", contentJson: plainTextDocument("Текст исследования и результаты."), seoTitle: null, seoDescription: null };
 const article: Article = {
-  id, authorId: "author", scientificReviewerId: "reviewer", contentVersion: 3, approvedVersion: null,
+  id, authorId: "author", scientificReviewerId: "reviewer", requiresScientificReview: false, contentVersion: 3, approvedVersion: null,
   categories: [], authors: [], contentTypeItem: null,
   authorName: "Автор", categoryId: category, category: null, coverMediaId: null, contentType: "article",
   status: "draft", publishedAt: null, createdAt: "2026-10-04T12:00:00Z", updatedAt: "2026-10-04T12:00:00Z", deletedAt: null,

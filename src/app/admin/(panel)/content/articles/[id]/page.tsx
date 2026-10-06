@@ -13,8 +13,9 @@ import {
 } from "@/lib/permissions/permissions";
 import {
   changeArticleStatus,
-  assignArticleReviewer,
+  configureArticleReview,
   softDeleteArticle,
+  submitArticleReview,
   updateArticle,
 } from "@/server/actions/article.actions";
 import { getAdminAccess } from "@/server/services/access.service";
@@ -30,6 +31,7 @@ type ArticleDetailPageProps = {
     saved?: string;
     status_changed?: string;
     reviewer_saved?: string;
+    review_saved?: string;
     restored?: string;
     error?: string;
   }>;
@@ -82,13 +84,19 @@ export default async function ArticleDetailPage({ params, searchParams }: Articl
     }
   }
   const canPublish = canPublishArticle(result.access);
+  const canEdit = canEditArticle(result.access, article.authorId);
   const mayEdit =
-    canEditArticle(result.access, article.authorId) &&
+    canEdit &&
     (article.status === "draft" || hasPermission(result.access, "articles.edit_any")) &&
     (article.status !== "archived" || canPublish);
   const mayReview = canReviewArticle(result.access, article.scientificReviewerId);
+  const mayDecideReview = mayReview &&
+    (!article.requiresScientificReview || article.scientificReviewerId === result.access.userId);
   const mayAssignReviewer = hasPermission(result.access, "articles.edit_any") || canPublish;
   const reviewers = mayAssignReviewer ? await service.listReviewers(result.access) : [];
+  const reviews = canEdit || mayReview || canPublish
+    ? await service.listReviews(result.access, article.id)
+    : [];
   const mayDelete = canDeleteArticle(result.access);
   const updateAction = updateArticle.bind(null, article.id);
   const deleteAction = softDeleteArticle.bind(null, article.id);
@@ -113,6 +121,7 @@ export default async function ArticleDetailPage({ params, searchParams }: Articl
       {state.status_changed === "1" ? <div className="notice success-notice">Редакционный статус обновлён.</div> : null}
       {state.reviewer_saved === "1" ? <div className="notice success-notice">Назначение рецензента сохранено.</div> : null}
       {state.restored === "1" ? <div className="notice success-notice">Версия восстановлена. Статья возвращена в черновики; перед публикацией нужно повторное одобрение.</div> : null}
+      {state.review_saved === "1" ? <div className="notice success-notice">Решение рецензента сохранено для текущей версии.</div> : null}
       {state.error ? <div className="notice error-notice" role="alert">{errorMessages[state.error] ?? errorMessages.action_failed}</div> : null}
 
       <section className="workflow-panel">
@@ -126,9 +135,10 @@ export default async function ArticleDetailPage({ params, searchParams }: Articl
             articleId={article.id}
             status={article.status}
             contentVersion={article.contentVersion}
-            mayEdit={mayEdit}
+            mayEdit={canEdit}
             mayReview={mayReview}
             mayPublish={canPublish}
+            canEnterReview={!article.requiresScientificReview || Boolean(article.scientificReviewerId)}
           />
         </div>
       </section>
@@ -137,10 +147,14 @@ export default async function ArticleDetailPage({ params, searchParams }: Articl
         <Link href={`/admin/content/articles/${article.id}/revisions`}>История версий и сравнение</Link>
       </div> : null}
 
-      {mayAssignReviewer && (article.status === "draft" || article.status === "in_review") ? (
+      {mayAssignReviewer && (["draft", "in_review", "changes_requested"] as ArticleStatus[]).includes(article.status) ? (
         <section className="workflow-panel">
           <div><h2>Научный рецензент</h2><p>Рецензент получает доступ к назначенному материалу.</p></div>
-          <form action={assignArticleReviewer.bind(null, article.id)}>
+          <form action={configureArticleReview.bind(null, article.id)}>
+            <label className="confirm-check">
+              <input name="requiresScientificReview" type="checkbox" value="yes" defaultChecked={article.requiresScientificReview} />
+              Обязательная научная рецензия
+            </label>
             <label>Рецензент
               <select name="reviewerId" defaultValue={article.scientificReviewerId ?? ""}>
                 <option value="">Не назначен</option>
@@ -149,6 +163,35 @@ export default async function ArticleDetailPage({ params, searchParams }: Articl
             </label>
             <button className="secondary-button" type="submit">Сохранить назначение</button>
           </form>
+        </section>
+      ) : null}
+      {article.status === "in_review" && mayDecideReview ? (
+        <section className="review-decision-panel">
+          <div>
+            <p className="page-kicker">Версия {article.contentVersion}</p>
+            <h2>Решение по рецензии</h2>
+            <p>Комментарий и решение сохранятся в истории именно этой версии материала.</p>
+          </div>
+          <form action={submitArticleReview.bind(null, article.id, article.contentVersion)}>
+            <label>Комментарий рецензента
+              <textarea name="comment" minLength={3} maxLength={5000} rows={5} required />
+            </label>
+            <div className="workflow-actions">
+              <button className="secondary-button" type="submit" name="decision" value="changes_requested"><Undo2 aria-hidden="true" />Запросить изменения</button>
+              <button className="primary-button" type="submit" name="decision" value="approved"><CheckCircle2 aria-hidden="true" />Одобрить версию</button>
+            </div>
+          </form>
+        </section>
+      ) : null}
+      {reviews.length > 0 ? (
+        <section className="review-history" aria-labelledby="review-history-title">
+          <div><p className="page-kicker">История решений</p><h2 id="review-history-title">Научные рецензии</h2></div>
+          <ol>
+            {reviews.map(review => <li key={review.id}>
+              <div><strong>{review.decision === "approved" ? "Одобрено" : "Запрошены изменения"}</strong><span>Версия {review.contentVersion} · {review.reviewerName} · {new Intl.DateTimeFormat("ru-RU", { dateStyle: "medium", timeStyle: "short" }).format(new Date(review.createdAt))}</span></div>
+              <p>{review.comment}</p>
+            </li>)}
+          </ol>
         </section>
       ) : null}
       {mayEdit && article.status !== "draft" ? (
@@ -181,6 +224,7 @@ function WorkflowActions({
   mayEdit,
   mayReview,
   mayPublish,
+  canEnterReview,
 }: {
   articleId: string;
   status: ArticleStatus;
@@ -188,6 +232,7 @@ function WorkflowActions({
   mayEdit: boolean;
   mayReview: boolean;
   mayPublish: boolean;
+  canEnterReview: boolean;
 }) {
   const actions: Array<{
     next: ArticleStatus;
@@ -196,9 +241,9 @@ function WorkflowActions({
     primary?: boolean;
   }> = [];
 
-  if (status === "draft" && mayEdit) actions.push({ next: "in_review", label: "Отправить на рецензию", icon: Send, primary: true });
+  if (status === "draft" && mayEdit && canEnterReview) actions.push({ next: "in_review", label: "Отправить на рецензию", icon: Send, primary: true });
+  if (status === "changes_requested" && mayEdit) actions.push({ next: "draft", label: "Перейти к доработке", icon: Undo2, primary: true });
   if (status === "in_review" && (mayReview || mayEdit)) actions.push({ next: "draft", label: "Вернуть в черновики", icon: Undo2 });
-  if (status === "in_review" && mayReview) actions.push({ next: "approved", label: "Одобрить", icon: CheckCircle2, primary: true });
   if (status === "approved" && (mayReview || mayPublish)) actions.push({ next: "draft", label: "Вернуть на доработку", icon: Undo2 });
   if (status === "approved" && mayPublish) actions.push({ next: "published", label: "Опубликовать", icon: Send, primary: true });
   if (status === "published" && mayPublish) actions.push({ next: "archived", label: "Перенести в архив", icon: Archive });

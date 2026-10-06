@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { articleRelationKinds, articleRelationTypes } from "../../types/domain/article-relations";
 import { plainTextDocument, richTextDocumentSchema, richTextToPlainText } from "../articles/rich-text";
-import { articleAuthorRoles, articleStatuses } from "../../types/domain/article";
+import { articleAuthorRoles, articleReviewDecisions, articleStatuses } from "../../types/domain/article";
 
 const nullableUuid = z
   .union([z.literal(""), z.uuid()])
@@ -59,6 +59,18 @@ export const articleListFiltersSchema = z.object({
 
 export const articleStatusSchema = z.enum(articleStatuses);
 
+export const articleReviewConfigurationSchema = z.object({
+  requiresScientificReview: z.boolean(),
+  reviewerId: nullableUuid,
+}).refine(value => !value.requiresScientificReview || value.reviewerId !== null, {
+  message: "Для обязательной научной рецензии нужен рецензент.",
+});
+
+export const articleReviewDecisionSchema = z.object({
+  decision: z.enum(articleReviewDecisions),
+  comment: z.string().trim().min(3).max(5_000),
+});
+
 export const taxonomyInputSchema = z.object({
   kind: z.enum(["category", "tag", "type"]),
   slug: slugSchema,
@@ -82,6 +94,8 @@ export const articleAuthorInputSchema = z.object({
 });
 export type ArticleAuthorInput = z.infer<typeof articleAuthorInputSchema>;
 export type TaxonomyUpdateInput = z.infer<typeof taxonomyUpdateSchema>;
+export type ArticleReviewConfigurationInput = z.infer<typeof articleReviewConfigurationSchema>;
+export type ArticleReviewDecisionInput = z.infer<typeof articleReviewDecisionSchema>;
 
 export const publicArticleFiltersSchema = z.object({
   locale: z.enum(["ru", "kk"]).default("ru"),

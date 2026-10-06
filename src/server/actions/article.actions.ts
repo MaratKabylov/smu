@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import {
   articleInputSchema,
+  articleReviewConfigurationSchema,
+  articleReviewDecisionSchema,
   articleStatusSchema,
   taxonomyInputSchema, taxonomyUpdateSchema, articleAuthorInputSchema,
 } from "@/lib/validation/article";
@@ -104,6 +106,46 @@ export async function assignArticleReviewer(id: string, formData: FormData) {
   }
   invalidateArticles();
   redirect(`/admin/content/articles/${parsedId.data}?reviewer_saved=1`);
+}
+
+export async function configureArticleReview(id: string, formData: FormData) {
+  const parsedId = articleIdSchema.safeParse(id);
+  const input = articleReviewConfigurationSchema.safeParse({
+    requiresScientificReview: formData.get("requiresScientificReview") === "yes",
+    reviewerId: formData.get("reviewerId") ?? "",
+  });
+  if (!parsedId.success || !input.success) {
+    redirect(`/admin/content/articles/${id}?error=validation`);
+  }
+  const access = await requireAccess(`/admin/content/articles/${parsedId.data}`);
+  try {
+    await new ArticleService().configureReview(access, parsedId.data, input.data);
+  } catch (error) {
+    redirect(`/admin/content/articles/${parsedId.data}?error=${errorReason(error)}`);
+  }
+  invalidateArticles();
+  redirect(`/admin/content/articles/${parsedId.data}?reviewer_saved=1`);
+}
+
+export async function submitArticleReview(id: string, expectedVersion: number, formData: FormData) {
+  const parsedId = articleIdSchema.safeParse(id);
+  const version = z.number().int().positive().safeParse(expectedVersion);
+  const input = articleReviewDecisionSchema.safeParse({
+    decision: formData.get("decision"),
+    comment: formData.get("comment"),
+  });
+  if (!parsedId.success || !version.success || !input.success) {
+    redirect(`/admin/content/articles/${id}?error=validation`);
+  }
+  const access = await requireAccess(`/admin/content/articles/${parsedId.data}`);
+  try {
+    await new ArticleService().submitReview(access, parsedId.data, version.data, input.data);
+  } catch (error) {
+    redirect(`/admin/content/articles/${parsedId.data}?error=${errorReason(error)}`);
+  }
+  invalidateArticles();
+  revalidatePath(`/admin/content/articles/${parsedId.data}`);
+  redirect(`/admin/content/articles/${parsedId.data}?review_saved=1`);
 }
 
 export async function createArticle(formData: FormData) {
