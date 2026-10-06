@@ -2048,6 +2048,23 @@ th {
 .rich-text-content figcaption { font-family: sans-serif; font-size: .8em; color: #64746b; }
 .rich-text-content figure { margin: 1.5em 0; }
 .rich-text-editor a, .rich-text-content a { color: #286540; text-decoration: underline; }
+.rich-text-block-tools { border: 1px solid #ccd5ce; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+.rich-text-block-tools summary { cursor: pointer; font-weight: 600; margin-bottom: 12px; }
+.rich-text-editor .tableWrapper, .rich-text-table-scroll { overflow-x: auto; max-width: 100%; margin: 1em 0; }
+.rich-text-editor table, .rich-text-content table { border-collapse: collapse; width: 100%; min-width: 320px; table-layout: auto; }
+.rich-text-editor td, .rich-text-editor th, .rich-text-content td, .rich-text-content th { border: 1px solid #a5b6aa; padding: 8px; min-width: 80px; vertical-align: top; overflow-wrap: anywhere; }
+.rich-text-editor th, .rich-text-content th { background: #eef4ef; font-weight: 600; text-align: left; }
+.rich-text-content table p:last-child, .rich-text-content .rich-text-callout > p:last-child { margin-bottom: 0; }
+.rich-text-editor .selectedCell { background: #dceadf; }
+.rich-text-callout { border-left: 4px solid #3a7561; background: #eff6f2; padding: 12px 16px; margin: 1em 0; }
+.rich-text-callout-warning { border-color: #ad761f; background: #fff6e5; }
+.rich-text-callout-success { border-color: #287038; background: #eaf5ec; }
+.rich-text-video iframe { display: block; border: 0; width: 100%; aspect-ratio: 16 / 9; }
+.rich-text-video-card { padding: 16px; border: 1px dashed #91b29a; border-radius: 8px; }
+.rich-text-bibliography { padding: 16px; border-top: 1px solid #ccd5ce; overflow-wrap: anywhere; }
+.rich-text-bibliography li { margin: 8px 0; }
+.rich-text-citation { font-size: .75em; }
+.rich-text-editor .ProseMirror-selectednode { outline: 2px solid #287038; }
 .article-form-actions { flex-wrap: wrap; }
 .preview-links small { flex-basis: 100%; }
 
@@ -2761,7 +2778,7 @@ th {
   white-space: pre-line;
 }
 
-.public-article-body p:first-child::first-letter {
+.public-article-body .rich-text-content > p:first-child::first-letter {
   float: left;
   margin: 9px 9px 0 0;
   color: var(--forest-bright);

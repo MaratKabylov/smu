@@ -46,7 +46,7 @@ export function snapshotComparison(left: ArticleSnapshot, right: ArticleSnapshot
     ...([
       ["title", "Заголовок"], ["slug", "Адрес (slug)"], ["excerpt", "Краткое описание"],
       ["body", "Текст"], ["seoTitle", "SEO-заголовок"], ["seoDescription", "SEO-описание"],
-      ["contentJson", "Форматирование и изображения"],
+      ["contentJson", "Форматирование и блоки"],
     ] as const).map(([key, label]) => ({
       label, left: left[locale][key], right: right[locale][key], structured: key === "contentJson",
     })),

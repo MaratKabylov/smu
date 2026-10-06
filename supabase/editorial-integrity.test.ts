@@ -1,6 +1,8 @@
 import { readFile, readdir } from "node:fs/promises";
 import { PGlite } from "@electric-sql/pglite";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { editorBlocksDocument, invalidEditorBlocks, paragraph } from "../src/lib/articles/editor-blocks.fixture";
+import { richTextToPlainText } from "../src/lib/articles/rich-text";
 
 const db = new PGlite();
 const admin = "00000000-0000-4000-a000-000000000001";
@@ -21,6 +23,7 @@ let creditsUpgrade: Record<string, unknown>;
 let relationsUpgrade: Record<string, unknown>;
 let schedulingUpgrade: Record<string, unknown>;
 let restoreUpgrade: Record<string, unknown>;
+let blocksUpgrade: Record<string, unknown>;
 const legacyBody = "  Legacy first line.\n\nSecond line with <script>literal text</script>.\n  ";
 const translation = { title: "A scientific article", slug: "article-ru", excerpt: "A description of regional scientific research.", body: "A detailed explanation of regional scientific research and its results.", seoTitle: null, seoDescription: null };
 const input = { contentType: "article", categoryId: null, coverMediaId: null, tagIds: [], ru: translation, kk: { ...translation, slug: "article-kk" } };
@@ -110,6 +113,9 @@ beforeAll(async () => {
     }
     const sql = (await readFile(new URL("./migrations/" + file, import.meta.url), "utf8")).replace("create extension if not exists pgcrypto;", "");
     await db.exec(sql);
+    if (file === "017_article_editor_blocks.sql") blocksUpgrade = (await db.query<Record<string, unknown>>(
+      "select a.status, a.content_version, a.approved_version, t.body, t.content_json, public.validate_smu_rich_text(t.content_json) recovered from public.articles a join public.article_translations t on t.article_id = a.id",
+    )).rows[0];
     if (file === "016_editorial_soft_delete_restore.sql") restoreUpgrade = (await db.query<Record<string, unknown>>(
       "select status, content_version, approved_version, deleted_at, first_published_at = published_at as preserved from public.articles",
     )).rows[0];
@@ -870,6 +876,42 @@ describe("article credits and managed taxonomy", () => {
 });
 
 describe("session-authorized editorial transactions", () => {
+  it("preserves published legacy content and permissions when adding editor blocks", async () => {
+    expect(blocksUpgrade).toMatchObject({ status: "published", content_version: 1, approved_version: 1, body: legacyBody, recovered: legacyBody });
+    expect(blocksUpgrade.content_json).toEqual(upgradedContent.content_json);
+    for (const role of ["anon", "authenticated", "service_role"]) await expect(asUser(null, () => db.query("select public.validate_smu_rich_text($1::jsonb)", [JSON.stringify(editorBlocksDocument)]), role)).rejects.toThrow("permission denied");
+  });
+  it("round-trips all new blocks through save, publication, revision and restoration", async () => {
+    const id = await save(author, { ...input, ru: { ...translation, contentJson: editorBlocksDocument }, kk: { ...input.kk, contentJson: editorBlocksDocument } });
+    const saved = (await db.query("select body, content_json from public.article_translations where article_id = $1 order by locale", [id])).rows;
+    expect(saved).toEqual(Array.from({ length: 2 }, () => ({ body: richTextToPlainText(editorBlocksDocument), content_json: editorBlocksDocument })));
+    await publish(id);
+    const revisionId = (await db.query<{ id: string }>("select id from public.article_revisions where article_id = $1 and reason = 'publish'", [id])).rows[0].id;
+    expect((await visible("article_translations")).rows).toHaveLength(2);
+    await save(editor, input, id);
+    await restoreRevision(editor, id, revisionId, 2);
+    expect((await db.query("select content_json from public.article_translations where article_id = $1 and locale = 'ru'", [id])).rows[0]).toEqual({ content_json: editorBlocksDocument });
+    expect((await db.query("select status, approved_version, content_version from public.articles where id = $1", [id])).rows[0]).toEqual({ status: "draft", approved_version: null, content_version: 3 });
+  });
+  it.each(invalidEditorBlocks)("rolls back direct RPC edits for %s", async (_name, block) => {
+    const id = await save(); await publish(id);
+    const before = (await db.query("select * from public.articles where id = $1", [id])).rows[0];
+    const audits = (await db.query("select count(*)::int count from public.audit_logs")).rows[0];
+    await expect(save(editor, { ...input, ru: { ...translation, title: "Attempted partial change" }, kk: { ...input.kk, contentJson: { type: "doc", content: [paragraph(translation.body), block] } } }, id)).rejects.toThrow("invalid_input");
+    expect((await db.query("select * from public.articles where id = $1", [id])).rows[0]).toEqual(before);
+    expect((await db.query("select title from public.article_translations where article_id = $1 and locale = 'ru'", [id])).rows[0]).toEqual({ title: translation.title });
+    expect((await db.query("select count(*)::int count from public.audit_logs")).rows[0]).toEqual(audits);
+  });
+  it("tracks and restores library images nested in tables and callouts", async () => {
+    const image = { type: "image", attrs: { mediaId: cover } };
+    const document = { type: "doc", content: [paragraph(translation.body), { type: "callout", attrs: { kind: "info" }, content: [image] }, { type: "table", content: [{ type: "tableRow", content: [{ type: "tableCell", content: [image] }] }] }] };
+    const id = await save(author, { ...input, ru: { ...translation, contentJson: document } });
+    expect((await db.query("select media_asset_id, field_name from public.media_usages where entity_id = $1", [id])).rows).toEqual([{ media_asset_id: cover, field_name: "content_ru" }]);
+    await state(admin, id, null, true);
+    await restoreDeletedArticle(id, await deletionToken("articles", id));
+    expect((await db.query("select content_json from public.article_translations where article_id = $1 and locale = 'ru'", [id])).rows[0]).toEqual({ content_json: document });
+    expect((await db.query("select media_asset_id, field_name from public.media_usages where entity_id = $1", [id])).rows).toEqual([{ media_asset_id: cover, field_name: "content_ru" }]);
+  });
   it("migrates legacy text without losing blank lines, whitespace or literal HTML", () => {
     expect(upgradedContent.body).toBe(legacyBody);
     expect(upgradedContent.recovered).toBe(legacyBody);

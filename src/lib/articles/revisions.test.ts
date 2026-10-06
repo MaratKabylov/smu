@@ -29,7 +29,7 @@ describe("revision comparison", () => {
   });
   it("detects formatting-only edits even when text stays the same", () => {
     const rich = { ...snapshot, ru: { ...translation, contentJson: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Текст", marks: [{ type: "bold" }] }] }] } } };
-    expect(snapshotComparison(snapshot, rich, "ru").filter(field => field.changed).map(field => field.label)).toEqual(["Форматирование и изображения"]);
+    expect(snapshotComparison(snapshot, rich, "ru").filter(field => field.changed).map(field => field.label)).toEqual(["Форматирование и блоки"]);
   });
   it("compares the selected language, SEO, slugs and article metadata", () => {
     const changed = { ...snapshot, categoryId: "category", ru: { ...translation, title: "Новый" }, kk: { ...snapshot.kk, slug: "new-kk", seoTitle: "SEO" } };
