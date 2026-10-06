@@ -66,7 +66,7 @@ describe("inline editorial saves", () => {
     data.set("relations", JSON.stringify(relations));
     expect(await saveArticleDraft(id, data)).toMatchObject({ ok: true });
     expect(mocks.update).toHaveBeenCalledWith(expect.anything(), id, expect.objectContaining({ relations }));
-    for (const path of ["/scientists", "/projects", "/research", "/events", "/publications"]) expect(mocks.invalidate).toHaveBeenCalledWith(path, "layout");
+    for (const path of ["/scientists", "/projects", "/research", "/events", "/publications"]) for (const target of path.startsWith("/admin") ? [path] : [`/ru${path}`, `/kk${path}`]) expect(mocks.invalidate).toHaveBeenCalledWith(target, "layout");
   });
   it("rejects malformed, duplicate and invalid-role relations before any writes", async () => {
     for (const relations of ["{broken", "null", JSON.stringify([{ kind: "scientist", entityId: id, relationType: "owner" }]), JSON.stringify(Array(2).fill({ kind: "project", entityId: id, relationType: "subject" }))]) {
@@ -97,7 +97,7 @@ describe("inline editorial saves", () => {
   it("returns the saved version without redirecting or creating a second article", async () => {
     expect(await saveArticleDraft(id, form())).toEqual({ ok: true, id, version: 4 });
     expect(mocks.update).toHaveBeenCalledWith({ userId: id }, id, expect.objectContaining({ expectedVersion: 3 }));
-    expect(mocks.create).not.toHaveBeenCalled(); expect(mocks.invalidate).toHaveBeenCalledWith("/journal", "layout");
+    expect(mocks.create).not.toHaveBeenCalled(); for (const locale of ["ru", "kk"]) expect(mocks.invalidate).toHaveBeenCalledWith(`/${locale}/journal`, "layout");
   });
   it("creates a draft and returns its ID and initial version", async () => {
     expect(await saveArticleDraft(null, form())).toEqual({ ok: true, id, version: 1 });

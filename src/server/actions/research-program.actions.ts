@@ -1,5 +1,5 @@
 "use server";
-import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPath as revalidatePath } from "@/lib/i18n/revalidation";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { researchProgramAdminPath as base } from "@/lib/research-program";

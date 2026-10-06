@@ -1,3 +1,4 @@
+import { canonicalPublicHref } from "@/lib/i18n/locales";
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { articleRelationKinds, type ArticleRelationKind, type ArticleRelationLink, type ArticleRelationOption, type PublicRelation, type RelatedArticle } from "@/types/domain/article-relations";
@@ -34,14 +35,14 @@ export class ArticleRelationsRepository {
     const { data, error } = await this.client.rpc("public_article_relations", { p_article: id, p_locale: locale });
     if (error) throw error;
     return (data ?? []).map((row: { kind: ArticleRelationKind; entity_id: string; title: string; href: string; relation_type: PublicRelation["relationType"] }) => ({
-      kind: row.kind, entityId: row.entity_id, title: row.title, href: row.href, relationType: row.relation_type,
+      kind: row.kind, entityId: row.entity_id, title: row.title, href: canonicalPublicHref(row.href), relationType: row.relation_type,
     }));
   }
   async relatedArticles(kind: ArticleRelationKind, id: string, locale: ArticleLocale): Promise<RelatedArticle[]> {
     const { data, error } = await this.client.rpc("public_related_articles", { p_kind: kind, p_entity: id, p_locale: locale });
     if (error) throw error;
     return (data ?? []).map((row: { id: string; title: string; href: string; excerpt: string; relation_type: RelatedArticle["relationType"] }) => ({
-      id: row.id, title: row.title, href: row.href, excerpt: row.excerpt, relationType: row.relation_type,
+      id: row.id, title: row.title, href: canonicalPublicHref(row.href), excerpt: row.excerpt, relationType: row.relation_type,
     }));
   }
 }

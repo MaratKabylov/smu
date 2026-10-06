@@ -1,5 +1,5 @@
 import { createHash, timingSafeEqual } from "node:crypto";
-import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPath as revalidatePath } from "@/lib/i18n/revalidation";
 import { ArticleSchedulingService } from "@/server/services/article-scheduling.service";
 
 export const runtime = "nodejs";

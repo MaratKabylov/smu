@@ -7,8 +7,6 @@ import type {
   PublicArticleCard as PublicArticleCardType,
 } from "@/types/domain/article";
 
-
-
 export function PublicArticleCard({
   article,
   locale,
@@ -38,7 +36,7 @@ export function PublicArticleCard({
     <article className={`public-article-card${featured ? " is-featured" : ""}`}>
       <Link
         className="public-card-cover"
-        href={`/journal/${locale}/${article.translation.slug}`}
+        href={`/${locale}/journal/${article.translation.slug}`}
         aria-label={article.translation.title}
       >
         {article.cover ? (
@@ -54,13 +52,13 @@ export function PublicArticleCard({
           <time dateTime={article.publishedAt}>{date}</time>
         </div>
         <h2>
-          <Link href={`/journal/${locale}/${article.translation.slug}`}>
+          <Link href={`/${locale}/journal/${article.translation.slug}`}>
             {article.translation.title}
           </Link>
         </h2>
         <p>{article.translation.excerpt}</p>
         <ArticleCredits authors={article.authors} locale={locale} />
-        <Link className="public-card-link" href={`/journal/${locale}/${article.translation.slug}`}>
+        <Link className="public-card-link" href={`/${locale}/journal/${article.translation.slug}`}>
           {locale === "ru" ? "Читать материал" : "Материалды оқу"}
           <ArrowUpRight aria-hidden="true" />
         </Link>

@@ -39,13 +39,13 @@ describe("scheduled publishing endpoint", () => {
     expect(await response.json()).toEqual({ published: 2, rejected: 0 });
     expect(response.headers.get("cache-control")).toBe("private, no-store");
     for (const path of ["/admin/content/articles", "/journal", "/scientists", "/projects", "/research", "/events", "/publications"]) {
-      expect(mocks.invalidate).toHaveBeenCalledWith(path, "layout");
+      for (const target of path.startsWith("/admin") ? [path] : [`/ru${path}`, `/kk${path}`]) expect(mocks.invalidate).toHaveBeenCalledWith(target, "layout");
     }
   });
   it("invalidates even an empty retry after an earlier commit with a lost HTTP response", async () => {
     mocks.publish.mockResolvedValueOnce({ published: 0, rejected: 0 });
     expect(await (await GET(request(`Bearer ${secret}`))).json()).toEqual({ published: 0, rejected: 0 });
-    expect(mocks.invalidate).toHaveBeenCalledWith("/journal", "layout");
+    for (const locale of ["ru", "kk"]) expect(mocks.invalidate).toHaveBeenCalledWith(`/${locale}/journal`, "layout");
   });
   it("returns a retryable error without exposing database details", async () => {
     const log = vi.spyOn(console, "error").mockImplementation(() => {});

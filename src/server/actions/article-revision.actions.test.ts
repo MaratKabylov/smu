@@ -37,7 +37,7 @@ describe("revision actions", () => {
     await expect(restoreArticleRevision(id, revision, 3, confirmed())).rejects.toThrow(`redirect:/admin/content/articles/${id}?restored=1`);
     expect(mocks.restore).toHaveBeenCalledWith({ userId: id }, id, revision, 3);
     expect(mocks.invalidate).toHaveBeenCalledWith("/admin/content/articles", "layout");
-    expect(mocks.invalidate).toHaveBeenCalledWith("/journal", "layout");
+    for (const locale of ["ru", "kk"]) expect(mocks.invalidate).toHaveBeenCalledWith(`/${locale}/journal`, "layout");
   });
   it("preserves revision selection and skips invalidation on a failed restore", async () => {
     mocks.restore.mockRejectedValue(new ArticleServiceError("stale_version", "Conflict"));

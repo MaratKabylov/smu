@@ -1,6 +1,7 @@
+import type { Locale } from "@/lib/i18n/locales";
 export const scientistStatuses = ["draft", "verified"] as const;
 export type ScientistStatus = (typeof scientistStatuses)[number];
-export type ScientistLocale = "ru" | "kk";
+export type ScientistLocale = Locale;
 
 export type ScientistTaxonomyItem = {
   id: string;

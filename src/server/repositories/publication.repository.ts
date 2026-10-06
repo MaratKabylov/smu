@@ -1,3 +1,4 @@
+import { canonicalPublicHref } from "@/lib/i18n/locales";
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ArticleLocale } from "@/types/domain/article";
@@ -35,7 +36,7 @@ export class PublicationRepository {
     if (error) throw error;
     return (data ?? []).map((row: Omit<PublicationRow, "status" | "updated_at"> & { scientist_name: string; scientist_href: string }) => ({
       id: row.id, scientistId: row.scientist_id, title: row.title, year: row.year, journal: row.journal,
-      doi: row.doi, url: row.url, publicationType: row.publication_type, scientistName: row.scientist_name, scientistHref: row.scientist_href,
+      doi: row.doi, url: row.url, publicationType: row.publication_type, scientistName: row.scientist_name, scientistHref: canonicalPublicHref(row.scientist_href),
     }));
   }
 }

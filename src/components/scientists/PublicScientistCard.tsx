@@ -13,11 +13,11 @@ export function PublicScientistCard({ scientist, locale }: { scientist: Scientis
     </div>
     <div className="scientist-card-content">
       <div className="scientist-card-fields">{scientist.fields.slice(0, 2).map((field) => <span key={field.id}>{locale === "ru" ? field.nameRu : field.nameKk}</span>)}</div>
-      <h2><Link href={`/scientists/${locale}/${scientist.translation.slug}`}>{scientist.translation.fullName}</Link></h2>
+      <h2><Link href={`/${locale}/scientists/${scientist.translation.slug}`}>{scientist.translation.fullName}</Link></h2>
       <p className="scientist-position">{scientist.translation.academicDegree ? `${scientist.translation.academicDegree} · ` : ""}{scientist.translation.position}</p>
       {organizationName ? <p className="scientist-organization"><Building2 aria-hidden="true" />{organizationName}</p> : null}
       <p className="scientist-bio">{scientist.translation.shortBio}</p>
-      <Link className="scientist-more" href={`/scientists/${locale}/${scientist.translation.slug}`}>{locale === "ru" ? "Открыть профиль" : "Профильді ашу"}<ArrowUpRight aria-hidden="true" /></Link>
+      <Link className="scientist-more" href={`/${locale}/scientists/${scientist.translation.slug}`}>{locale === "ru" ? "Открыть профиль" : "Профильді ашу"}<ArrowUpRight aria-hidden="true" /></Link>
     </div>
   </article>;
 }

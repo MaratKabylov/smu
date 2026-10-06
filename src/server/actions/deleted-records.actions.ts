@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPath as revalidatePath } from "@/lib/i18n/revalidation";
 import { redirect } from "next/navigation";
 import { restoreDeletedRecordSchema } from "@/lib/validation/deleted-records";
 import { getAdminAccess } from "@/server/services/access.service";

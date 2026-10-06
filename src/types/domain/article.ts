@@ -1,3 +1,4 @@
+import type { Locale } from "@/lib/i18n/locales";
 import type { ArticleRelationLink } from "./article-relations";
 import type { RichTextNode } from "@/lib/articles/rich-text";
 
@@ -21,7 +22,7 @@ export const articleContentTypes = [
 ] as const;
 
 export type ArticleContentType = string;
-export type ArticleLocale = "ru" | "kk";
+export type ArticleLocale = Locale;
 
 export const articleAuthorRoles = ["author", "coauthor", "editor", "translator"] as const;
 export type ArticleAuthorRole = (typeof articleAuthorRoles)[number];

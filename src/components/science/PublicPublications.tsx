@@ -5,6 +5,6 @@ export async function ScientistPublications({ id, locale }: { id: string; locale
   const publications = await new PublicationService().listPublic(locale, null, id);
   if (!publications.length) return null;
   return <section className="public-relations"><h2>{locale === "ru" ? "Научные публикации" : "Ғылыми жарияланымдар"}</h2><ul>
-    {publications.map(item => <li key={item.id}><Link href={`/publications/${locale}/${item.id}`}>{item.title}</Link><p>{item.year} · {item.journal}</p></li>)}
+    {publications.map(item => <li key={item.id}><Link href={`/${locale}/publications/${item.id}`}>{item.title}</Link><p>{item.year} · {item.journal}</p></li>)}
   </ul></section>;
 }

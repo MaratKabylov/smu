@@ -3113,3 +3113,19 @@ fieldset.article-editor-panel { min-width: 0; }
 .public-relations li > a { display: block; font-weight: 600; }
 .public-relations small { display: block; margin-bottom: 8px; color: #64748b; }
 .public-relations p { margin: 8px 0 0; }
+
+.public-header .journal-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  padding-block: 12px;
+}
+.public-header .journal-nav a[aria-current="page"] {
+  color: var(--forest);
+  font-weight: 900;
+}
+@media (min-width: 1051px) {
+  .public-header .journal-header-inner {
+    grid-template-columns: minmax(220px, 1fr) minmax(0, 2fr) auto;
+  }
+}

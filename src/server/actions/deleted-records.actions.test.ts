@@ -26,7 +26,7 @@ describe("deleted record actions", () => {
     await expect(restoreDeletedRecord(form(kind))).rejects.toThrow(`redirect:/admin/deleted?kind=${kind}&restored=1`);
     expect(kind === "article" ? mocks.article : mocks.scientist).toHaveBeenCalledWith({ userId: id }, id, timestamp);
     expect(kind === "article" ? mocks.scientist : mocks.article).not.toHaveBeenCalled();
-    for (const path of ["/journal", "/scientists", "/publications", "/mentorship", "/research-program", "/admin/content/articles", "/admin/science/scientists"]) expect(mocks.invalidate).toHaveBeenCalledWith(path, "layout");
+    for (const path of ["/journal", "/scientists", "/publications", "/mentorship", "/research-program", "/admin/content/articles", "/admin/science/scientists"]) for (const target of path.startsWith("/admin") ? [path] : [`/ru${path}`, `/kk${path}`]) expect(mocks.invalidate).toHaveBeenCalledWith(target, "layout");
     expect(mocks.invalidate).toHaveBeenCalledWith("/admin/deleted");
   });
   it("rejects invalid kind, id, timestamp or missing confirmation before authenticating", async () => {

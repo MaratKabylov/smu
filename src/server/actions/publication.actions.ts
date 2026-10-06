@@ -1,7 +1,7 @@
 "use server";
 import { z } from "zod";
 import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPath as revalidatePath } from "@/lib/i18n/revalidation";
 import { publicationInputSchema } from "@/lib/validation/publication";
 import { getAdminAccess } from "@/server/services/access.service";
 import { PublicationService } from "@/server/services/publication.service";

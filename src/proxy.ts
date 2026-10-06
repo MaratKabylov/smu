@@ -1,8 +1,12 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 import { getPublicSupabaseEnv, isSupabaseConfigured } from "@/lib/env";
+import { legacyPublicUrl } from "@/lib/i18n/locales";
 
 export async function proxy(request: NextRequest) {
+  const legacy = legacyPublicUrl(new URL(request.url));
+  if (legacy) return NextResponse.redirect(legacy, 308);
+
   let response = NextResponse.next({ request });
 
   if (!isSupabaseConfigured()) {
