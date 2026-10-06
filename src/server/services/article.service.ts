@@ -15,6 +15,7 @@ import { ArticleRepository } from "@/server/repositories/article.repository";
 import type { AccessContext } from "@/types/domain/auth";
 import type { ArticleStatus } from "@/types/domain/article";
 import { articleScheduleInputSchema } from "@/lib/validation/article";
+import { deletionTimestampSchema } from "@/lib/validation/deleted-records";
 
 type ArticleServiceErrorCode = "forbidden" | "not_found" | "invalid_transition" |
   "invalid_reference" | "invalid_input" | "slug_conflict" | "slug_reserved" | "stale_version";
@@ -108,6 +109,14 @@ export class ArticleService {
   async softDelete(access: AccessContext, id: string) {
     assertAllowed(canDeleteArticle(access));
     return this.repository((repository) => repository.softDelete(id));
+  }
+
+  async restoreDeleted(access: AccessContext, id: string, expectedDeletedAt: string) {
+    assertAllowed(hasPermission(access, "admin.access") && canDeleteArticle(access));
+    if (!deletionTimestampSchema.safeParse(expectedDeletedAt).success) {
+      throw new ArticleServiceError("invalid_input", "Некорректное время удаления.");
+    }
+    return this.repository(repository => repository.restoreDeleted(id, expectedDeletedAt));
   }
 
   async schedule(access: AccessContext, id: string, input: ArticleScheduleInput) {

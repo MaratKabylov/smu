@@ -26,6 +26,7 @@ export default async function ScientistsAdminPage({ searchParams }: Props) {
       <div className="page-heading media-page-heading">
         <div><p className="page-kicker">Научное сообщество</p><h1>Учёные</h1><p>Двуязычные профили и публичный каталог исследователей региона.</p></div>
         <div className="heading-actions">
+          <Link className="secondary-button" href="/admin/deleted?kind=scientist">Удалённые профили</Link>
           <Link className="secondary-button" href="/admin/science/scientists/taxonomy"><Tags aria-hidden="true" />Справочники</Link>
           <Link className="primary-button" href="/admin/science/scientists/new"><Plus aria-hidden="true" />Добавить учёного</Link>
         </div>

@@ -188,6 +188,10 @@ export class ArticleRepository {
     await this.mutate("change_article_state", { p_id: id, p_status: null, p_delete: true });
   }
 
+  async restoreDeleted(id: string, expectedDeletedAt: string) {
+    await this.mutate("restore_deleted_article", { p_id: id, p_expected_deleted_at: expectedDeletedAt });
+  }
+
   async schedule(id: string, expectedVersion: number, scheduledAt: string | null, expectedScheduledAt: string | null) {
     await this.mutate("schedule_article", {
       p_id: id, p_expected_version: expectedVersion,

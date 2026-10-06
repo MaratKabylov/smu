@@ -3,7 +3,7 @@ vi.mock("server-only", () => ({}));
 const mocks = vi.hoisted(() => ({
   client: vi.fn(), get: vi.fn(), create: vi.fn(), update: vi.fn(), status: vi.fn(), assign: vi.fn(),
   configure: vi.fn(), submitReview: vi.fn(), listReviews: vi.fn(),
-  schedule: vi.fn(),
+  schedule: vi.fn(), restore: vi.fn(),
 }));
 vi.mock("@/lib/supabase/server", () => ({ createServerSupabaseClient: mocks.client }));
 vi.mock("@/server/repositories/article.repository", () => ({ ArticleRepository: class {
@@ -11,6 +11,7 @@ vi.mock("@/server/repositories/article.repository", () => ({ ArticleRepository: 
   changeStatus = mocks.status; assignReviewer = mocks.assign;
   configureReview = mocks.configure; submitReview = mocks.submitReview; listReviews = mocks.listReviews;
   schedule = mocks.schedule;
+  restoreDeleted = mocks.restore;
 } }));
 import { ArticleService } from "./article.service";
 import type { AccessContext, PermissionCode } from "@/types/domain/auth";
@@ -20,6 +21,18 @@ const access = (permissions: PermissionCode[], userId = "user"): AccessContext =
 const article = { id: "id", authorId: "author", scientificReviewerId: "assigned", requiresScientificReview: false, contentVersion: 1, status: "published", deletedAt: null };
 beforeEach(() => { vi.clearAllMocks(); mocks.get.mockResolvedValue(article); });
 describe("article service authorization", () => {
+  it("checks trash restoration rights before constructing a client and preserves exact timestamps", async () => {
+    const token = "2026-10-06T12:00:00.123456+00:00";
+    for (const permissions of [[], ["admin.access", "articles.edit_own"], ["admin.access", "articles.edit_any"], ["articles.delete"]] as PermissionCode[][]) {
+      await expect(new ArticleService().restoreDeleted(access(permissions), "id", token)).rejects.toMatchObject({ code: "forbidden" });
+    }
+    await expect(new ArticleService().restoreDeleted(access(["admin.access", "articles.delete"]), "id", "bad")).rejects.toMatchObject({ code: "invalid_input" });
+    expect(mocks.client).not.toHaveBeenCalled();
+    await new ArticleService().restoreDeleted(access(["admin.access", "articles.delete"]), "id", token);
+    expect(mocks.restore).toHaveBeenCalledWith("id", token); expect(mocks.get).not.toHaveBeenCalled();
+    mocks.restore.mockRejectedValueOnce({ message: "stale_version" });
+    await expect(new ArticleService().restoreDeleted(access(["admin.access", "articles.delete"]), "id", token)).rejects.toMatchObject({ code: "stale_version" });
+  });
   it("denies interactive scheduling before creating a client when publishing permission is missing", async () => {
     await expect(new ArticleService().schedule(access(["articles.edit_any"]), "id", {
       expectedVersion: 1, scheduledAt: "2099-10-07T12:00:00Z", expectedScheduledAt: null,

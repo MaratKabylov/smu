@@ -164,6 +164,10 @@ export class ScientistRepository {
     await this.mutate("change_scientist_state", { p_id: id, p_status: null, p_delete: true });
   }
 
+  async restoreDeleted(id: string, expectedDeletedAt: string) {
+    await this.mutate("restore_deleted_scientist", { p_id: id, p_expected_deleted_at: expectedDeletedAt });
+  }
+
   async createTaxonomyItem(input: ScientistTaxonomyInput) {
     return this.mutate<string>("create_scientist_taxonomy", { p_input: input });
   }

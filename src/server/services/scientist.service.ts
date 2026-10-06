@@ -2,7 +2,8 @@ import "server-only";
 
 import { cache } from "react";
 import { isSupabaseConfigured } from "@/lib/env";
-import { canEditScientist, canVerifyScientist } from "@/lib/permissions/permissions";
+import { canAccessAdmin, canEditScientist, canVerifyScientist } from "@/lib/permissions/permissions";
+import { deletionTimestampSchema } from "@/lib/validation/deleted-records";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { databaseErrorCode } from "@/lib/security/database-error";
 import type {
@@ -16,7 +17,7 @@ import { getPublicSlugRedirect } from "@/server/repositories/slug.repository";
 import type { AccessContext } from "@/types/domain/auth";
 import type { ScientistLocale, ScientistStatus, ScientistTaxonomy } from "@/types/domain/scientist";
 
-type ScientistServiceErrorCode = "forbidden" | "not_found" | "invalid_reference" | "invalid_transition" | "invalid_input" | "slug_conflict" | "slug_reserved";
+type ScientistServiceErrorCode = "forbidden" | "not_found" | "invalid_reference" | "invalid_transition" | "invalid_input" | "slug_conflict" | "slug_reserved" | "stale_version";
 
 export class ScientistServiceError extends Error {
   constructor(public readonly code: ScientistServiceErrorCode, message: string) {
@@ -84,6 +85,14 @@ export class ScientistService {
     return this.repository((repository) => repository.softDelete(id));
   }
 
+  async restoreDeleted(access: AccessContext, id: string, expectedDeletedAt: string) {
+    assertAllowed(canAccessAdmin(access) && canEditScientist(access));
+    if (!deletionTimestampSchema.safeParse(expectedDeletedAt).success) {
+      throw new ScientistServiceError("invalid_input", "Некорректное время удаления.");
+    }
+    return this.repository(repository => repository.restoreDeleted(id, expectedDeletedAt));
+  }
+
   async createTaxonomyItem(access: AccessContext, input: ScientistTaxonomyInput) {
     assertAllowed(canEditScientist(access));
     return this.repository((repository) => repository.createTaxonomyItem(input));
@@ -98,6 +107,7 @@ export class PublicScientistService {
     if (!isSupabaseConfigured()) return null;
     return getPublicSlugRedirect(await createServerSupabaseClient(), "scientist", locale, slug);
   }
+
   async list(filters: PublicScientistFilters) {
     if (!isSupabaseConfigured()) return { scientists: [], taxonomy: emptyTaxonomy };
     const client = await createServerSupabaseClient();

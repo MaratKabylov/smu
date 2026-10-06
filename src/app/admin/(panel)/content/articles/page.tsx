@@ -4,7 +4,7 @@ import {
   articleContentTypeLabels,
   articleStatusLabels,
 } from "@/lib/articles/presentation";
-import { canCreateArticle } from "@/lib/permissions/permissions";
+import { canCreateArticle, canDeleteArticle } from "@/lib/permissions/permissions";
 import { articleListFiltersSchema } from "@/lib/validation/article";
 import { getAdminAccess } from "@/server/services/access.service";
 import { ArticleService } from "@/server/services/article.service";
@@ -44,6 +44,7 @@ export default async function ArticlesPage({ searchParams }: ArticlesPageProps) 
           <p>Двуязычные материалы и редакционный цикл публикации.</p>
         </div>
         <div className="heading-actions">
+          {canDeleteArticle(result.access) ? <Link className="secondary-button" href="/admin/deleted?kind=article">Удалённые статьи</Link> : null}
           <Link className="secondary-button" href="/admin/content/articles/taxonomy">
             <Tags aria-hidden="true" />Авторы и справочники
           </Link>

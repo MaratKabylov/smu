@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
-const mocks = vi.hoisted(() => ({ client: vi.fn(), create: vi.fn(), update: vi.fn(), get: vi.fn(), status: vi.fn(), remove: vi.fn() }));
+const mocks = vi.hoisted(() => ({ client: vi.fn(), create: vi.fn(), update: vi.fn(), get: vi.fn(), status: vi.fn(), remove: vi.fn(), restore: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createServerSupabaseClient: mocks.client }));
 vi.mock("@/server/repositories/scientist.repository", () => ({ ScientistRepository: class {
   create = mocks.create; update = mocks.update; getById = mocks.get; changeStatus = mocks.status; softDelete = mocks.remove;
+  restoreDeleted = mocks.restore;
 }, PublicScientistRepository: class {} }));
 import { ScientistService } from "./scientist.service";
 import type { AccessContext } from "@/types/domain/auth";
@@ -12,6 +13,19 @@ const manager: AccessContext = { userId: "manager", roles: new Set(), permission
 const denied: AccessContext = { ...manager, permissions: new Set() };
 beforeEach(() => { vi.clearAllMocks(); mocks.get.mockResolvedValue({ status: "verified", deletedAt: null }); });
 describe("scientist service transactions", () => {
+  it("checks session and scientist edit rights and passes deletion timestamps without losing precision", async () => {
+    const token = "2026-10-06T12:00:00.123456+00:00";
+    for (const permissions of [new Set(), new Set(["admin.access", "scientists.verify"]), new Set(["scientists.edit"])]) {
+      await expect(new ScientistService().restoreDeleted({ ...manager, permissions } as AccessContext, "id", token)).rejects.toMatchObject({ code: "forbidden" });
+    }
+    const allowed: AccessContext = { ...manager, permissions: new Set(["admin.access", "scientists.edit"]) };
+    await expect(new ScientistService().restoreDeleted(allowed, "id", "bad")).rejects.toMatchObject({ code: "invalid_input" });
+    expect(mocks.client).not.toHaveBeenCalled();
+    await new ScientistService().restoreDeleted(allowed, "id", token);
+    expect(mocks.restore).toHaveBeenCalledWith("id", token); expect(mocks.status).not.toHaveBeenCalled();
+    mocks.restore.mockRejectedValueOnce({ message: "invalid_reference" });
+    await expect(new ScientistService().restoreDeleted(allowed, "id", token)).rejects.toMatchObject({ code: "invalid_reference" });
+  });
   it("rejects writes before constructing a client", async () => {
     const service = new ScientistService();
     await expect(service.create(denied, {} as ScientistInput)).rejects.toMatchObject({ code: "forbidden" });

@@ -13,6 +13,7 @@ import {
   Settings,
   ShieldCheck,
   Sparkles,
+  Trash2,
   UsersRound,
   type LucideIcon,
 } from "lucide-react";
@@ -55,6 +56,7 @@ const navigation: AdminNavigationSection[] = [
     items: [
       { label: "Пользователи и роли", icon: CircleUserRound },
       { label: "Audit log", icon: ShieldCheck },
+      { label: "Удалённые записи", href: "/admin/deleted", icon: Trash2 },
       { label: "Настройки", icon: Settings },
     ],
   },

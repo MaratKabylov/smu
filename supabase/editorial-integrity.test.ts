@@ -20,6 +20,7 @@ let revisionUpgrade: Record<string, unknown>;
 let creditsUpgrade: Record<string, unknown>;
 let relationsUpgrade: Record<string, unknown>;
 let schedulingUpgrade: Record<string, unknown>;
+let restoreUpgrade: Record<string, unknown>;
 const legacyBody = "  Legacy first line.\n\nSecond line with <script>literal text</script>.\n  ";
 const translation = { title: "A scientific article", slug: "article-ru", excerpt: "A description of regional scientific research.", body: "A detailed explanation of regional scientific research and its results.", seoTitle: null, seoDescription: null };
 const input = { contentType: "article", categoryId: null, coverMediaId: null, tagIds: [], ru: translation, kk: { ...translation, slug: "article-kk" } };
@@ -109,6 +110,9 @@ beforeAll(async () => {
     }
     const sql = (await readFile(new URL("./migrations/" + file, import.meta.url), "utf8")).replace("create extension if not exists pgcrypto;", "");
     await db.exec(sql);
+    if (file === "016_editorial_soft_delete_restore.sql") restoreUpgrade = (await db.query<Record<string, unknown>>(
+      "select status, content_version, approved_version, deleted_at, first_published_at = published_at as preserved from public.articles",
+    )).rows[0];
     if (file === "015_article_scheduled_publishing.sql") schedulingUpgrade = (await db.query<Record<string, unknown>>(
       "select status, content_version, approved_version, scheduled_at, scheduled_by, first_published_at = published_at as preserved from public.articles",
     )).rows[0];
@@ -146,6 +150,223 @@ beforeEach(async () => {
 });
 
 const authorInput = { profileId: null, nameRu: "Внешний автор", nameKk: "Сыртқы автор", bioRu: "Биография", bioKk: "Өмірбаян", organization: "University", position: "Researcher", websiteUrl: "https://example.kz", isActive: true };
+
+async function deletionToken(table: "articles" | "scientist_profiles", id: string) {
+  return (await db.query<{ token: string }>(`select deleted_at::text token from public.${table} where id = $1`, [id])).rows[0]?.token;
+}
+const restoreDeletedArticle = (id: string, token: string | null, user = admin) => asUser(user, () =>
+  db.query("select public.restore_deleted_article($1, $2::timestamptz)", [id, token]));
+const restoreDeletedScientist = (id: string, token: string | null, user = scientistManager) => asUser(user, () =>
+  db.query("select public.restore_deleted_scientist($1, $2::timestamptz)", [id, token]));
+const trash = (user: string, kind = "all", query = "", page = 1) => asUser(user, () =>
+  db.query<{ id: string; entity_type: string; title_ru: string; title_kk: string; deleted_at: Date }>(
+    "select * from public.list_deleted_editorial_records($1, $2, $3)", [kind, query, page]));
+
+describe("soft delete restoration", () => {
+  it("adds restore RPCs without changing existing published content or approval", () => {
+    expect(restoreUpgrade).toMatchObject({ status: "published", content_version: 1, approved_version: 1, deleted_at: null, preserved: true });
+  });
+  it("lists deleted bilingual records only for authorized entity types and leaves ordinary RLS unchanged", async () => {
+    const id = await save(); await publish(id); await state(admin, id, null, true);
+    const scientist = await saveScientist(); await verify(scientist);
+    await asUser(scientistManager, () => db.query("select public.change_scientist_state($1, null, true)", [scientist]));
+    expect((await trash(admin)).rows.map(r => r.id).sort()).toEqual([id, scientist].sort());
+    expect((await trash(admin, "article")).rows[0]).toMatchObject({ id, entity_type: "article", title_ru: translation.title, title_kk: translation.title });
+    expect((await trash(scientistManager)).rows.map(r => r.id)).toEqual([scientist]);
+    expect((await trash(admin, "all", "Regional Scientist")).rows.map(r => r.id)).toEqual([scientist]);
+    expect((await trash(admin, "all", "unmatched-title")).rows).toHaveLength(0);
+    for (const user of [author, otherAuthor, reviewer, editor]) await expect(trash(user)).rejects.toThrow("forbidden");
+    await expect(trash(scientistManager, "article")).rejects.toThrow("forbidden");
+    for (const user of [null, author, admin]) {
+      expect((await visible("articles", user)).rows).toHaveLength(0);
+      expect((await visible("article_translations", user)).rows).toHaveLength(0);
+      expect((await visible("scientist_profiles", user)).rows).toHaveLength(0);
+      expect((await visible("scientist_profile_translations", user)).rows).toHaveLength(0);
+    }
+  });
+  it("filters by the KK translation and paginates deterministically without duplicates", async () => {
+    await db.query(`insert into public.articles(author_id, deleted_at)
+      select $1, '2026-10-06T10:00:00.123456Z'::timestamptz from generate_series(1, 52)`, [author]);
+    const first = await trash(admin); const second = await trash(admin, "all", "", 2);
+    expect(first.rows).toHaveLength(51); expect(second.rows).toHaveLength(2);
+    expect(second.rows[0].id).toBe(first.rows[50].id);
+    expect(new Set([...first.rows.slice(0, 50), ...second.rows].map(r => r.id)).size).toBe(52);
+    const id = first.rows[0].id;
+    await db.query("insert into public.article_translations(article_id, locale, title, slug, excerpt, body) values($1, 'kk', 'Қазақша іздеу', 'trash-kk', 'Description of research', $2)", [id, translation.body]);
+    expect((await trash(admin, "all", "іздеу")).rows.map(r => r.id)).toEqual([id]);
+  });
+  it("restores full published content, credits, links, slug history and media as a private new draft version", async () => {
+    const { links } = await relationFixtures();
+    const document = { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: translation.body }] }, { type: "image", attrs: { mediaId: cover, caption: "Kept caption" } }] };
+    const id = await save(author, { ...input, categoryIds: [category], coverMediaId: cover, relations: links, ru: { ...translation, contentJson: document } });
+    await publish(id);
+    await save(admin, { ...input, categoryIds: [category], coverMediaId: cover, relations: links, ru: { ...translation, slug: "renamed-ru", contentJson: document } }, id);
+    await publish(id);
+    const before = (await db.query<Record<string, unknown>>("select * from public.articles where id = $1", [id])).rows[0];
+    const translations = (await db.query("select * from public.article_translations where article_id = $1 order by locale", [id])).rows;
+    const credits = (await db.query("select * from public.article_authors where article_id = $1", [id])).rows;
+    const revisions = (await db.query("select * from public.article_revisions where article_id = $1 order by revision_number", [id])).rows;
+    await state(admin, id, null, true);
+    expect((await db.query("select * from public.media_usages where entity_type = 'article' and entity_id = $1", [id])).rows).toHaveLength(0);
+    const token = await deletionToken("articles", id); await restoreDeletedArticle(id, token);
+    const after = (await db.query<Record<string, unknown>>("select * from public.articles where id = $1", [id])).rows[0];
+    expect(after).toMatchObject({ deleted_at: null, status: "draft", approved_version: null, published_at: null, scheduled_at: null, scheduled_by: null, content_version: Number(before.content_version) + 1, author_id: author, updated_by: admin, first_published_at: before.first_published_at });
+    expect((await db.query("select * from public.article_translations where article_id = $1 order by locale", [id])).rows).toEqual(translations);
+    expect((await db.query("select * from public.article_authors where article_id = $1", [id])).rows).toEqual(credits);
+    expect((await db.query("select * from public.article_revisions where article_id = $1 order by revision_number", [id])).rows).toEqual(revisions);
+    expect((await db.query("select * from public.smu_article_links where article_id = $1", [id])).rows).toHaveLength(5);
+    expect((await db.query<{ field_name: string }>("select field_name from public.media_usages where entity_type = 'article' and entity_id = $1 order by field_name", [id])).rows.map(r => r.field_name)).toEqual(["content_ru", "cover"]);
+    expect((await visible("articles", admin)).rows).toHaveLength(1);
+    expect((await visible("articles")).rows).toHaveLength(0);
+    expect((await visible("slug_redirects")).rows).toHaveLength(0);
+    expect((await trash(admin)).rows).toHaveLength(0);
+    expect((await db.query("select * from public.audit_logs where action = 'article.restore' and entity_id = $1", [id])).rows).toHaveLength(1);
+    await expect(restoreDeletedArticle(id, token)).rejects.toThrow("stale_version");
+    await state(author, id, "in_review"); await review(admin, id, "approved"); await state(admin, id, "published");
+    expect((await visible("slug_redirects")).rows).toHaveLength(1);
+  });
+  it("restores a verified scientist to draft, preserves translations and reinstates avatar usage", async () => {
+    await db.query("update public.media_assets set storage_bucket = 'avatars' where id = $1", [cover]);
+    try {
+      const id = await saveScientist({ ...scientistInput, avatarMediaId: cover }); await verify(id);
+      const before = (await db.query<Record<string, unknown>>("select * from public.scientist_profiles where id = $1", [id])).rows[0];
+      await asUser(scientistManager, () => db.query("select public.change_scientist_state($1, null, true)", [id]));
+      const token = await deletionToken("scientist_profiles", id); await restoreDeletedScientist(id, token);
+      expect((await db.query("select * from public.scientist_profiles where id = $1", [id])).rows[0]).toMatchObject({ status: "draft", deleted_at: null, verified_at: null, verified_by: null, first_verified_at: before.first_verified_at, public_email: scientistInput.publicEmail, avatar_media_id: cover });
+      expect((await db.query("select * from public.scientist_profile_translations where scientist_profile_id = $1", [id])).rows).toHaveLength(2);
+      expect((await db.query("select * from public.media_usages where entity_type = 'scientist_profile' and entity_id = $1", [id])).rows).toHaveLength(1);
+      expect((await visible("scientist_profiles")).rows).toHaveLength(0);
+      await expect(restoreDeletedScientist(id, token)).rejects.toThrow("stale_version");
+      await verify(id); expect((await visible("scientist_profiles")).rows).toHaveLength(1);
+    } finally { await db.query("update public.media_assets set storage_bucket = 'article-media' where id = $1", [cover]); }
+  });
+  it("denies restore to authors, reviewers, editors and unrelated managers even through direct RPC", async () => {
+    const id = await save(); await state(admin, id, null, true);
+    const token = await deletionToken("articles", id);
+    for (const user of [author, reviewer, editor, scientistManager]) await expect(restoreDeletedArticle(id, token, user)).rejects.toThrow("forbidden");
+    const scientist = await saveScientist(); await asUser(scientistManager, () => db.query("select public.change_scientist_state($1, null, true)", [scientist]));
+    for (const user of [author, reviewer, editor]) await expect(restoreDeletedScientist(scientist, await deletionToken("scientist_profiles", scientist), user)).rejects.toThrow("forbidden");
+    expect((await db.query("select * from public.audit_logs where action in ('article.restore', 'scientist.restore')")).rows).toHaveLength(0);
+  });
+  it("denies callers without admin.access and rechecks revoked restore permission", async () => {
+    const id = await save(); await state(admin, id, null, true); const token = await deletionToken("articles", id);
+    for (const code of ["admin.access", "articles.delete"]) {
+      const removed = (await db.query<{ role_id: string; permission_id: string }>(
+        "delete from public.role_permissions where permission_id in (select id from public.permissions where code = $1) returning role_id, permission_id", [code],
+      )).rows;
+      try { await expect(restoreDeletedArticle(id, token)).rejects.toThrow("forbidden"); }
+      finally { for (const row of removed) await db.query("insert into public.role_permissions(role_id, permission_id) values($1, $2)", [row.role_id, row.permission_id]); }
+    }
+  });
+  it("rejects missing/stale deletion tokens, active or nonexistent records and outdated second deletions", async () => {
+    const id = await save(); await expect(restoreDeletedArticle(id, null)).rejects.toThrow("invalid_input");
+    await expect(restoreDeletedArticle(id, "2020-01-01Z")).rejects.toThrow("stale_version");
+    await expect(restoreDeletedArticle(cover, "2020-01-01Z")).rejects.toThrow("not_found");
+    await state(admin, id, null, true);
+    await db.query("update public.articles set deleted_at = '2026-10-06T10:00:00.123456Z' where id = $1", [id]);
+    const token = await deletionToken("articles", id);
+    await expect(restoreDeletedArticle(id, "2026-10-06T10:00:00.123Z")).rejects.toThrow("stale_version");
+    await restoreDeletedArticle(id, token); await state(admin, id, null, true);
+    await expect(restoreDeletedArticle(id, token)).rejects.toThrow("stale_version");
+    expect((await db.query("select * from public.audit_logs where action = 'article.restore'")).rows).toHaveLength(1);
+  });
+  it.each(["cover", "inline", "category", "type", "author", "tag"])("rejects unavailable article %s and rolls back all state/usages/audit", async reference => {
+    const tag = (await db.query<{ id: string }>("insert into public.article_tags(slug, name_ru, name_kk) values('restore-tag', 'Tag', 'Tag') returning id")).rows[0].id;
+    const document = { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: translation.body }] }, { type: "image", attrs: { mediaId: cover } }] };
+    const id = await save(author, { ...input, categoryIds: [category], tagIds: [tag], coverMediaId: reference === "cover" ? cover : null, ru: { ...translation, contentJson: reference === "inline" ? document : undefined } });
+    await state(admin, id, null, true); const token = await deletionToken("articles", id);
+    try {
+      if (reference === "cover" || reference === "inline") await db.query("update public.media_assets set deleted_at = now() where id = $1", [cover]);
+      if (reference === "category") await db.query("update public.article_categories set is_active = false where id = $1", [category]);
+      if (reference === "type") await db.query("update public.article_types set is_active = false where slug = 'article'");
+      if (reference === "author") await db.query("update public.authors set is_active = false where id in (select author_id from public.article_authors where article_id = $1)", [id]);
+      if (reference === "tag") await db.query("update public.article_tags set is_active = false where id = $1", [tag]);
+      await expect(restoreDeletedArticle(id, token)).rejects.toThrow("invalid_reference");
+      expect(await deletionToken("articles", id)).toBe(token);
+      expect((await db.query("select * from public.media_usages where entity_type = 'article' and entity_id = $1", [id])).rows).toHaveLength(0);
+      expect((await db.query("select * from public.audit_logs where action = 'article.restore'")).rows).toHaveLength(0);
+    } finally {
+      await db.query("update public.media_assets set deleted_at = null where id = $1", [cover]);
+      await db.query("update public.article_categories set is_active = true where id = $1", [category]);
+      await db.query("update public.article_types set is_active = true where slug = 'article'");
+      await db.query("update public.authors set is_active = true");
+      await db.query("delete from public.article_tag_links where tag_id = $1", [tag]);
+      await db.query("delete from public.article_tags where id = $1", [tag]);
+    }
+  });
+  it.each(["scientist", "project", "research", "event", "publication"])("rechecks unavailable %s relation targets", async kind => {
+    const { links } = await relationFixtures(); const link = links.find(l => l.kind === kind)!;
+    const id = await save(author, { ...input, relations: links }); await state(admin, id, null, true);
+    const table = kind === "scientist" ? "scientist_profiles" : kind === "event" ? "events" : kind === "publication" ? "publications" : "science_works";
+    await db.query(`update public.${table} set deleted_at = now() where id = $1`, [link.entityId]);
+    const token = await deletionToken("articles", id);
+    await expect(restoreDeletedArticle(id, token)).rejects.toThrow("invalid_reference");
+    expect(await deletionToken("articles", id)).toBe(token);
+  });
+  it("rechecks the scientist parent of a publication and permits publicly cancelled events", async () => {
+    const { publication, scientist, event } = await relationFixtures();
+    const id = await save(author, { ...input, relations: [{ kind: "publication", entityId: publication, relationType: "subject" }] }); await state(admin, id, null, true);
+    await asUser(scientistManager, () => db.query("select public.change_scientist_state($1, 'draft', false)", [scientist]));
+    await expect(restoreDeletedArticle(id, await deletionToken("articles", id))).rejects.toThrow("invalid_reference");
+    await db.query("update public.events set status = 'cancelled' where id = $1", [event]);
+    const eventId = await save(author, { ...input, ru: { ...translation, slug: "event-article-ru" }, kk: { ...translation, slug: "event-article-kk" }, relations: [{ kind: "event", entityId: event, relationType: "subject" }] });
+    await state(admin, eventId, null, true); await restoreDeletedArticle(eventId, await deletionToken("articles", eventId));
+  });
+  it.each(["avatar", "organization", "field"])("rechecks unavailable scientist %s", async reference => {
+    const org = (await db.query<{ id: string }>("insert into public.scientific_organizations(slug, name_ru, name_kk) values('restore-org', 'Org', 'Org') returning id")).rows[0].id;
+    await db.query("update public.media_assets set storage_bucket = 'avatars' where id = $1", [cover]);
+    try {
+      const id = await saveScientist({ ...scientistInput, organizationId: org, avatarMediaId: cover });
+      await asUser(scientistManager, () => db.query("select public.change_scientist_state($1, null, true)", [id]));
+      try {
+        if (reference === "avatar") await db.query("update public.media_assets set deleted_at = now() where id = $1", [cover]);
+        if (reference === "organization") await db.query("update public.scientific_organizations set is_active = false where id = $1", [org]);
+        if (reference === "field") await db.query("update public.scientific_fields set is_active = false where id = $1", [field]);
+        const token = await deletionToken("scientist_profiles", id);
+        await expect(restoreDeletedScientist(id, token)).rejects.toThrow("invalid_reference");
+        expect(await deletionToken("scientist_profiles", id)).toBe(token);
+        expect((await db.query("select * from public.audit_logs where action = 'scientist.restore'")).rows).toHaveLength(0);
+      } finally {
+        await db.query("update public.media_assets set deleted_at = null where id = $1", [cover]);
+        await db.query("update public.scientific_fields set is_active = true where id = $1", [field]);
+      }
+    } finally { await db.query("update public.media_assets set storage_bucket = 'article-media' where id = $1", [cover]); await db.query("update public.scientist_profiles set organization_id = null where organization_id = $1", [org]); await db.query("delete from public.scientific_organizations where id = $1", [org]); }
+  });
+  it.each(["article", "scientist"])("rejects historical slug reservations during %s restoration", async kind => {
+    const id = kind === "article" ? await save() : await saveScientist();
+    if (kind === "article") await state(admin, id, null, true);
+    else await asUser(scientistManager, () => db.query("select public.change_scientist_state($1, null, true)", [id]));
+    await db.query("insert into public.slug_redirects(entity_type, entity_id, locale, old_slug) values($1, $2, 'ru', $3)", [kind, cover, kind === "article" ? translation.slug : scientistTranslation.slug]);
+    const token = await deletionToken(kind === "article" ? "articles" : "scientist_profiles", id);
+    await expect(kind === "article" ? restoreDeletedArticle(id, token) : restoreDeletedScientist(id, token)).rejects.toThrow("slug_reserved");
+  });
+  it("rolls back restoration, version reset and media usages when the audit insert fails", async () => {
+    const id = await save(author, { ...input, coverMediaId: cover }); await publish(id); await state(admin, id, null, true);
+    const token = await deletionToken("articles", id);
+    const before = (await db.query("select * from public.articles where id = $1", [id])).rows[0];
+    await db.exec(`create function public.reject_restore_audit() returns trigger language plpgsql as $$ begin if new.action = 'article.restore' then raise exception 'audit_failed'; end if; return new; end $$;
+      create trigger reject_restore_audit before insert on public.audit_logs for each row execute function public.reject_restore_audit();`);
+    try {
+      await expect(restoreDeletedArticle(id, token)).rejects.toThrow("audit_failed");
+      expect((await db.query("select * from public.articles where id = $1", [id])).rows[0]).toEqual(before);
+      expect((await db.query("select * from public.media_usages where entity_type = 'article' and entity_id = $1", [id])).rows).toHaveLength(0);
+    } finally { await db.exec("drop trigger reject_restore_audit on public.audit_logs; drop function public.reject_restore_audit();"); }
+  });
+  it("keeps recovery possible for legacy drafts with an incomplete translation", async () => {
+    const id = await save(); await db.query("delete from public.article_translations where article_id = $1 and locale = 'kk'", [id]);
+    await state(admin, id, null, true); await restoreDeletedArticle(id, await deletionToken("articles", id));
+    await expect(state(author, id, "in_review")).rejects.toThrow("invalid_input");
+    expect((await visible("articles")).rows).toHaveLength(0);
+  });
+  it("revokes restore/list grants from anon and service_role and keeps internal validation private", async () => {
+    for (const role of ["anon", "service_role"]) for (const sql of [
+      "select public.list_deleted_editorial_records()", "select public.restore_deleted_article(null, null)", "select public.restore_deleted_scientist(null, null)",
+    ]) await expect(asUser(null, () => db.query(sql), role)).rejects.toThrow("permission denied");
+    await expect(asUser(admin, () => db.query("select public.assert_restorable_article_links(null)"))).rejects.toThrow("permission denied");
+    for (const [kind, query, page] of [["bad", "", 1], ["all", "x".repeat(121), 1], ["all", "", 0], ["all", "", 10001]] as const)
+      await expect(trash(admin, kind, query, page)).rejects.toThrow("invalid_input");
+  });
+});
 
 type EditorialLink = { kind: string; entityId: string; relationType: string };
 async function relationFixtures() {
