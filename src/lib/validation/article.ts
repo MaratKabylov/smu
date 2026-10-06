@@ -59,6 +59,20 @@ export const articleListFiltersSchema = z.object({
 
 export const articleStatusSchema = z.enum(articleStatuses);
 
+export const articleScheduleTimestampSchema = z.iso.datetime({ offset: true })
+  .transform(value => new Date(value).toISOString());
+
+export const articleScheduleFormSchema = z.iso.datetime({ local: true, precision: -1 })
+  .refine(value => /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value))
+  .transform(value => new Date(`${value}:00+05:00`).toISOString());
+
+export const articleScheduleInputSchema = z.object({
+  expectedVersion: z.number().int().positive(),
+  scheduledAt: articleScheduleTimestampSchema.nullable(),
+  expectedScheduledAt: articleScheduleTimestampSchema.nullable(),
+});
+export type ArticleScheduleInput = z.infer<typeof articleScheduleInputSchema>;
+
 export const articleReviewConfigurationSchema = z.object({
   requiresScientificReview: z.boolean(),
   reviewerId: nullableUuid,

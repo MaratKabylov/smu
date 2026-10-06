@@ -1803,6 +1803,38 @@ th {
   color: #206044;
 }
 
+.status-scheduled {
+  border-color: #b5c7df;
+  background: #eff5fc;
+  color: #31547f;
+}
+
+.article-schedule-panel {
+  display: grid;
+  gap: 20px;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #f7fafc;
+}
+
+.article-schedule-panel p {
+  margin: 8px 0;
+}
+
+.schedule-forms {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 24px;
+}
+
+.schedule-forms form,
+.schedule-forms label {
+  display: grid;
+  gap: 10px;
+}
+
 .status-published {
   border-color: #91c4ad;
   background: var(--forest);

@@ -26,7 +26,7 @@ const article: Article = {
   id, authorId: "author", scientificReviewerId: "reviewer", requiresScientificReview: false, contentVersion: 3, approvedVersion: null,
   categories: [], authors: [], contentTypeItem: null,
   authorName: "Автор", categoryId: category, category: null, coverMediaId: null, contentType: "article",
-  status: "draft", publishedAt: null, createdAt: "2026-10-04T12:00:00Z", updatedAt: "2026-10-04T12:00:00Z", deletedAt: null,
+  status: "draft", publishedAt: null, scheduledAt: null, createdAt: "2026-10-04T12:00:00Z", updatedAt: "2026-10-04T12:00:00Z", deletedAt: null,
   translations: [
     { ...translation, id: "ru", locale: "ru", title: "Новая версия" },
     { ...translation, id: "kk", locale: "kk", title: "Қазақша қазіргі тақырып" },
@@ -34,7 +34,7 @@ const article: Article = {
 };
 const revision: ArticleRevision = {
   id: revisionId, articleId: id, revisionNumber: 1, contentVersion: 1, reason: "manual",
-  titleRu: translation.title, titleKk: "Қазақша тарихи тақырып", createdBy: "author", createdByName: "Автор",
+  titleRu: translation.title, titleKk: "Қазақша тарихи тақырып", createdBy: "author", createdByName: "Автор", isSystem: false,
   createdAt: "2026-10-04T12:00:00Z",
   snapshot: { contentType: "article", categoryId: category, coverMediaId: null, tagIds: [],
     ru: translation, kk: { ...translation, title: "Қазақша тарихи тақырып" } },
@@ -48,6 +48,11 @@ beforeEach(() => {
   mocks.taxonomy.mockResolvedValue({ authors: [], contentTypes: [], categories: [{ id: category, nameRu: "Исследования", nameKk: "Зерттеулер" }], tags: [] });
 });
 describe("article revision page", () => {
+  it("identifies automatic publication separately from a deleted editorial user", async () => {
+    mocks.list.mockResolvedValueOnce({ revisions: [{ ...revision, isSystem: true, createdBy: null, createdByName: null }], total: 1 });
+    const html = renderToStaticMarkup(await page());
+    expect(html).toContain("Автоматическая публикация"); expect(html).not.toContain("Удалённый пользователь");
+  });
   it("shows safe comparison, meaningful taxonomy labels, pagination and explicit restore confirmation", async () => {
     const html = renderToStaticMarkup(await page());
     expect(html).toContain("Старая версия &lt;script&gt;"); expect(html).not.toContain("Старая версия <script>");

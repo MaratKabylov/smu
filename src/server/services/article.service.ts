@@ -9,10 +9,12 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type {
   ArticleInput, ArticleListFilters, TaxonomyInput, ArticleAuthorInput, TaxonomyUpdateInput,
   ArticleReviewConfigurationInput, ArticleReviewDecisionInput,
+  ArticleScheduleInput,
 } from "@/lib/validation/article";
 import { ArticleRepository } from "@/server/repositories/article.repository";
 import type { AccessContext } from "@/types/domain/auth";
 import type { ArticleStatus } from "@/types/domain/article";
+import { articleScheduleInputSchema } from "@/lib/validation/article";
 
 type ArticleServiceErrorCode = "forbidden" | "not_found" | "invalid_transition" |
   "invalid_reference" | "invalid_input" | "slug_conflict" | "slug_reserved" | "stale_version";
@@ -108,6 +110,28 @@ export class ArticleService {
     return this.repository((repository) => repository.softDelete(id));
   }
 
+  async schedule(access: AccessContext, id: string, input: ArticleScheduleInput) {
+    assertAllowed(canPublishArticle(access));
+    const parsed = articleScheduleInputSchema.safeParse(input);
+    if (!parsed.success || (parsed.data.scheduledAt && Date.parse(parsed.data.scheduledAt) <= Date.now())) {
+      throw new ArticleServiceError("invalid_input", "Выберите время публикации в будущем.");
+    }
+    return this.repository(async repository => {
+      const article = await repository.getById(id);
+      if (!article || article.deletedAt) throw new ArticleServiceError("not_found", "Статья не найдена.");
+      const currentSchedule = article.scheduledAt ? new Date(article.scheduledAt).toISOString() : null;
+      if (parsed.data.expectedVersion !== article.contentVersion || parsed.data.expectedScheduledAt !== currentSchedule) {
+        throw new ArticleServiceError("stale_version", "Материал или расписание изменились. Обновите страницу.");
+      }
+      if (!(article.status === "approved" || article.status === "scheduled") ||
+        (parsed.data.scheduledAt === null && article.status !== "scheduled") ||
+        article.approvedVersion !== article.contentVersion) {
+        throw new ArticleServiceError("invalid_transition", "Сначала одобрите текущую версию материала.");
+      }
+      await repository.schedule(id, parsed.data.expectedVersion, parsed.data.scheduledAt, parsed.data.expectedScheduledAt);
+    });
+  }
+
   async createTaxonomyItem(access: AccessContext, input: TaxonomyInput) {
     assertAllowed(hasPermission(access, "articles.edit_any"));
     return this.repository((repository) => repository.createTaxonomyItem(input));
@@ -186,6 +210,7 @@ export class ArticleService {
     if (current === "in_review" && next === "draft") return review || edit;
     if (current === "approved" && next === "draft") return review || publish;
     if (current === "approved" && next === "published") return publish;
+    if (current === "scheduled" && (next === "published" || next === "draft")) return publish;
     if (current === "published" && (next === "archived" || next === "draft")) return publish;
     if (current === "archived" && next === "draft") return publish;
     return false;

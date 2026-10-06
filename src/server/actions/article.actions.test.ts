@@ -1,14 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
-const mocks = vi.hoisted(() => ({ access: vi.fn(), update: vi.fn(), create: vi.fn(), invalidate: vi.fn() }));
+const mocks = vi.hoisted(() => ({ access: vi.fn(), update: vi.fn(), create: vi.fn(), schedule: vi.fn(), invalidate: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.invalidate }));
-vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
+vi.mock("next/navigation", () => ({ redirect: (path: string) => { throw new Error(`redirect:${path}`); } }));
 vi.mock("@/server/services/access.service", () => ({ getAdminAccess: mocks.access }));
 vi.mock("@/server/services/article.service", () => ({
-  ArticleService: class { update = mocks.update; create = mocks.create; },
+  ArticleService: class { update = mocks.update; create = mocks.create; schedule = mocks.schedule; },
   ArticleServiceError: class extends Error { constructor(public code: string) { super(code); } },
 }));
-import { saveArticleDraft } from "./article.actions";
+import { saveArticleDraft, scheduleArticle } from "./article.actions";
 import { ArticleServiceError } from "@/server/services/article.service";
 
 const id = "00000000-0000-4000-a000-000000000002";
@@ -29,6 +29,38 @@ beforeEach(() => {
 });
 
 describe("inline editorial saves", () => {
+  it("schedules the selected Kazakhstan time and retains the original concurrency tokens", async () => {
+    const data = new FormData(); data.set("scheduledAt", "2099-10-07T00:15");
+    await expect(scheduleArticle(id, 3, "2099-10-06T07:00:00Z", data)).rejects.toThrow(`redirect:/admin/content/articles/${id}?schedule_saved=1`);
+    expect(mocks.schedule).toHaveBeenCalledWith({ userId: id }, id, {
+      expectedVersion: 3, expectedScheduledAt: "2099-10-06T07:00:00.000Z", scheduledAt: "2099-10-06T19:15:00.000Z",
+    });
+    expect(mocks.invalidate).toHaveBeenCalledWith("/admin/content/articles", "layout");
+  });
+  it("cancels explicitly without requiring the date field", async () => {
+    const data = new FormData(); data.set("intent", "cancel");
+    await expect(scheduleArticle(id, 3, "2099-10-06T07:00:00Z", data)).rejects.toThrow("schedule_saved=1");
+    expect(mocks.schedule).toHaveBeenCalledWith(expect.anything(), id, {
+      expectedVersion: 3, expectedScheduledAt: "2099-10-06T07:00:00.000Z", scheduledAt: null,
+    });
+  });
+  it("rejects invalid schedule fields before authenticating or writing", async () => {
+    const invalidDate = new FormData(); invalidDate.set("scheduledAt", "2026-02-30T12:00");
+    const validDate = new FormData(); validDate.set("scheduledAt", "2099-10-07T12:00");
+    await expect(scheduleArticle(id, 3, null, invalidDate)).rejects.toThrow("error=validation");
+    await expect(scheduleArticle(id, 0, null, validDate)).rejects.toThrow("error=validation");
+    await expect(scheduleArticle(id, 3, "invalid", validDate)).rejects.toThrow("error=validation");
+    expect(mocks.access).not.toHaveBeenCalled(); expect(mocks.schedule).not.toHaveBeenCalled();
+  });
+  it("requires a session for scheduling and preserves scheduling conflicts", async () => {
+    const data = new FormData(); data.set("scheduledAt", "2099-10-07T12:00");
+    mocks.access.mockResolvedValueOnce({ state: "unauthenticated" });
+    await expect(scheduleArticle(id, 3, null, data)).rejects.toThrow("redirect:/admin/login");
+    expect(mocks.schedule).not.toHaveBeenCalled();
+    mocks.schedule.mockRejectedValueOnce(new ArticleServiceError("stale_version", "Conflict"));
+    await expect(scheduleArticle(id, 3, null, data)).rejects.toThrow("error=stale_version");
+    expect(mocks.invalidate).not.toHaveBeenCalled();
+  });
   it("passes relations through autosave and invalidates reverse-link pages", async () => {
     const data = form(); const relations = [{ kind: "scientist", entityId: id, relationType: "expert" }];
     data.set("relations", JSON.stringify(relations));

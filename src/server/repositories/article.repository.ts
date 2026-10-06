@@ -33,6 +33,7 @@ type ArticleRow = {
   content_type: ArticleContentType;
   status: ArticleStatus;
   published_at: string | null;
+  scheduled_at: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -187,6 +188,13 @@ export class ArticleRepository {
     await this.mutate("change_article_state", { p_id: id, p_status: null, p_delete: true });
   }
 
+  async schedule(id: string, expectedVersion: number, scheduledAt: string | null, expectedScheduledAt: string | null) {
+    await this.mutate("schedule_article", {
+      p_id: id, p_expected_version: expectedVersion,
+      p_scheduled_at: scheduledAt, p_expected_scheduled_at: expectedScheduledAt,
+    });
+  }
+
   async createTaxonomyItem(input: TaxonomyInput) {
     return this.mutate<string>("create_article_taxonomy", { p_input: input });
   }
@@ -339,6 +347,7 @@ export class ArticleRepository {
       contentType: row.content_type,
       status: row.status,
       publishedAt: row.published_at,
+      scheduledAt: row.scheduled_at,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       deletedAt: row.deleted_at,

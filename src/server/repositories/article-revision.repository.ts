@@ -11,16 +11,18 @@ type RevisionRow = {
   title_ru: string;
   title_kk: string;
   created_by: string | null;
+  is_system: boolean;
   creator: { display_name: string | null } | Array<{ display_name: string | null }> | null;
   created_at: string;
 };
-const summaryColumns = "id, article_id, revision_number, content_version, reason, title_ru, title_kk, created_by, created_at, creator:profiles!article_revisions_created_by_fkey(display_name)";
+const summaryColumns = "id, article_id, revision_number, content_version, reason, title_ru, title_kk, created_by, is_system, created_at, creator:profiles!article_revisions_created_by_fkey(display_name)";
 function summary(row: RevisionRow): ArticleRevisionSummary {
   const creator = Array.isArray(row.creator) ? row.creator[0] : row.creator;
   return {
     id: row.id, articleId: row.article_id, revisionNumber: row.revision_number,
     contentVersion: row.content_version, reason: row.reason, titleRu: row.title_ru,
     titleKk: row.title_kk, createdBy: row.created_by, createdByName: creator?.display_name ?? null, createdAt: row.created_at,
+    isSystem: row.is_system,
   };
 }
 

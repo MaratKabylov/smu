@@ -109,7 +109,7 @@ export default async function ArticleRevisionsPage({ params, searchParams }: {
           <Link href={href({ revision: revision.id })} aria-current={selectedId === revision.id ? "page" : undefined}>
             <strong>№{revision.revisionNumber} · {revisionReasonLabels[revision.reason]}</strong>
             <span>{new Date(revision.createdAt).toLocaleString("ru-RU", { timeZone: "Asia/Aqtobe" })} · содержимое v{revision.contentVersion}</span>
-            <span>{revision.createdByName ?? (revision.createdBy ? "Пользователь редакции" : "Удалённый пользователь")}</span>
+            <span>{revision.isSystem ? "Автоматическая публикация" : revision.createdByName ?? (revision.createdBy ? "Пользователь редакции" : "Удалённый пользователь")}</span>
             <span>{state.locale === "ru" ? revision.titleRu : revision.titleKk}</span>
           </Link>
           <Link href={href({ compare: revision.id })}>Сравнить с этой версией</Link>

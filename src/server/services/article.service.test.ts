@@ -3,12 +3,14 @@ vi.mock("server-only", () => ({}));
 const mocks = vi.hoisted(() => ({
   client: vi.fn(), get: vi.fn(), create: vi.fn(), update: vi.fn(), status: vi.fn(), assign: vi.fn(),
   configure: vi.fn(), submitReview: vi.fn(), listReviews: vi.fn(),
+  schedule: vi.fn(),
 }));
 vi.mock("@/lib/supabase/server", () => ({ createServerSupabaseClient: mocks.client }));
 vi.mock("@/server/repositories/article.repository", () => ({ ArticleRepository: class {
   getById = mocks.get; create = mocks.create; update = mocks.update;
   changeStatus = mocks.status; assignReviewer = mocks.assign;
   configureReview = mocks.configure; submitReview = mocks.submitReview; listReviews = mocks.listReviews;
+  schedule = mocks.schedule;
 } }));
 import { ArticleService } from "./article.service";
 import type { AccessContext, PermissionCode } from "@/types/domain/auth";
@@ -18,6 +20,42 @@ const access = (permissions: PermissionCode[], userId = "user"): AccessContext =
 const article = { id: "id", authorId: "author", scientificReviewerId: "assigned", requiresScientificReview: false, contentVersion: 1, status: "published", deletedAt: null };
 beforeEach(() => { vi.clearAllMocks(); mocks.get.mockResolvedValue(article); });
 describe("article service authorization", () => {
+  it("denies interactive scheduling before creating a client when publishing permission is missing", async () => {
+    await expect(new ArticleService().schedule(access(["articles.edit_any"]), "id", {
+      expectedVersion: 1, scheduledAt: "2099-10-07T12:00:00Z", expectedScheduledAt: null,
+    })).rejects.toMatchObject({ code: "forbidden" });
+    expect(mocks.client).not.toHaveBeenCalled();
+  });
+  it("requires an approved current version and future time before scheduling", async () => {
+    const publisher = access(["articles.publish"]);
+    const input = { expectedVersion: 1, scheduledAt: "2099-10-07T12:00:00Z", expectedScheduledAt: null };
+    mocks.get.mockResolvedValue({ ...article, status: "draft", scheduledAt: null, approvedVersion: 1 });
+    await expect(new ArticleService().schedule(publisher, "id", input)).rejects.toMatchObject({ code: "invalid_transition" });
+    mocks.get.mockResolvedValue({ ...article, status: "approved", scheduledAt: null, approvedVersion: null });
+    await expect(new ArticleService().schedule(publisher, "id", input)).rejects.toMatchObject({ code: "invalid_transition" });
+    await expect(new ArticleService().schedule(publisher, "id", { ...input, scheduledAt: "2000-01-01T00:00:00Z" })).rejects.toMatchObject({ code: "invalid_input" });
+    expect(mocks.schedule).not.toHaveBeenCalled();
+  });
+  it("detects both changed content and changed schedule before writing", async () => {
+    mocks.get.mockResolvedValue({ ...article, status: "scheduled", approvedVersion: 1, scheduledAt: "2099-10-07T12:00:00Z" });
+    for (const patch of [{ expectedVersion: 2 }, { expectedScheduledAt: "2099-10-07T13:00:00Z" }]) {
+      await expect(new ArticleService().schedule(access(["articles.publish"]), "id", {
+        expectedVersion: 1, scheduledAt: null, expectedScheduledAt: "2099-10-07T12:00:00Z", ...patch,
+      })).rejects.toMatchObject({ code: "stale_version" });
+    }
+    expect(mocks.schedule).not.toHaveBeenCalled();
+  });
+  it("passes normalized scheduling and cancellation tokens to the session RPC", async () => {
+    const service = new ArticleService(); const publisher = access(["articles.publish"]);
+    mocks.get.mockResolvedValue({ ...article, status: "approved", scheduledAt: null, approvedVersion: 1 });
+    await service.schedule(publisher, "id", { expectedVersion: 1, scheduledAt: "2099-10-07T12:00:00+05:00", expectedScheduledAt: null });
+    expect(mocks.schedule).toHaveBeenLastCalledWith("id", 1, "2099-10-07T07:00:00.000Z", null);
+    mocks.get.mockResolvedValue({ ...article, status: "scheduled", scheduledAt: "2099-10-07T07:00:00Z", approvedVersion: 1 });
+    await service.schedule(publisher, "id", { expectedVersion: 1, scheduledAt: null, expectedScheduledAt: "2099-10-07T12:00:00+05:00" });
+    expect(mocks.schedule).toHaveBeenLastCalledWith("id", 1, null, "2099-10-07T07:00:00.000Z");
+    await service.changeStatus(publisher, "id", "published", 1);
+    expect(mocks.status).toHaveBeenLastCalledWith("id", "published", 1);
+  });
   it("denies author directory writes and profile listings before constructing a client", async () => {
     await expect(new ArticleService().saveAuthor(access(["articles.create"]), null, {} as never)).rejects.toMatchObject({ code: "forbidden" });
     await expect(new ArticleService().updateTaxonomyItem(access(["articles.review"]), {} as never)).rejects.toMatchObject({ code: "forbidden" });

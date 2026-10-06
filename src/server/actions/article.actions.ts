@@ -8,6 +8,7 @@ import {
   articleReviewConfigurationSchema,
   articleReviewDecisionSchema,
   articleStatusSchema,
+  articleScheduleFormSchema, articleScheduleTimestampSchema,
   taxonomyInputSchema, taxonomyUpdateSchema, articleAuthorInputSchema,
 } from "@/lib/validation/article";
 import { getAdminAccess } from "@/server/services/access.service";
@@ -106,6 +107,27 @@ export async function assignArticleReviewer(id: string, formData: FormData) {
   }
   invalidateArticles();
   redirect(`/admin/content/articles/${parsedId.data}?reviewer_saved=1`);
+}
+
+export async function scheduleArticle(id: string, expectedVersion: number, expectedScheduledAt: string | null, formData: FormData) {
+  const parsedId = articleIdSchema.safeParse(id);
+  const version = z.number().int().positive().safeParse(expectedVersion);
+  const previousTime = articleScheduleTimestampSchema.nullable().safeParse(expectedScheduledAt);
+  const cancel = formData.get("intent") === "cancel";
+  const time = cancel ? { success: true as const, data: null } : articleScheduleFormSchema.safeParse(formData.get("scheduledAt"));
+  if (!parsedId.success || !version.success || !previousTime.success || !time.success) {
+    redirect("/admin/content/articles?error=validation");
+  }
+  const access = await requireAccess(`/admin/content/articles/${parsedId.data}`);
+  try {
+    await new ArticleService().schedule(access, parsedId.data, {
+      expectedVersion: version.data, expectedScheduledAt: previousTime.data, scheduledAt: time.data,
+    });
+  } catch (error) {
+    redirect(`/admin/content/articles/${parsedId.data}?error=${errorReason(error)}`);
+  }
+  invalidateArticles();
+  redirect(`/admin/content/articles/${parsedId.data}?schedule_saved=1`);
 }
 
 export async function configureArticleReview(id: string, formData: FormData) {

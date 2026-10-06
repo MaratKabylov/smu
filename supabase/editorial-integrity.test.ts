@@ -19,6 +19,7 @@ let upgradedContent: Record<string, unknown>;
 let revisionUpgrade: Record<string, unknown>;
 let creditsUpgrade: Record<string, unknown>;
 let relationsUpgrade: Record<string, unknown>;
+let schedulingUpgrade: Record<string, unknown>;
 const legacyBody = "  Legacy first line.\n\nSecond line with <script>literal text</script>.\n  ";
 const translation = { title: "A scientific article", slug: "article-ru", excerpt: "A description of regional scientific research.", body: "A detailed explanation of regional scientific research and its results.", seoTitle: null, seoDescription: null };
 const input = { contentType: "article", categoryId: null, coverMediaId: null, tagIds: [], ru: translation, kk: { ...translation, slug: "article-kk" } };
@@ -108,6 +109,9 @@ beforeAll(async () => {
     }
     const sql = (await readFile(new URL("./migrations/" + file, import.meta.url), "utf8")).replace("create extension if not exists pgcrypto;", "");
     await db.exec(sql);
+    if (file === "015_article_scheduled_publishing.sql") schedulingUpgrade = (await db.query<Record<string, unknown>>(
+      "select status, content_version, approved_version, scheduled_at, scheduled_by, first_published_at = published_at as preserved from public.articles",
+    )).rows[0];
     if (file === "013_article_relations.sql") relationsUpgrade = (await db.query<Record<string, unknown>>(`
       select a.status, a.content_type, a.content_version, a.approved_version,
         (select snapshot->'relations' from public.article_revisions where article_id = a.id) as relations,
@@ -178,6 +182,178 @@ const publicLinks = (id: string, locale = "ru", user: string | null = null) => a
   "select * from public.public_article_relations($1, $2)", [id, locale]), user ? "authenticated" : "anon");
 const reverseLinks = (link: EditorialLink, locale = "ru", user: string | null = null) => asUser(user, () => db.query<{ id: string; title: string; href: string; relation_type: string }>(
   "select * from public.public_related_articles($1, $2, $3)", [link.kind, link.entityId, locale]), user ? "authenticated" : "anon");
+
+const futureTime = () => new Date(Date.now() + 60 * 60 * 1000).toISOString();
+const schedule = (user: string, id: string, time: string | null, version: number | null = 1, previous: string | null = null) => asUser(user, () =>
+  db.query("select public.schedule_article($1, $2, $3, $4)", [id, version, time, previous]));
+const runSchedule = (limit = 100) => asUser(null, async () =>
+  (await db.query<{ result: { published: number; rejected: number } }>("select public.publish_scheduled_articles($1) as result", [limit])).rows[0].result, "service_role");
+async function approvedArticle(value: unknown = input) {
+  const id = await save(author, value);
+  await state(author, id, "in_review"); await review(admin, id, "approved");
+  return id;
+}
+const makeDue = (id: string) => db.query("update public.articles set scheduled_at = now() - interval '1 minute' where id = $1", [id]);
+
+describe("scheduled article publishing", () => {
+  it("upgrades published data without scheduling it or changing its history", () => {
+    expect(schedulingUpgrade).toEqual({ status: "published", content_version: 1, approved_version: 1,
+      scheduled_at: null, scheduled_by: null, preserved: true });
+  });
+  it("allows only publishers to schedule an approved current version", async () => {
+    const id = await approvedArticle(); const time = futureTime();
+    for (const user of [author, reviewer, editor, scientistManager]) await expect(schedule(user, id, time)).rejects.toThrow("forbidden");
+    await schedule(admin, id, time);
+    expect((await db.query("select status, content_version, approved_version, scheduled_by, published_at from public.articles where id = $1", [id])).rows[0])
+      .toEqual({ status: "scheduled", content_version: 1, approved_version: 1, scheduled_by: admin, published_at: null });
+    expect((await visible("articles")).rows).toEqual([]);
+    expect((await visible("article_translations")).rows).toEqual([]);
+    expect((await runSchedule())).toEqual({ published: 0, rejected: 0 });
+  });
+  it("rejects a draft, missing approval, missing translation and invalid time without audit side effects", async () => {
+    const id = await save(); const time = futureTime();
+    await expect(schedule(admin, id, time)).rejects.toThrow("invalid_transition");
+    await state(author, id, "in_review"); await review(admin, id, "approved");
+    const before = (await db.query("select * from public.audit_logs")).rows.length;
+    for (const at of ["2000-01-01T00:00:00Z", "infinity"]) await expect(schedule(admin, id, at)).rejects.toThrow("invalid_input");
+    await db.query("update public.articles set approved_version = null where id = $1", [id]);
+    await expect(schedule(admin, id, time)).rejects.toThrow("invalid_transition");
+    await db.query("update public.articles set approved_version = 1 where id = $1", [id]);
+    await db.query("delete from public.article_translations where article_id = $1 and locale = 'kk'", [id]);
+    await expect(schedule(admin, id, time)).rejects.toThrow("invalid_transition");
+    expect((await db.query("select * from public.audit_logs")).rows).toHaveLength(before);
+  });
+  it("rejects stale content and missing expected versions", async () => {
+    const id = await approvedArticle();
+    for (const version of [null, 2]) await expect(schedule(admin, id, futureTime(), version)).rejects.toThrow("stale_version");
+    expect((await db.query("select * from public.audit_logs where action = 'article.schedule.set'")).rows).toEqual([]);
+  });
+  it("detects stale rescheduling and cancellation even when content_version has not changed", async () => {
+    const id = await approvedArticle(); const first = futureTime();
+    const second = new Date(Date.parse(first) + 60000).toISOString();
+    await schedule(admin, id, first);
+    await expect(schedule(admin, id, second)).rejects.toThrow("stale_version");
+    await schedule(admin, id, second, 1, first);
+    await expect(schedule(admin, id, null, 1, first)).rejects.toThrow("stale_version");
+    await schedule(admin, id, null, 1, second);
+    expect((await db.query("select status, approved_version, scheduled_at, scheduled_by from public.articles where id = $1", [id])).rows[0])
+      .toEqual({ status: "approved", approved_version: 1, scheduled_at: null, scheduled_by: null });
+    expect(await runSchedule()).toEqual({ published: 0, rejected: 0 });
+  });
+  it("treats an identical schedule request as a no-op and blocks the generic scheduling RPC bypass", async () => {
+    const id = await approvedArticle(); const time = futureTime();
+    await expect(state(admin, id, "scheduled")).rejects.toThrow("forbidden");
+    await schedule(admin, id, time); await schedule(admin, id, time, 1, time);
+    expect((await db.query("select * from public.audit_logs where action = 'article.schedule.set'")).rows).toHaveLength(1);
+  });
+  it("publishes due articles exactly once with a revision, audit and actual publication time", async () => {
+    const id = await approvedArticle(); await schedule(admin, id, futureTime()); await makeDue(id);
+    expect((await visible("articles")).rows).toEqual([]);
+    expect(await runSchedule()).toEqual({ published: 1, rejected: 0 });
+    const row = (await db.query<Record<string, unknown>>("select status, scheduled_at, scheduled_by, published_at, first_published_at from public.articles where id = $1", [id])).rows[0];
+    expect(row).toMatchObject({ status: "published", scheduled_at: null, scheduled_by: null });
+    expect(row.published_at).toBeTruthy(); expect(row.first_published_at).toEqual(row.published_at);
+    expect((await visible("articles")).rows).toHaveLength(1);
+    expect((await visible("article_translations")).rows).toHaveLength(2);
+    const revisions = (await db.query("select created_by, is_system, snapshot from public.article_revisions where article_id = $1 and reason = 'publish'", [id])).rows;
+    expect(revisions).toHaveLength(1);
+    expect(revisions[0]).toMatchObject({ created_by: null, is_system: true,
+      snapshot: { ru: { title: translation.title }, kk: { title: translation.title } } });
+    expect((await db.query("select user_id, old_data, new_data from public.audit_logs where action = 'article.schedule.publish'")).rows)
+      .toMatchObject([{ user_id: null, old_data: { scheduledBy: admin, version: 1 }, new_data: { status: "published" } }]);
+    expect(await runSchedule()).toEqual({ published: 0, rejected: 0 });
+    expect((await db.query("select status, scheduled_at, scheduled_by, published_at, first_published_at from public.articles where id = $1", [id])).rows[0]).toEqual(row);
+    expect((await db.query("select * from public.audit_logs where action = 'article.schedule.publish'")).rows).toHaveLength(1);
+  });
+  it.each(["edit", "restore", "delete", "cancel", "draft", "publish"])("removes the schedule atomically on %s", async operation => {
+    const id = await approvedArticle(); const time = futureTime();
+    const revisionId = await createRevision(admin, id);
+    await schedule(admin, id, time);
+    if (operation === "edit") await save(editor, input, id);
+    if (operation === "restore") await restoreRevision(admin, id, revisionId, 1);
+    if (operation === "delete") await state(admin, id, null, true);
+    if (operation === "cancel") await schedule(admin, id, null, 1, time);
+    if (operation === "draft") await state(admin, id, "draft");
+    if (operation === "publish") await state(admin, id, "published");
+    expect((await db.query("select scheduled_at, scheduled_by from public.articles where id = $1", [id])).rows[0])
+      .toEqual({ scheduled_at: null, scheduled_by: null });
+    expect(await runSchedule()).toEqual({ published: 0, rejected: 0 });
+  });
+  it("rechecks mandatory scientific review during scheduling", async () => {
+    const id = await save(); await configureReview(admin, id, true, reviewer);
+    await state(author, id, "in_review"); await review(reviewer, id, "approved");
+    await db.query("update public.article_reviews set reviewer_id = $2 where article_id = $1", [id, otherReviewer]);
+    await expect(schedule(admin, id, futureTime())).rejects.toThrow("invalid_transition");
+  });
+  it.each(["approval", "translation", "review"])("rejects a due article with invalid %s and continues processing valid articles", async invalid => {
+    const broken = await approvedArticle();
+    const valid = await approvedArticle({ ...input, ru: { ...translation, slug: "valid-ru" }, kk: { ...translation, slug: "valid-kk" } });
+    await schedule(admin, broken, futureTime()); await schedule(admin, valid, futureTime());
+    await makeDue(broken); await makeDue(valid);
+    if (invalid === "approval") await db.query("update public.articles set approved_version = null where id = $1", [broken]);
+    if (invalid === "translation") await db.query("delete from public.article_translations where article_id = $1 and locale = 'kk'", [broken]);
+    if (invalid === "review") await db.query("update public.articles set requires_scientific_review = true, scientific_reviewer_id = $2 where id = $1", [broken, reviewer]);
+    expect(await runSchedule()).toEqual({ published: 1, rejected: 1 });
+    expect((await db.query("select status, approved_version, scheduled_at from public.articles where id = $1", [broken])).rows[0])
+      .toEqual({ status: "draft", approved_version: null, scheduled_at: null });
+    expect((await db.query("select new_data from public.audit_logs where entity_id = $1 and action = 'article.schedule.reject'", [broken])).rows[0])
+      .toMatchObject({ new_data: { reason: "invalid_approval" } });
+  });
+  it("rechecks the scheduler's publishing permissions at execution time", async () => {
+    const id = await approvedArticle(); await schedule(admin, id, futureTime()); await makeDue(id);
+    await db.query("delete from public.user_roles where user_id = $1", [admin]);
+    try {
+      expect(await runSchedule()).toEqual({ published: 0, rejected: 1 });
+      expect((await db.query("select new_data from public.audit_logs where action = 'article.schedule.reject'")).rows[0])
+        .toMatchObject({ new_data: { reason: "publisher_permissions" } });
+    } finally {
+      await db.query("insert into public.user_roles(user_id, role_id) select $1, id from public.roles where code = 'admin'", [admin]);
+    }
+  });
+  it("preserves the first publication date when a republished article is scheduled", async () => {
+    const id = await save(); await publish(id);
+    const first = (await db.query("select first_published_at from public.articles where id = $1", [id])).rows[0];
+    await state(admin, id, "draft"); await save(editor, input, id);
+    await state(editor, id, "in_review"); await review(admin, id, "approved");
+    await schedule(admin, id, futureTime(), 2); await makeDue(id); await runSchedule();
+    expect((await db.query("select first_published_at from public.articles where id = $1", [id])).rows[0]).toEqual(first);
+  });
+  it("bounds batches and leaves remaining due articles for the next run", async () => {
+    for (let index = 0; index < 3; index++) {
+      const id = await approvedArticle({ ...input, ru: { ...translation, slug: `batch-ru-${index}` }, kk: { ...translation, slug: `batch-kk-${index}` } });
+      await schedule(admin, id, futureTime()); await makeDue(id);
+    }
+    await expect(runSchedule(0)).rejects.toThrow("invalid_input");
+    await expect(runSchedule(101)).rejects.toThrow("invalid_input");
+    expect(await runSchedule(2)).toEqual({ published: 2, rejected: 0 });
+    expect(await runSchedule(2)).toEqual({ published: 1, rejected: 0 });
+  });
+  it("rolls back publishing, revisions and audit together if the final audit write fails", async () => {
+    const id = await approvedArticle(); await schedule(admin, id, futureTime()); await makeDue(id);
+    await db.exec(`create function public.reject_schedule_audit() returns trigger language plpgsql as $$
+      begin if new.action = 'article.schedule.publish' then raise exception 'audit_failure'; end if; return new; end; $$;
+      create trigger reject_schedule_audit before insert on public.audit_logs for each row execute function public.reject_schedule_audit();`);
+    try {
+      await expect(runSchedule()).rejects.toThrow("audit_failure");
+      expect((await db.query("select status, published_at from public.articles where id = $1", [id])).rows[0])
+        .toEqual({ status: "scheduled", published_at: null });
+      expect((await db.query("select * from public.article_revisions where article_id = $1 and reason = 'publish'", [id])).rows).toEqual([]);
+      expect((await db.query("select * from public.audit_logs where action = 'article.schedule.publish'")).rows).toEqual([]);
+    } finally { await db.exec("drop trigger reject_schedule_audit on public.audit_logs; drop function public.reject_schedule_audit();"); }
+    expect(await runSchedule()).toEqual({ published: 1, rejected: 0 });
+  });
+  it("limits the cron RPC to service_role and prevents calls to private helpers", async () => {
+    const id = await approvedArticle();
+    for (const role of ["anon", "authenticated"]) {
+      await expect(asUser(role === "anon" ? null : admin, () => db.query("select public.publish_scheduled_articles(100)"), role)).rejects.toThrow("permission denied");
+    }
+    for (const role of ["anon", "service_role"]) {
+      await expect(asUser(null, () => db.query("select public.schedule_article($1, 1, now() + interval '1 hour', null)", [id]), role)).rejects.toThrow("permission denied");
+    }
+    await expect(asUser(admin, () => db.query("select public.change_article_state_before_scheduling($1, 'published', false, 1)", [id]))).rejects.toThrow("permission denied");
+    await expect(asUser(admin, () => db.query("select public.article_version_publishable($1)", [id]))).rejects.toThrow("permission denied");
+  });
+});
 
 describe("editorial relationships and scientific publications", () => {
   it("upgrades old articles and snapshots without changing their workflow or inventing links", () => {
