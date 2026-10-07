@@ -8,7 +8,7 @@ import type { ArticleTranslation } from "@/types/domain/article";
 import type { MediaAsset } from "@/types/domain/media";
 
 export function RichTextEditor({ locale, value, disabled, media, onChange }: {
-  locale: "Ru" | "Kk"; value?: ArticleTranslation; disabled: boolean;
+  locale: "Ru" | "Kk" | "En"; value?: ArticleTranslation; disabled: boolean;
   media: MediaAsset[]; onChange: () => void;
 }) {
   const [document, setDocument] = useState<RichTextNode>(() => value?.contentJson ?? plainTextDocument(value?.body ?? ""));

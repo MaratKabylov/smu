@@ -91,6 +91,7 @@ export function ArticleForm({
   const changed = () => controller.current?.changed();
   const ru = article?.translations.find((translation) => translation.locale === "ru");
   const kk = article?.translations.find((translation) => translation.locale === "kk");
+  const en = article?.translations.find((translation) => translation.locale === "en");
   const selectedTags = new Set(article?.tags.map((tag) => tag.id) ?? []);
 
   return (
@@ -179,6 +180,7 @@ export function ArticleForm({
       <div className="translation-grid">
         <TranslationFields locale="Ru" language="Русская версия" value={ru} disabled={disabled} media={media} onChange={changed} />
         <TranslationFields locale="Kk" language="Қазақша нұсқа" value={kk} disabled={disabled} media={media} onChange={changed} />
+        <TranslationFields locale="En" language="English version (optional)" value={en} disabled={disabled} media={media} onChange={changed} optional />
       </div>
 
       {!disabled ? (
@@ -200,15 +202,16 @@ export function ArticleForm({
 }
 
 type TranslationFieldsProps = {
-  locale: "Ru" | "Kk";
+  locale: "Ru" | "Kk" | "En";
   language: string;
   value?: Article["translations"][number];
   disabled: boolean;
   media: MediaAsset[];
   onChange: () => void;
+  optional?: boolean;
 };
 
-function TranslationFields({ locale, language, value, disabled, media, onChange }: TranslationFieldsProps) {
+function TranslationFields({ locale, language, value, disabled, media, onChange, optional = false }: TranslationFieldsProps) {
   return (
     <section className="article-editor-panel translation-panel">
       <div className="panel-title">
@@ -221,15 +224,15 @@ function TranslationFields({ locale, language, value, disabled, media, onChange 
       <div className="translation-fields">
         <label>
           Заголовок
-          <input name={`title${locale}`} defaultValue={value?.title ?? ""} minLength={3} maxLength={240} required disabled={disabled} />
+          <input name={`title${locale}`} defaultValue={value?.title ?? ""} minLength={3} maxLength={240} required={!optional} disabled={disabled} />
         </label>
         <label>
           URL slug
-          <input name={`slug${locale}`} defaultValue={value?.slug ?? ""} pattern="[a-z0-9]+(?:-[a-z0-9]+)*" placeholder="science-in-region" required disabled={disabled} />
+          <input name={`slug${locale}`} defaultValue={value?.slug ?? ""} pattern="[a-z0-9]+(?:-[a-z0-9]+)*" placeholder="science-in-region" required={!optional} disabled={disabled} />
         </label>
         <label>
           Краткое описание
-          <textarea name={`excerpt${locale}`} defaultValue={value?.excerpt ?? ""} minLength={10} maxLength={1000} rows={4} required disabled={disabled} />
+          <textarea name={`excerpt${locale}`} defaultValue={value?.excerpt ?? ""} minLength={10} maxLength={1000} rows={4} required={!optional} disabled={disabled} />
         </label>
         <RichTextEditor locale={locale} value={value} disabled={disabled} media={media} onChange={onChange} />
         <label>

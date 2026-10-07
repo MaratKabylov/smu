@@ -14,6 +14,7 @@ type ScientistFormProps = {
 export function ScientistForm({ action, profile, taxonomy, media, submitLabel = "Сохранить профиль" }: ScientistFormProps) {
   const ru = profile?.translations.find((item) => item.locale === "ru");
   const kk = profile?.translations.find((item) => item.locale === "kk");
+  const en = profile?.translations.find((item) => item.locale === "en");
   const selectedFields = new Set(profile?.fields.map((item) => item.id) ?? []);
 
   return (
@@ -73,6 +74,7 @@ export function ScientistForm({ action, profile, taxonomy, media, submitLabel = 
       <div className="translation-grid">
         <ScientistTranslationFields locale="Ru" title="Русская версия" value={ru} />
         <ScientistTranslationFields locale="Kk" title="Қазақша нұсқа" value={kk} />
+        <ScientistTranslationFields locale="En" title="English version (optional)" value={en} optional />
       </div>
       <div className="article-form-actions">
         <button className="primary-button" type="submit"><Save aria-hidden="true" />{submitLabel}</button>
@@ -81,10 +83,11 @@ export function ScientistForm({ action, profile, taxonomy, media, submitLabel = 
   );
 }
 
-function ScientistTranslationFields({ locale, title, value }: {
-  locale: "Ru" | "Kk";
+function ScientistTranslationFields({ locale, title, value, optional = false }: {
+  locale: "Ru" | "Kk" | "En";
   title: string;
   value?: ScientistProfile["translations"][number];
+  optional?: boolean;
 }) {
   return (
     <section className="article-editor-panel translation-panel">
@@ -93,12 +96,12 @@ function ScientistTranslationFields({ locale, title, value }: {
         <span className="locale-badge">{locale.toUpperCase()}</span>
       </div>
       <div className="translation-fields">
-        <label>Полное имя<input name={`fullName${locale}`} defaultValue={value?.fullName ?? ""} minLength={3} maxLength={180} required /></label>
-        <label>URL slug<input name={`slug${locale}`} defaultValue={value?.slug ?? ""} pattern="[a-z0-9]+(?:-[a-z0-9]+)*" placeholder="aliya-akhmetova" required /></label>
-        <label>Должность<input name={`position${locale}`} defaultValue={value?.position ?? ""} minLength={2} maxLength={180} required /></label>
+        <label>Полное имя<input name={`fullName${locale}`} defaultValue={value?.fullName ?? ""} minLength={3} maxLength={180} required={!optional} /></label>
+        <label>URL slug<input name={`slug${locale}`} defaultValue={value?.slug ?? ""} pattern="[a-z0-9]+(?:-[a-z0-9]+)*" placeholder="aliya-akhmetova" required={!optional} /></label>
+        <label>Должность<input name={`position${locale}`} defaultValue={value?.position ?? ""} minLength={2} maxLength={180} required={!optional} /></label>
         <label>Учёная степень<input name={`academicDegree${locale}`} defaultValue={value?.academicDegree ?? ""} maxLength={180} /></label>
-        <label>Краткое описание<textarea name={`shortBio${locale}`} defaultValue={value?.shortBio ?? ""} minLength={20} maxLength={600} rows={4} required /></label>
-        <label>Биография<textarea className="article-body-field" name={`biography${locale}`} defaultValue={value?.biography ?? ""} minLength={40} maxLength={20000} rows={14} required /></label>
+        <label>Краткое описание<textarea name={`shortBio${locale}`} defaultValue={value?.shortBio ?? ""} minLength={20} maxLength={600} rows={4} required={!optional} /></label>
+        <label>Биография<textarea className="article-body-field" name={`biography${locale}`} defaultValue={value?.biography ?? ""} minLength={40} maxLength={20000} rows={14} required={!optional} /></label>
       </div>
     </section>
   );
