@@ -19,13 +19,15 @@ export const eventStatusLabels: Record<EventStatus, string> = {
 export const eventFormatLabels: Record<ScientistLocale, Record<EventFormat, string>> = {
   ru: { offline: "Очно", online: "Онлайн", hybrid: "Гибридный формат" },
   kk: { offline: "Офлайн", online: "Онлайн", hybrid: "Аралас формат" },
+  en: { offline: "In person", online: "Online", hybrid: "Hybrid" },
 };
 export const eventKindLabels: Record<ScientistLocale, Record<EventKind, string>> = {
   ru: { conference: "Конференция", seminar: "Семинар", workshop: "Практикум", meetup: "Встреча" },
   kk: { conference: "Конференция", seminar: "Семинар", workshop: "Практикум", meetup: "Кездесу" },
+  en: { conference: "Conference", seminar: "Seminar", workshop: "Workshop", meetup: "Meetup" },
 };
 export function eventDate(value: string, locale: ScientistLocale) {
-  return new Intl.DateTimeFormat(locale === "ru" ? "ru-RU" : "kk-KZ", {
+  return new Intl.DateTimeFormat(locale === "ru" ? "ru-RU" : locale === "kk" ? "kk-KZ" : "en-GB", {
     dateStyle: "medium", timeStyle: "short", timeZone: eventTimeZone,
   }).format(new Date(value));
 }

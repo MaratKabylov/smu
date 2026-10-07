@@ -1,11 +1,12 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Locale } from "@/lib/i18n/locales";
 
 export async function getPublicSlugRedirect(
   client: SupabaseClient,
   entityType: "article" | "scientist",
-  locale: "ru" | "kk",
+  locale: Locale,
   oldSlug: string,
 ): Promise<string | null> {
   const { data: history, error } = await client.from("slug_redirects")

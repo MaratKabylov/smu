@@ -26,6 +26,7 @@ export const scienceWorkInputSchema = z.object({
   memberIds: z.array(z.uuid()).max(50).refine(ids => new Set(ids).size === ids.length),
   ru: translation,
   kk: translation,
+  en: translation.optional(),
 }).superRefine((value, context) => {
   if (value.startDate && value.endDate && value.endDate < value.startDate)
     context.addIssue({ code: "custom", path: ["endDate"], message: "Дата окончания раньше даты начала." });
@@ -37,7 +38,7 @@ export const scienceWorkListFiltersSchema = z.object({
   status: z.union([z.literal("all"), scienceWorkStatusSchema]).default("all"),
 });
 export const publicScienceWorkFiltersSchema = z.object({
-  locale: z.enum(["ru", "kk"]).default("ru"),
+  locale: z.enum(["ru", "kk", "en"]).default("ru"),
   query: z.string().trim().max(120).default(""),
   field: z.union([z.literal(""), slug]).default(""),
   organization: z.union([z.literal(""), slug]).default(""),

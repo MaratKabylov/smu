@@ -58,10 +58,10 @@ describe("localized public pages", () => {
     expect(list.mock.calls[1].at(-1)).toMatchObject({ locale: "kk", query: "" });
   });
   it.each(catalogs)("rejects an unknown route locale before reading $section data", async ({ render, list }) => {
-    await expect(render(props("en"))).rejects.toThrow("not_found"); expect(list).not.toHaveBeenCalled();
+    await expect(render(props("de"))).rejects.toThrow("not_found"); expect(list).not.toHaveBeenCalled();
   });
   it("renders public html in its route language and admin html in Russian", async () => {
-    for (const locale of ["ru", "kk"]) expect(renderToStaticMarkup(await PublicLayout({ params: Promise.resolve({ locale }), children: "body" }))).toContain(`<html lang="${locale}">`);
+    for (const locale of ["ru", "kk", "en"]) expect(renderToStaticMarkup(await PublicLayout({ params: Promise.resolve({ locale }), children: "body" }))).toContain(`<html lang="${locale}">`);
     expect(renderToStaticMarkup(AdminLayout({ children: "admin" }))).toContain('<html lang="ru">');
     await expect(PublicLayout({ params: Promise.resolve({ locale: "constructor" }), children: "body" })).rejects.toThrow("not_found");
   });
@@ -89,7 +89,7 @@ describe("localized public pages", () => {
     expect(lookup).toHaveBeenCalledWith("kk", "old-name");
     await expect(render(detailProps)).rejects.toThrow("not_found");
     lookup.mockClear(); redirect.mockClear();
-    await expect(render({ ...detailProps, params: Promise.resolve({ locale: "en", slug: "old-name" }) })).rejects.toThrow("not_found");
+    await expect(render({ ...detailProps, params: Promise.resolve({ locale: "de", slug: "old-name" }) })).rejects.toThrow("not_found");
     expect(lookup).not.toHaveBeenCalled(); expect(redirect).not.toHaveBeenCalled();
   });
 });

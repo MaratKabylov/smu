@@ -20,7 +20,7 @@ export const eventInputSchema = z.object({
   registrationDeadline: z.union([z.literal(""), dateTime]).transform(value => value || null),
   registrationUrl: nullableUrl, externalUrl: nullableUrl,
   coverMediaId: z.union([z.literal(""), z.uuid()]).transform(value => value || null),
-  ru: translation, kk: translation,
+  ru: translation, kk: translation, en: translation.optional(),
 }).superRefine((value, context) => {
   if (value.endsAt <= value.startsAt)
     context.addIssue({ code: "custom", path: ["endsAt"], message: "Окончание должно быть позже начала." });
@@ -38,7 +38,7 @@ export const eventListFiltersSchema = z.object({
   status: z.union([z.literal("all"), eventStatusSchema]).default("all"),
 });
 export const publicEventFiltersSchema = z.object({
-  locale: z.enum(["ru", "kk"]).default("ru"),
+  locale: z.enum(["ru", "kk", "en"]).default("ru"),
   query: z.string().trim().max(120).default(""),
   kind: z.union([z.literal("all"), z.enum(eventKinds)]).default("all"),
   format: z.union([z.literal("all"), z.enum(eventFormats)]).default("all"),

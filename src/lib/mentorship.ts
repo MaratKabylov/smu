@@ -2,9 +2,10 @@ import type { ApplicationStatus, MentorshipFormat, MentorshipStatus } from "../t
 export const mentorshipAdminPath = "/admin/programs/mentorship";
 export const mentorshipStatusLabels: Record<MentorshipStatus, string> = { draft: "Черновик", published: "Опубликовано", archived: "В архиве" };
 export const applicationStatusLabels: Record<ApplicationStatus, string> = { new: "Новая", in_review: "На рассмотрении", accepted: "Принята", rejected: "Отклонена", completed: "Наставничество завершено" };
-export const mentorshipFormatLabels: Record<"ru" | "kk", Record<MentorshipFormat, string>> = {
+export const mentorshipFormatLabels: Record<"ru" | "kk" | "en", Record<MentorshipFormat, string>> = {
   ru: { online: "Онлайн", offline: "Очно", hybrid: "Смешанный формат" },
   kk: { online: "Онлайн", offline: "Офлайн", hybrid: "Аралас формат" },
+  en: { online: "Online", offline: "In person", hybrid: "Hybrid" },
 };
 export function canChangeApplicationStatus(from: ApplicationStatus, to: ApplicationStatus) {
   return from === to || (from === "new" && (to === "in_review" || to === "rejected"))

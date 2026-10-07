@@ -6,7 +6,7 @@ export const revisionReasonLabels: Record<ArticleRevisionReason, string> = {
 };
 
 export function articleSnapshot(article: Article): ArticleSnapshot {
-  function translation(locale: ArticleLocale): ArticleSnapshot[ArticleLocale] {
+  function translation(locale: ArticleLocale): Omit<import("@/types/domain/article").ArticleTranslation, "id" | "locale"> {
     const value = article.translations.find(item => item.locale === locale);
     if (!value) return {
       title: "", slug: "", excerpt: "", body: "", contentJson: { type: "doc", content: [] },
@@ -23,6 +23,7 @@ export function articleSnapshot(article: Article): ArticleSnapshot {
     categoryIds: article.categories.map(item => item.id),
     authors: article.authors.map(item => ({ authorId: item.id, role: item.role })),
     tagIds: article.tags.map(tag => tag.id), ru: translation("ru"), kk: translation("kk"),
+    ...(article.translations.some(item => item.locale === "en") ? { en: translation("en") } : {}),
   };
 }
 
@@ -36,6 +37,9 @@ function canonical(value: unknown): unknown {
   return value ?? null;
 }
 export function snapshotComparison(left: ArticleSnapshot, right: ArticleSnapshot, locale: ArticleLocale) {
+  const emptyTranslation = { title: "", slug: "", excerpt: "", body: "", contentJson: { type: "doc", content: [] }, seoTitle: null, seoDescription: null };
+  const leftTranslation = left[locale] ?? emptyTranslation;
+  const rightTranslation = right[locale] ?? emptyTranslation;
   const fields: Array<{ label: string; left: unknown; right: unknown; structured?: boolean }> = [
     { label: "Тип материала", left: left.contentType, right: right.contentType },
     { label: "Категории", left: left.categoryIds ?? (left.categoryId ? [left.categoryId] : []), right: right.categoryIds ?? (right.categoryId ? [right.categoryId] : []) },
@@ -48,7 +52,7 @@ export function snapshotComparison(left: ArticleSnapshot, right: ArticleSnapshot
       ["body", "Текст"], ["seoTitle", "SEO-заголовок"], ["seoDescription", "SEO-описание"],
       ["contentJson", "Форматирование и блоки"],
     ] as const).map(([key, label]) => ({
-      label, left: left[locale][key], right: right[locale][key], structured: key === "contentJson",
+      label, left: leftTranslation[key], right: rightTranslation[key], structured: key === "contentJson",
     })),
   ];
   return fields.map(field => ({

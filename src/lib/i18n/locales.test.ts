@@ -14,14 +14,14 @@ describe("public locale routing", () => {
     expect(detail.pathname).toBe(`/kk/${section}/localized-slug`);
     expect(detail.search).toBe("?utm_source=old");
   });
-  it.each(["/admin", "/admin/login", "/api/cron/publish-scheduled", "/_next/static/file.js", "/favicon.ico", "/robots.txt", "/unknown", "/journal/en/story", "/journal/ru", "/journal/ru/story/more", "/ru/journal", "/kk/scientists/name"])("leaves %s to its own route", path => {
+  it.each(["/admin", "/admin/login", "/api/cron/publish-scheduled", "/_next/static/file.js", "/favicon.ico", "/robots.txt", "/unknown", "/journal/de/story", "/journal/ru", "/journal/ru/story/more", "/ru/journal", "/kk/scientists/name"])("leaves %s to its own route", path => {
     expect(legacyPublicUrl(new URL(path, "https://example.org"))).toBeNull();
   });
   it("uses a deterministic default and accepts only registered locales", () => {
-    for (const value of [undefined, null, "en", "RU", "__proto__", "constructor", "ru-RU"]) expect(isLocale(value)).toBe(false);
+    for (const value of [undefined, null, "de", "RU", "__proto__", "constructor", "ru-RU"]) expect(isLocale(value)).toBe(false);
     expect(legacyPublicUrl(new URL("https://example.org/?lang=kk&q=test"))?.pathname).toBe("/kk/journal");
-    expect(legacyPublicUrl(new URL("https://example.org/journal?lang=en"))?.pathname).toBe("/ru/journal");
-    expect(isLocale("ru")).toBe(true); expect(isLocale("kk")).toBe(true);
+    expect(legacyPublicUrl(new URL("https://example.org/journal?lang=en"))?.pathname).toBe("/en/journal");
+    expect(isLocale("ru")).toBe(true); expect(isLocale("kk")).toBe(true); expect(isLocale("en")).toBe(true);
   });
   it("normalizes only known RPC addresses", () => {
     expect(canonicalPublicHref("/scientists/kk/name?q=a#publications")).toBe("/kk/scientists/name?q=a#publications");
@@ -36,9 +36,13 @@ describe("public locale routing", () => {
     expect(query.get("lang")).toBe("ru");
   });
   it("provides the same dictionary keys and localized shared navigation", () => {
-    const ru = getDictionary("ru"), kk = getDictionary("kk");
-    for (const section of Object.keys(ru) as Array<keyof typeof ru>) expect(Object.keys(kk[section]).sort()).toEqual(Object.keys(ru[section]).sort());
+    const ru = getDictionary("ru"), kk = getDictionary("kk"), en = getDictionary("en");
+    for (const section of Object.keys(ru) as Array<keyof typeof ru>) {
+      expect(Object.keys(kk[section]).sort()).toEqual(Object.keys(ru[section]).sort());
+      expect(Object.keys(en[section]).sort()).toEqual(Object.keys(ru[section]).sort());
+    }
     expect(kk.common.brands.journal).toBe("Жас ғалымдар журналы");
     expect(kk.common.sections.scientists).toBe("Ғалымдар");
+    expect(en.common.sections.scientists).toBe("Scientists");
   });
 });

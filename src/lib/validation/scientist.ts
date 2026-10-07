@@ -37,6 +37,7 @@ export const scientistInputSchema = z.object({
   scholarUrl: optionalUrl,
   ru: translationSchema,
   kk: translationSchema,
+  en: translationSchema.optional(),
 });
 
 export const scientistListFiltersSchema = z.object({
@@ -45,7 +46,7 @@ export const scientistListFiltersSchema = z.object({
 });
 
 export const publicScientistFiltersSchema = z.object({
-  locale: z.enum(["ru", "kk"]).default("ru"),
+  locale: z.enum(["ru", "kk", "en"]).default("ru"),
   query: z.string().trim().max(120).default(""),
   organization: z.union([z.literal(""), slugSchema]).default(""),
   field: z.union([z.literal(""), slugSchema]).default(""),

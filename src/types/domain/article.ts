@@ -118,6 +118,7 @@ export type ArticleSnapshot = {
   tagIds: string[];
   ru: Omit<ArticleTranslation, "id" | "locale">;
   kk: Omit<ArticleTranslation, "id" | "locale">;
+  en?: Omit<ArticleTranslation, "id" | "locale">;
 };
 
 export type ArticleRevisionReason = "manual" | "review" | "publish" | "before_restore";

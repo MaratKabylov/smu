@@ -9,8 +9,10 @@ export type RelatedArticle = { id: string; title: string; href: string; excerpt:
 export const relationKindLabels = {
   ru: { scientist: "Учёный", project: "Проект", research: "Исследование", event: "Событие", publication: "Научная публикация" },
   kk: { scientist: "Ғалым", project: "Жоба", research: "Зерттеу", event: "Іс-шара", publication: "Ғылыми жарияланым" },
+  en: { scientist: "Scientist", project: "Project", research: "Research", event: "Event", publication: "Scientific publication" },
 };
 export const relationTypeLabels = {
   ru: { author: "Автор", subject: "Предмет материала", expert: "Эксперт", mentioned: "Упоминание", reviewer: "Рецензент" },
   kk: { author: "Автор", subject: "Материал тақырыбы", expert: "Сарапшы", mentioned: "Аталған", reviewer: "Рецензент" },
+  en: { author: "Author", subject: "Subject", expert: "Expert", mentioned: "Mentioned", reviewer: "Reviewer" },
 };

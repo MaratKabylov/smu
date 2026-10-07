@@ -9,4 +9,5 @@ export type PublicPublication = Omit<Publication, "status" | "updatedAt"> & { sc
 export const publicationTypeLabels = {
   ru: { article: "Научная статья", conference: "Материал конференции", book: "Книга", chapter: "Глава книги", other: "Другое" },
   kk: { article: "Ғылыми мақала", conference: "Конференция материалы", book: "Кітап", chapter: "Кітап тарауы", other: "Басқа" },
+  en: { article: "Research article", conference: "Conference paper", book: "Book", chapter: "Book chapter", other: "Other" },
 };

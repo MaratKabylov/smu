@@ -16,7 +16,7 @@ describe("mentorship validation", () => {
     expect(mentorshipApplicationSchema.parse(application).email).toBe("applicant@example.kz");
   });
   it("requires consent, valid contacts and substantive motivation, rejecting the honeypot", () => {
-    for (const override of [{ consent: false }, { email: "invalid" }, { fullName: " " }, { motivation: "Too short" }, { motivation: "a".repeat(5001) }, { website: "https://spam.example" }, { locale: "en" }]) {
+    for (const override of [{ consent: false }, { email: "invalid" }, { fullName: " " }, { motivation: "Too short" }, { motivation: "a".repeat(5001) }, { website: "https://spam.example" }, { locale: "de" }]) {
       expect(mentorshipApplicationSchema.safeParse({ ...application, ...override }).success).toBe(false);
     }
   });

@@ -16,11 +16,13 @@ export function canChangeScienceWorkStatus(current: ScienceWorkStatus, next: Sci
 export const scienceWorkStatusLabels: Record<ScienceWorkStatus, string> = {
   draft: "Черновик", published: "Опубликовано", archived: "В архиве",
 };
-export const scienceWorkStageLabels: Record<"ru" | "kk", Record<ScienceWorkStage, string>> = {
+export const scienceWorkStageLabels: Record<"ru" | "kk" | "en", Record<ScienceWorkStage, string>> = {
   ru: { planned: "Планируется", active: "В работе", completed: "Завершено" },
   kk: { planned: "Жоспарланған", active: "Орындалуда", completed: "Аяқталған" },
+  en: { planned: "Planned", active: "Active", completed: "Completed" },
 };
 export const scienceWorkTitles = {
   ru: { research: "Исследования", project: "Научные проекты" },
   kk: { research: "Зерттеулер", project: "Ғылыми жобалар" },
+  en: { research: "Research", project: "Research projects" },
 } as const;

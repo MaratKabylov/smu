@@ -50,6 +50,7 @@ export const articleInputSchema = z.object({
     .refine((items) => new Set(items).size === items.length),
   ru: translationSchema,
   kk: translationSchema,
+  en: translationSchema.optional(),
 });
 
 export const articleListFiltersSchema = z.object({
@@ -112,7 +113,7 @@ export type ArticleReviewConfigurationInput = z.infer<typeof articleReviewConfig
 export type ArticleReviewDecisionInput = z.infer<typeof articleReviewDecisionSchema>;
 
 export const publicArticleFiltersSchema = z.object({
-  locale: z.enum(["ru", "kk"]).default("ru"),
+  locale: z.enum(["ru", "kk", "en"]).default("ru"),
   query: z.string().trim().max(120).default(""),
   category: z.union([z.literal(""), slugSchema]).default(""),
   tag: z.union([z.literal(""), slugSchema]).default(""),
