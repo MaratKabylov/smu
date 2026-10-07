@@ -18,18 +18,19 @@ export function ResearchProgramForm({ action, program, options }: { action: (for
       <p className="field-hint">С активными заявками нельзя заменить координатора. Правки возвращают программу в черновики.</p>
       <p className="field-hint">Даты: открытие набора ≤ последний день подачи ≤ начало ≤ завершение. Последний день подачи включён, время — Актобе (UTC+5).</p>
     </section>
-    <div className="translation-grid">{(["ru", "kk"] as const).map(locale => {
+    <div className="translation-grid">{(["ru", "kk", "en"] as const).map(locale => {
       const value = program?.translations.find(item => item.locale === locale);
-      const suffix = locale === "ru" ? "Ru" : "Kk";
-      return <section className="article-editor-panel translation-panel" key={locale}><div className="panel-title"><h2>{locale === "ru" ? "Русская версия" : "Қазақша нұсқа"}</h2><span className="locale-badge">{locale.toUpperCase()}</span></div>
+      const suffix = locale === "ru" ? "Ru" : locale === "kk" ? "Kk" : "En";
+      const required = locale !== "en";
+      return <section className="article-editor-panel translation-panel" key={locale}><div className="panel-title"><h2>{locale === "ru" ? "Русская версия" : locale === "kk" ? "Қазақша нұсқа" : "English version (optional)"}</h2><span className="locale-badge">{locale.toUpperCase()}</span></div>
         <div className="translation-fields">
-          <label>Название<input name={"title" + suffix} defaultValue={value?.title ?? ""} minLength={3} maxLength={240} required /></label>
-          <label>URL slug<input name={"slug" + suffix} defaultValue={value?.slug ?? ""} minLength={2} maxLength={160} pattern="[a-z0-9]+(?:-[a-z0-9]+)*" required /><small>Латинские буквы, цифры и дефисы.</small></label>
-          <label>Краткое описание<textarea name={"summary" + suffix} defaultValue={value?.summary ?? ""} minLength={20} maxLength={800} rows={4} required /></label>
-          <label>Описание и цели<textarea name={"description" + suffix} defaultValue={value?.description ?? ""} minLength={40} maxLength={20000} rows={6} required /></label>
-          <label>План занятий и этапы<textarea name={"curriculum" + suffix} defaultValue={value?.curriculum ?? ""} minLength={20} maxLength={10000} rows={6} required /></label>
-          <label>Требования к участникам<textarea name={"eligibility" + suffix} defaultValue={value?.eligibility ?? ""} minLength={20} maxLength={5000} rows={4} required /></label>
-          <label>Ожидаемые результаты<textarea name={"outcomes" + suffix} defaultValue={value?.outcomes ?? ""} minLength={20} maxLength={10000} rows={4} required /></label>
+          <label>Название<input name={"title" + suffix} defaultValue={value?.title ?? ""} minLength={3} maxLength={240} required={required} /></label>
+          <label>URL slug<input name={"slug" + suffix} defaultValue={value?.slug ?? ""} minLength={2} maxLength={160} pattern="[a-z0-9]+(?:-[a-z0-9]+)*" required={required} /><small>Латинские буквы, цифры и дефисы.</small></label>
+          <label>Краткое описание<textarea name={"summary" + suffix} defaultValue={value?.summary ?? ""} minLength={20} maxLength={800} rows={4} required={required} /></label>
+          <label>Описание и цели<textarea name={"description" + suffix} defaultValue={value?.description ?? ""} minLength={40} maxLength={20000} rows={6} required={required} /></label>
+          <label>План занятий и этапы<textarea name={"curriculum" + suffix} defaultValue={value?.curriculum ?? ""} minLength={20} maxLength={10000} rows={6} required={required} /></label>
+          <label>Требования к участникам<textarea name={"eligibility" + suffix} defaultValue={value?.eligibility ?? ""} minLength={20} maxLength={5000} rows={4} required={required} /></label>
+          <label>Ожидаемые результаты<textarea name={"outcomes" + suffix} defaultValue={value?.outcomes ?? ""} minLength={20} maxLength={10000} rows={4} required={required} /></label>
         </div>
       </section>;
     })}</div><div className="article-form-actions"><SubmitButton label={program ? "Сохранить изменения" : "Создать черновик"} /></div>

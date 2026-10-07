@@ -13,15 +13,16 @@ export function MentorshipForm({ action, offer, options }: { action: (form: Form
       </div>
       <p className="field-hint">С активными заявками нельзя заменить наставника. Правки возвращают предложение в черновики.</p>
     </section>
-    <div className="translation-grid">{(["ru", "kk"] as const).map(locale => {
+    <div className="translation-grid">{(["ru", "kk", "en"] as const).map(locale => {
       const value = offer?.translations.find(item => item.locale === locale);
-      const suffix = locale === "ru" ? "Ru" : "Kk";
-      return <section className="article-editor-panel translation-panel" key={locale}><div className="panel-title"><h2>{locale === "ru" ? "Русская версия" : "Қазақша нұсқа"}</h2><span className="locale-badge">{locale.toUpperCase()}</span></div>
+      const suffix = locale === "ru" ? "Ru" : locale === "kk" ? "Kk" : "En";
+      const required = locale !== "en";
+      return <section className="article-editor-panel translation-panel" key={locale}><div className="panel-title"><h2>{locale === "ru" ? "Русская версия" : locale === "kk" ? "Қазақша нұсқа" : "English version (optional)"}</h2><span className="locale-badge">{locale.toUpperCase()}</span></div>
         <div className="translation-fields">
-          <label>Название<input name={"title" + suffix} defaultValue={value?.title ?? ""} minLength={3} maxLength={240} required /></label>
-          <label>URL slug<input name={"slug" + suffix} defaultValue={value?.slug ?? ""} minLength={2} maxLength={160} pattern="[a-z0-9]+(?:-[a-z0-9]+)*" required /><small>Латинские буквы, цифры и дефисы.</small></label>
-          <label>Краткое описание<textarea name={"summary" + suffix} defaultValue={value?.summary ?? ""} minLength={20} maxLength={800} rows={4} required /></label>
-          <label>Цели, условия и ожидаемые результаты<textarea name={"description" + suffix} defaultValue={value?.description ?? ""} minLength={40} maxLength={20000} rows={10} required /></label>
+          <label>Название<input name={"title" + suffix} defaultValue={value?.title ?? ""} minLength={3} maxLength={240} required={required} /></label>
+          <label>URL slug<input name={"slug" + suffix} defaultValue={value?.slug ?? ""} minLength={2} maxLength={160} pattern="[a-z0-9]+(?:-[a-z0-9]+)*" required={required} /><small>Латинские буквы, цифры и дефисы.</small></label>
+          <label>Краткое описание<textarea name={"summary" + suffix} defaultValue={value?.summary ?? ""} minLength={20} maxLength={800} rows={4} required={required} /></label>
+          <label>Цели, условия и ожидаемые результаты<textarea name={"description" + suffix} defaultValue={value?.description ?? ""} minLength={40} maxLength={20000} rows={10} required={required} /></label>
         </div>
       </section>;
     })}</div><div className="article-form-actions"><SubmitButton label={offer ? "Сохранить изменения" : "Создать черновик"} /></div>

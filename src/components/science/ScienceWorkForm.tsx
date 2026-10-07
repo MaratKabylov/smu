@@ -34,16 +34,17 @@ export function ScienceWorkForm({ action, work, options, media }: Props) {
       <fieldset className="tag-fieldset"><legend>Участники команды</legend><p className="field-hint">Выбирайте верифицированных учёных. Руководителя не нужно отмечать повторно.</p><div className="tag-options">{scientists.map(item => <label key={item.id}><input type="checkbox" name="memberIds" value={item.id} defaultChecked={members.has(item.id)} /><span>{item.name}</span></label>)}</div></fieldset>
       {!options.fields.length ? <p className="field-hint">Добавьте направление в <Link href="/admin/science/scientists/taxonomy">справочниках научного сообщества</Link>.</p> : null}
     </section>
-    <div className="translation-grid">{(["ru", "kk"] as const).map(locale => {
+    <div className="translation-grid">{(["ru", "kk", "en"] as const).map(locale => {
       const value = work?.translations.find(item => item.locale === locale);
-      const suffix = locale === "ru" ? "Ru" : "Kk";
+      const suffix = locale === "ru" ? "Ru" : locale === "kk" ? "Kk" : "En";
+      const required = locale !== "en";
       return <section className="article-editor-panel translation-panel" key={locale}>
-        <div className="panel-title"><h2>{locale === "ru" ? "Русская версия" : "Қазақша нұсқа"}</h2><span className="locale-badge">{locale.toUpperCase()}</span></div>
+        <div className="panel-title"><h2>{locale === "ru" ? "Русская версия" : locale === "kk" ? "Қазақша нұсқа" : "English version (optional)"}</h2><span className="locale-badge">{locale.toUpperCase()}</span></div>
         <div className="translation-fields">
-          <label>Название<input name={"title" + suffix} defaultValue={value?.title ?? ""} minLength={3} maxLength={240} required /></label>
-          <label>URL slug<input name={"slug" + suffix} defaultValue={value?.slug ?? ""} minLength={2} maxLength={160} pattern="[a-z0-9]+(?:-[a-z0-9]+)*" required /><small>Латинские буквы, цифры и дефисы. Slug должен быть уникальным среди исследований и проектов.</small></label>
-          <label>Краткое описание<textarea name={"summary" + suffix} defaultValue={value?.summary ?? ""} minLength={20} maxLength={800} rows={4} required /></label>
-          <label>Описание и цели<textarea className="article-body-field" name={"description" + suffix} defaultValue={value?.description ?? ""} minLength={40} maxLength={30000} rows={12} required /></label>
+          <label>Название<input name={"title" + suffix} defaultValue={value?.title ?? ""} minLength={3} maxLength={240} required={required} /></label>
+          <label>URL slug<input name={"slug" + suffix} defaultValue={value?.slug ?? ""} minLength={2} maxLength={160} pattern="[a-z0-9]+(?:-[a-z0-9]+)*" required={required} /><small>Латинские буквы, цифры и дефисы. Slug должен быть уникальным среди исследований и проектов.</small></label>
+          <label>Краткое описание<textarea name={"summary" + suffix} defaultValue={value?.summary ?? ""} minLength={20} maxLength={800} rows={4} required={required} /></label>
+          <label>Описание и цели<textarea className="article-body-field" name={"description" + suffix} defaultValue={value?.description ?? ""} minLength={40} maxLength={30000} rows={12} required={required} /></label>
           <label>Результаты<textarea name={"results" + suffix} defaultValue={value?.results ?? ""} maxLength={20000} rows={6} /></label>
         </div>
       </section>;

@@ -20,18 +20,19 @@ export function EventForm({ action, event, media }: {
         <label>Публичный сайт / трансляция<input type="url" name="externalUrl" defaultValue={event?.externalUrl ?? ""} maxLength={1000} placeholder="https://…" /><small>Обязательно для онлайн и гибридного формата. Ссылка видна всем посетителям.</small></label>
       </div>
     </section>
-    <div className="translation-grid">{(["ru", "kk"] as const).map(locale => {
+    <div className="translation-grid">{(["ru", "kk", "en"] as const).map(locale => {
       const value = event?.translations.find(item => item.locale === locale);
-      const suffix = locale === "ru" ? "Ru" : "Kk";
+      const suffix = locale === "ru" ? "Ru" : locale === "kk" ? "Kk" : "En";
+      const required = locale !== "en";
       return <section className="article-editor-panel translation-panel" key={locale}>
-        <div className="panel-title"><h2>{locale === "ru" ? "Русская версия" : "Қазақша нұсқа"}</h2><span className="locale-badge">{locale.toUpperCase()}</span></div>
+        <div className="panel-title"><h2>{locale === "ru" ? "Русская версия" : locale === "kk" ? "Қазақша нұсқа" : "English version (optional)"}</h2><span className="locale-badge">{locale.toUpperCase()}</span></div>
         <div className="translation-fields">
-          <label>Название<input name={"title" + suffix} defaultValue={value?.title ?? ""} minLength={3} maxLength={240} required /></label>
-          <label>URL slug<input name={"slug" + suffix} defaultValue={value?.slug ?? ""} minLength={2} maxLength={160} pattern="[a-z0-9]+(?:-[a-z0-9]+)*" required /><small>Латинские буквы, цифры и дефисы. Уникальный адрес события для этого языка.</small></label>
-          <label>Организатор<input name={"organizer" + suffix} defaultValue={value?.organizer ?? ""} minLength={2} maxLength={240} required /></label>
+          <label>Название<input name={"title" + suffix} defaultValue={value?.title ?? ""} minLength={3} maxLength={240} required={required} /></label>
+          <label>URL slug<input name={"slug" + suffix} defaultValue={value?.slug ?? ""} minLength={2} maxLength={160} pattern="[a-z0-9]+(?:-[a-z0-9]+)*" required={required} /><small>Латинские буквы, цифры и дефисы. Уникальный адрес события для этого языка.</small></label>
+          <label>Организатор<input name={"organizer" + suffix} defaultValue={value?.organizer ?? ""} minLength={2} maxLength={240} required={required} /></label>
           <label>Место проведения<input name={"location" + suffix} defaultValue={value?.location ?? ""} maxLength={500} /><small>Город, площадка и адрес. Обязательно для очного и гибридного формата.</small></label>
-          <label>Краткое описание<textarea name={"summary" + suffix} defaultValue={value?.summary ?? ""} minLength={20} maxLength={800} rows={4} required /></label>
-          <label>Описание и программа<textarea className="article-body-field" name={"description" + suffix} defaultValue={value?.description ?? ""} minLength={40} maxLength={30000} rows={12} required /></label>
+          <label>Краткое описание<textarea name={"summary" + suffix} defaultValue={value?.summary ?? ""} minLength={20} maxLength={800} rows={4} required={required} /></label>
+          <label>Описание и программа<textarea className="article-body-field" name={"description" + suffix} defaultValue={value?.description ?? ""} minLength={40} maxLength={30000} rows={12} required={required} /></label>
         </div>
       </section>;
     })}</div>
