@@ -8,8 +8,8 @@ export function ArticleCredits({ authors, locale, detailed = false }: {
   return <section className="article-credits" aria-label={locale === "ru" ? "Авторы материала" : "Материал авторлары"}>
     {detailed ? <h2>{locale === "ru" ? "Об авторах" : "Авторлар туралы"}</h2> : null}
     <ul>{authors.map(author => {
-      const name = locale === "ru" ? author.nameRu : author.nameKk;
-      const bio = locale === "ru" ? author.bioRu : author.bioKk;
+      const name = locale === "en" ? author.nameEn ?? author.nameRu : locale === "ru" ? author.nameRu : author.nameKk;
+      const bio = locale === "en" ? author.bioEn ?? author.bioRu : locale === "ru" ? author.bioRu : author.bioKk;
       return <li key={author.id}>
         <strong>{name}</strong><span> · {articleAuthorRoleLabels[locale][author.role]}</span>
         {detailed ? <>

@@ -32,6 +32,7 @@ export default async function TaxonomyPage({ searchParams }: {
           <label>Постоянный код<input name="slug" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" minLength={2} maxLength={160} required /></label>
           <label>Название · RU<input name="nameRu" minLength={2} maxLength={120} required /></label>
           <label>Название · KK<input name="nameKk" minLength={2} maxLength={120} required /></label>
+          <label>Название · EN (необязательно)<input name="nameEn" minLength={2} maxLength={120} /></label>
           <SubmitButton label="Создать" />
         </form>
       </section>

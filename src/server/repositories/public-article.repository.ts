@@ -79,7 +79,7 @@ export class PublicArticleRepository {
   constructor(private readonly client: SupabaseClient) {}
 
   async listTaxonomy(): Promise<ArticleTaxonomy> {
-    const [categoriesResult, tagsResult, typesResult] = await Promise.all([
+    const [categoriesResult, tagsResult, typesResult, categoryTranslations, tagTranslations, typeTranslations] = await Promise.all([
       this.client
         .from("article_categories")
         .select("id, slug, name_ru, name_kk, is_active")
@@ -91,15 +91,26 @@ export class PublicArticleRepository {
         .eq("is_active", true)
         .order("name_ru"),
       this.client.from("article_types").select(taxonomyColumns).order("name_ru"),
+      this.client.from("article_category_translations").select("category_id, name").eq("locale", "en"),
+      this.client.from("article_tag_translations").select("tag_id, name").eq("locale", "en"),
+      this.client.from("article_type_translations").select("type_id, name").eq("locale", "en"),
     ]);
     if (categoriesResult.error) throw categoriesResult.error;
     if (tagsResult.error) throw tagsResult.error;
     if (typesResult.error) throw typesResult.error;
+    if (categoryTranslations.error) throw categoryTranslations.error;
+    if (tagTranslations.error) throw tagTranslations.error;
+    if (typeTranslations.error) throw typeTranslations.error;
+
+    const translated = (item: ArticleTaxonomyItem, values: unknown, key: "category_id" | "tag_id" | "type_id") => ({
+      ...item,
+      nameEn: ((values ?? []) as Array<Record<string, string>>).find(row => row[key] === item.id)?.name ?? null,
+    });
 
     return {
-      categories: ((categoriesResult.data ?? []) as TaxonomyRow[]).map(mapTaxonomy),
-      tags: ((tagsResult.data ?? []) as TaxonomyRow[]).map(mapTaxonomy),
-      contentTypes: ((typesResult.data ?? []) as TaxonomyRow[]).map(mapTaxonomyItem), authors: [],
+      categories: ((categoriesResult.data ?? []) as TaxonomyRow[]).map(row => translated(mapTaxonomy(row), categoryTranslations.data, "category_id")),
+      tags: ((tagsResult.data ?? []) as TaxonomyRow[]).map(row => translated(mapTaxonomy(row), tagTranslations.data, "tag_id")),
+      contentTypes: ((typesResult.data ?? []) as TaxonomyRow[]).map(row => translated(mapTaxonomyItem(row), typeTranslations.data, "type_id")), authors: [],
     };
   }
 

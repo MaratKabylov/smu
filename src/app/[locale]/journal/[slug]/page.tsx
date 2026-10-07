@@ -60,7 +60,7 @@ export default async function PublicArticlePage({ params, searchParams }: Public
   const categoryName = article.category
     ? locale === "ru"
       ? article.category.nameRu
-      : article.category.nameKk
+      : locale === "en" ? article.category.nameEn ?? article.category.nameRu : article.category.nameKk
     : articleTypeLabel(article.contentType, article.contentTypeItem, locale);
   const date = new Intl.DateTimeFormat(locale === "ru" ? "ru-RU" : "kk-KZ", {
     day: "numeric",
@@ -127,7 +127,7 @@ export default async function PublicArticlePage({ params, searchParams }: Public
               <aside className="public-article-aside">
                 <div>
                   <small>{copy.category}</small>
-                  <div className="public-article-tags">{article.categories.map(category => <Link key={category.id} href={`/${locale}/journal?category=${category.slug}`}>{locale === "ru" ? category.nameRu : category.nameKk}</Link>)}</div>
+                  <div className="public-article-tags">{article.categories.map(category => <Link key={category.id} href={`/${locale}/journal?category=${category.slug}`}>{locale === "en" ? category.nameEn ?? category.nameRu : locale === "ru" ? category.nameRu : category.nameKk}</Link>)}</div>
                   {!article.categories.length ? <strong>{categoryName}</strong> : null}
                 </div>
                 {article.tags.length > 0 ? (
@@ -136,7 +136,7 @@ export default async function PublicArticlePage({ params, searchParams }: Public
                     <div className="public-article-tags">
                       {article.tags.map((tag) => (
                         <Link href={`/${locale}/journal?tag=${tag.slug}`} key={tag.id}>
-                          {locale === "ru" ? tag.nameRu : tag.nameKk}
+                          {locale === "en" ? tag.nameEn ?? tag.nameRu : locale === "ru" ? tag.nameRu : tag.nameKk}
                         </Link>
                       ))}
                     </div>

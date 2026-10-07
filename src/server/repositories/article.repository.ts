@@ -149,26 +149,41 @@ export class ArticleRepository {
       tagQuery = tagQuery.eq("is_active", true);
     }
 
-    const [categoriesResult, tagsResult, typesResult, authorsResult] = await Promise.all([
+    const [categoriesResult, tagsResult, typesResult, authorsResult, categoryTranslations, tagTranslations, typeTranslations, authorTranslations] = await Promise.all([
       categoryQuery,
       tagQuery,
       includeInactive ? this.client.from("article_types").select(taxonomyColumns).order("name_ru")
         : this.client.from("article_types").select(taxonomyColumns).eq("is_active", true).order("name_ru"),
       includeInactive ? this.client.from("authors").select(`${authorPublicColumns}, profile_id`).order("name_ru")
         : this.client.from("authors").select(`${authorPublicColumns}, profile_id`).eq("is_active", true).order("name_ru"),
+      this.client.from("article_category_translations").select("category_id, locale, name").eq("locale", "en"),
+      this.client.from("article_tag_translations").select("tag_id, locale, name").eq("locale", "en"),
+      this.client.from("article_type_translations").select("type_id, locale, name").eq("locale", "en"),
+      this.client.from("author_translations").select("author_id, locale, name, bio").eq("locale", "en"),
     ]);
     if (categoriesResult.error) throw categoriesResult.error;
     if (tagsResult.error) throw tagsResult.error;
     if (typesResult.error) throw typesResult.error;
     if (authorsResult.error) throw authorsResult.error;
+    if (categoryTranslations.error) throw categoryTranslations.error;
+    if (tagTranslations.error) throw tagTranslations.error;
+    if (typeTranslations.error) throw typeTranslations.error;
+    if (authorTranslations.error) throw authorTranslations.error;
+
+    const translatedTaxonomy = (row: TaxonomyRow, values: unknown, key: "category_id" | "tag_id" | "type_id") => {
+      const translation = ((values ?? []) as Array<Record<string, string>>).find(item => item[key] === row.id);
+      return { ...mapTaxonomyItem(row), nameEn: translation?.name ?? null };
+    };
+    const translatedAuthor = (row: AuthorRow) => {
+      const translation = ((authorTranslations.data ?? []) as Array<{ author_id: string; name: string; bio: string | null }>).find(item => item.author_id === row.id);
+      return { ...mapAuthor(row), nameEn: translation?.name ?? null, bioEn: translation?.bio ?? null };
+    };
 
     return {
-      categories: ((categoriesResult.data ?? []) as TaxonomyRow[]).map(
-        mapTaxonomy,
-      ),
-      tags: ((tagsResult.data ?? []) as TaxonomyRow[]).map(mapTaxonomy),
-      contentTypes: ((typesResult.data ?? []) as TaxonomyRow[]).map(mapTaxonomyItem),
-      authors: ((authorsResult.data ?? []) as AuthorRow[]).map(mapAuthor),
+      categories: ((categoriesResult.data ?? []) as TaxonomyRow[]).map(row => translatedTaxonomy(row, categoryTranslations.data, "category_id")),
+      tags: ((tagsResult.data ?? []) as TaxonomyRow[]).map(row => translatedTaxonomy(row, tagTranslations.data, "tag_id")),
+      contentTypes: ((typesResult.data ?? []) as TaxonomyRow[]).map(row => translatedTaxonomy(row, typeTranslations.data, "type_id")),
+      authors: ((authorsResult.data ?? []) as AuthorRow[]).map(translatedAuthor),
     };
   }
 

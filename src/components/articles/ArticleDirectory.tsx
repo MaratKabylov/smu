@@ -15,6 +15,7 @@ export function ArticleTaxonomyDirectory({ title, kind, items, mayManage }: {
         <p>Постоянный код: <code>{item.slug}</code></p>
         <label>Название · RU<input name="nameRu" defaultValue={item.nameRu} minLength={2} maxLength={120} required /></label>
         <label>Название · KK<input name="nameKk" defaultValue={item.nameKk} minLength={2} maxLength={120} required /></label>
+        <label>Название · EN (необязательно)<input name="nameEn" defaultValue={item.nameEn ?? ""} minLength={2} maxLength={120} /></label>
         <label className="confirm-check"><input type="checkbox" name="isActive" value="yes" defaultChecked={item.isActive} />Доступен для новых материалов</label>
         <SubmitButton label="Сохранить" />
       </form> : <p><code>{item.slug}</code></p>}
@@ -31,6 +32,7 @@ export function ArticleAuthorDirectoryForm({ author, profiles }: {
     <div className="form-three-columns">
       <label>Имя · RU<input name="nameRu" defaultValue={author?.nameRu ?? ""} minLength={2} maxLength={160} required /></label>
       <label>Имя · KK<input name="nameKk" defaultValue={author?.nameKk ?? ""} minLength={2} maxLength={160} required /></label>
+      <label>Имя · EN (необязательно)<input name="nameEn" defaultValue={author?.nameEn ?? ""} minLength={2} maxLength={160} /></label>
       <label>Учётная запись<select name="profileId" defaultValue={author?.profileId ?? ""}>
         <option value="">Внешний автор · без учётной записи</option>
         {profiles.map(profile => <option value={profile.id} key={profile.id}>{profile.display_name ?? "Пользователь"} · {profile.id.slice(0, 8)}</option>)}
@@ -39,6 +41,7 @@ export function ArticleAuthorDirectoryForm({ author, profiles }: {
     <div className="translation-grid">
       <label>Об авторе · RU<textarea name="bioRu" defaultValue={author?.bioRu ?? ""} maxLength={2000} rows={3} /></label>
       <label>Об авторе · KK<textarea name="bioKk" defaultValue={author?.bioKk ?? ""} maxLength={2000} rows={3} /></label>
+      <label>Об авторе · EN<textarea name="bioEn" defaultValue={author?.bioEn ?? ""} maxLength={2000} rows={3} /></label>
     </div>
     <div className="form-three-columns">
       <label>Организация<input name="organization" defaultValue={author?.organization ?? ""} maxLength={240} /></label>

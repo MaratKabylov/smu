@@ -31,8 +31,10 @@ export type ArticleAuthor = {
   profileId?: string | null;
   nameRu: string;
   nameKk: string;
+  nameEn?: string | null;
   bioRu: string | null;
   bioKk: string | null;
+  bioEn?: string | null;
   organization: string | null;
   position: string | null;
   websiteUrl: string | null;
@@ -58,6 +60,7 @@ export type ArticleTaxonomyItem = {
   slug: string;
   nameRu: string;
   nameKk: string;
+  nameEn?: string | null;
   isActive: boolean;
 };
 

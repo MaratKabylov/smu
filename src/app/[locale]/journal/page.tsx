@@ -62,7 +62,7 @@ export default async function JournalPage({ searchParams, params: routeParams }:
                 href={buildHref(filters, { category: category.slug })}
                 key={category.id}
               >
-                {filters.locale === "ru" ? category.nameRu : category.nameKk}
+                {filters.locale === "en" ? category.nameEn ?? category.nameRu : filters.locale === "ru" ? category.nameRu : category.nameKk}
               </Link>
             ))}
           </div>
@@ -78,7 +78,7 @@ export default async function JournalPage({ searchParams, params: routeParams }:
               <select name="tag" defaultValue={filters.tag} aria-label={copy.tag}>
                 <option value="">{copy.allTags}</option>
                 {taxonomy.tags.map((tag) => (
-                  <option value={tag.slug} key={tag.id}>{filters.locale === "ru" ? tag.nameRu : tag.nameKk}</option>
+                  <option value={tag.slug} key={tag.id}>{filters.locale === "en" ? tag.nameEn ?? tag.nameRu : filters.locale === "ru" ? tag.nameRu : tag.nameKk}</option>
                 ))}
               </select>
               <button type="submit">{copy.find}</button>

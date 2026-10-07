@@ -20,7 +20,7 @@ export const articleAuthorRoleLabels: Record<ArticleLocale, Record<ArticleAuthor
   en: { author: "Author", coauthor: "Co-author", editor: "Editor", translator: "Translator" },
 };
 export function articleTypeLabel(code: string, item: ArticleTaxonomyItem | null | undefined, locale: ArticleLocale) {
-  if (item) return locale === "kk" ? item.nameKk : item.nameRu;
+  if (item) return locale === "en" ? item.nameEn ?? item.nameRu : locale === "kk" ? item.nameKk : item.nameRu;
   const kk: Record<string, string> = { article: "Мақала", news: "Жаңалық", interview: "Сұхбат", announcement: "Хабарландыру" };
   const en: Record<string, string> = { article: "Article", news: "News", interview: "Interview", announcement: "Announcement" };
   return (locale === "ru" ? articleContentTypeLabels[code] : locale === "kk" ? kk[code] : en[code]) ?? code;

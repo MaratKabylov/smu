@@ -91,6 +91,7 @@ export const taxonomyInputSchema = z.object({
   slug: slugSchema,
   nameRu: z.string().trim().min(2).max(120),
   nameKk: z.string().trim().min(2).max(120),
+  nameEn: optionalText(120).optional().default(null),
 });
 
 export const taxonomyUpdateSchema = taxonomyInputSchema.extend({
@@ -101,12 +102,13 @@ export const articleAuthorInputSchema = z.object({
   profileId: nullableUuid,
   nameRu: z.string().trim().min(2).max(160),
   nameKk: z.string().trim().min(2).max(160),
-  bioRu: optionalText(2000), bioKk: optionalText(2000),
+  nameEn: optionalText(160).optional().default(null),
+  bioRu: optionalText(2000), bioKk: optionalText(2000), bioEn: optionalText(2000).optional().default(null),
   organization: optionalText(240), position: optionalText(240),
   websiteUrl: z.union([z.literal(""), z.url().max(500).refine(value => /^https?:\/\//i.test(value))])
     .transform(value => value || null),
   isActive: z.boolean(),
-});
+}).refine(value => value.nameEn !== null || value.bioEn === null, { message: "Для английской биографии нужно английское имя." });
 export type ArticleAuthorInput = z.infer<typeof articleAuthorInputSchema>;
 export type TaxonomyUpdateInput = z.infer<typeof taxonomyUpdateSchema>;
 export type ArticleReviewConfigurationInput = z.infer<typeof articleReviewConfigurationSchema>;

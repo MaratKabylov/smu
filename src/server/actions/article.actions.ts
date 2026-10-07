@@ -268,6 +268,7 @@ export async function createArticleTaxonomy(formData: FormData) {
     slug: formData.get("slug"),
     nameRu: formData.get("nameRu"),
     nameKk: formData.get("nameKk"),
+    nameEn: formData.get("nameEn"),
   });
   if (!input.success) {
     redirect("/admin/content/articles/taxonomy?error=validation");
@@ -288,7 +289,7 @@ export async function createArticleTaxonomy(formData: FormData) {
 export async function updateArticleTaxonomy(formData: FormData) {
   const input = taxonomyUpdateSchema.safeParse({
     id: formData.get("id"), kind: formData.get("kind"), slug: formData.get("slug"),
-    nameRu: formData.get("nameRu"), nameKk: formData.get("nameKk"), isActive: formData.get("isActive") === "yes",
+    nameRu: formData.get("nameRu"), nameKk: formData.get("nameKk"), nameEn: formData.get("nameEn"), isActive: formData.get("isActive") === "yes",
   });
   if (!input.success) redirect("/admin/content/articles/taxonomy?error=validation");
   const access = await requireAccess("/admin/content/articles/taxonomy");
@@ -302,8 +303,8 @@ export async function saveArticleAuthor(formData: FormData) {
   const rawId = formData.get("id");
   const id = rawId ? articleIdSchema.safeParse(rawId) : null;
   const input = articleAuthorInputSchema.safeParse({
-    profileId: formData.get("profileId") ?? "", nameRu: formData.get("nameRu"), nameKk: formData.get("nameKk"),
-    bioRu: formData.get("bioRu"), bioKk: formData.get("bioKk"), organization: formData.get("organization"),
+    profileId: formData.get("profileId") ?? "", nameRu: formData.get("nameRu"), nameKk: formData.get("nameKk"), nameEn: formData.get("nameEn"),
+    bioRu: formData.get("bioRu"), bioKk: formData.get("bioKk"), bioEn: formData.get("bioEn"), organization: formData.get("organization"),
     position: formData.get("position"), websiteUrl: formData.get("websiteUrl"), isActive: formData.get("isActive") === "yes",
   });
   if (!input.success || (id && !id.success)) redirect("/admin/content/articles/taxonomy?error=validation");
