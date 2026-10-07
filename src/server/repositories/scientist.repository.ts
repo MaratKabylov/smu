@@ -62,16 +62,18 @@ type OrganizationRow = FieldRow & {
 };
 
 type AvatarRow = { id: string; storage_bucket: string; storage_path: string };
+type DirectoryTranslationRow = { locale: ScientistLocale; name: string; city?: string | null };
 
-function mapField(row: FieldRow): ScientistTaxonomyItem {
-  return { id: row.id, slug: row.slug, nameRu: row.name_ru, nameKk: row.name_kk, isActive: row.is_active };
+function mapField(row: FieldRow, translations: DirectoryTranslationRow[] = []): ScientistTaxonomyItem {
+  return { id: row.id, slug: row.slug, nameRu: row.name_ru, nameKk: row.name_kk, nameEn: translations.find(item => item.locale === "en")?.name ?? null, isActive: row.is_active };
 }
 
-function mapOrganization(row: OrganizationRow): ScientistOrganization {
+function mapOrganization(row: OrganizationRow, translations: DirectoryTranslationRow[] = []): ScientistOrganization {
   return {
-    ...mapField(row),
+    ...mapField(row, translations),
     cityRu: row.city_ru,
     cityKk: row.city_kk,
+    cityEn: translations.find(item => item.locale === "en")?.city ?? null,
     websiteUrl: row.website_url,
     logoMediaId: row.logo_media_id,
   };
@@ -139,12 +141,20 @@ export class ScientistRepository {
       organizationsQuery = organizationsQuery.eq("is_active", true);
       fieldsQuery = fieldsQuery.eq("is_active", true);
     }
-    const [organizationsResult, fieldsResult] = await Promise.all([organizationsQuery, fieldsQuery]);
+    const [organizationsResult, fieldsResult, organizationTranslationsResult, fieldTranslationsResult] = await Promise.all([
+      organizationsQuery, fieldsQuery,
+      this.client.from("scientific_organization_translations").select("organization_id, locale, name, city"),
+      this.client.from("scientific_field_translations").select("field_id, locale, name"),
+    ]);
     if (organizationsResult.error) throw organizationsResult.error;
     if (fieldsResult.error) throw fieldsResult.error;
+    if (organizationTranslationsResult.error) throw organizationTranslationsResult.error;
+    if (fieldTranslationsResult.error) throw fieldTranslationsResult.error;
+    const organizationTranslations = (organizationTranslationsResult.data ?? []) as Array<DirectoryTranslationRow & { organization_id: string }>;
+    const fieldTranslations = (fieldTranslationsResult.data ?? []) as Array<DirectoryTranslationRow & { field_id: string }>;
     return {
-      organizations: ((organizationsResult.data ?? []) as OrganizationRow[]).map(mapOrganization),
-      fields: ((fieldsResult.data ?? []) as FieldRow[]).map(mapField),
+      organizations: ((organizationsResult.data ?? []) as OrganizationRow[]).map(row => mapOrganization(row, organizationTranslations.filter(item => item.organization_id === row.id))),
+      fields: ((fieldsResult.data ?? []) as FieldRow[]).map(row => mapField(row, fieldTranslations.filter(item => item.field_id === row.id))),
     };
   }
 
@@ -183,7 +193,7 @@ export class ScientistRepository {
     const ids = rows.map((row) => row.id);
     const organizationIds = [...new Set(rows.flatMap((row) => row.organization_id ? [row.organization_id] : []))];
     const avatarIds = [...new Set(rows.flatMap((row) => row.avatar_media_id ? [row.avatar_media_id] : []))];
-    const [translationsResult, linksResult, organizationsResult, avatarsResult] = await Promise.all([
+    const [translationsResult, linksResult, organizationsResult, avatarsResult, organizationTranslationsResult] = await Promise.all([
       this.client.from("scientist_profile_translations").select("*").in("scientist_profile_id", ids),
       this.client.from("scientist_field_links").select("scientist_profile_id, scientific_field_id").in("scientist_profile_id", ids),
       organizationIds.length > 0
@@ -192,21 +202,29 @@ export class ScientistRepository {
       avatarIds.length > 0
         ? this.client.from("media_assets").select("id, storage_bucket, storage_path").in("id", avatarIds).eq("status", "ready").is("deleted_at", null)
         : Promise.resolve({ data: [], error: null }),
+      organizationIds.length > 0
+        ? this.client.from("scientific_organization_translations").select("organization_id, locale, name, city").in("organization_id", organizationIds)
+        : Promise.resolve({ data: [], error: null }),
     ]);
     if (translationsResult.error) throw translationsResult.error;
     if (linksResult.error) throw linksResult.error;
     if (organizationsResult.error) throw organizationsResult.error;
     if (avatarsResult.error) throw avatarsResult.error;
+    if (organizationTranslationsResult.error) throw organizationTranslationsResult.error;
     const links = (linksResult.data ?? []) as Array<{ scientist_profile_id: string; scientific_field_id: string }>;
     const fieldIds = [...new Set(links.map((link) => link.scientific_field_id))];
-    const fieldsResult = fieldIds.length > 0
-      ? await this.client.from("scientific_fields").select("id, slug, name_ru, name_kk, is_active").in("id", fieldIds)
-      : { data: [], error: null };
+    const [fieldsResult, fieldTranslationsResult] = await Promise.all([
+      fieldIds.length > 0 ? this.client.from("scientific_fields").select("id, slug, name_ru, name_kk, is_active").in("id", fieldIds) : Promise.resolve({ data: [], error: null }),
+      fieldIds.length > 0 ? this.client.from("scientific_field_translations").select("field_id, locale, name").in("field_id", fieldIds) : Promise.resolve({ data: [], error: null }),
+    ]);
     if (fieldsResult.error) throw fieldsResult.error;
+    if (fieldTranslationsResult.error) throw fieldTranslationsResult.error;
     const translations = (translationsResult.data ?? []) as TranslationRow[];
     const organizations = (organizationsResult.data ?? []) as OrganizationRow[];
     const avatars = (avatarsResult.data ?? []) as AvatarRow[];
     const fields = (fieldsResult.data ?? []) as FieldRow[];
+    const organizationTranslations = (organizationTranslationsResult.data ?? []) as Array<DirectoryTranslationRow & { organization_id: string }>;
+    const fieldTranslations = (fieldTranslationsResult.data ?? []) as Array<DirectoryTranslationRow & { field_id: string }>;
 
     return rows.map((row) => {
       const avatar = avatars.find((item) => item.id === row.avatar_media_id);
@@ -218,7 +236,7 @@ export class ScientistRepository {
         id: row.id,
         userId: row.user_id,
         organizationId: row.organization_id,
-        organization: organization ? mapOrganization(organization) : null,
+        organization: organization ? mapOrganization(organization, organizationTranslations.filter(item => item.organization_id === organization.id)) : null,
         avatarMediaId: row.avatar_media_id,
         avatarUrl,
         status: row.status,
@@ -232,7 +250,7 @@ export class ScientistRepository {
         translations: translations.filter((item) => item.scientist_profile_id === row.id).map(mapTranslation),
         fields: links.filter((link) => link.scientist_profile_id === row.id).flatMap((link) => {
           const field = fields.find((item) => item.id === link.scientific_field_id);
-          return field ? [mapField(field)] : [];
+          return field ? [mapField(field, fieldTranslations.filter(item => item.field_id === field.id))] : [];
         }),
       };
     });

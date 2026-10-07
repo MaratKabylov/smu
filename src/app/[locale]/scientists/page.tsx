@@ -7,6 +7,7 @@ import { CommunityHeader } from "@/components/scientists/CommunityHeader";
 import { PublicScientistCard } from "@/components/scientists/PublicScientistCard";
 import { publicScientistFiltersSchema } from "@/lib/validation/scientist";
 import { PublicScientistService } from "@/server/services/scientist.service";
+import { scientistTaxonomyName } from "@/lib/i18n/scientist-taxonomy";
 
 export async function generateMetadata({ params }: { params: LocaleParams }): Promise<Metadata> {
   const copy = getDictionary(requireLocale((await params).locale));
@@ -34,8 +35,8 @@ export default async function ScientistsPage({ searchParams, params: routeParams
       <section className="scientists-catalog">
         <form action={`/${locale}/scientists`} className="scientists-filters">
           <label className="scientists-search"><Search aria-hidden="true" /><span className="visually-hidden">{copy.search}</span><input type="search" name="q" defaultValue={filters.query} placeholder={copy.search} /></label>
-          <select name="organization" defaultValue={filters.organization} aria-label={copy.organization}><option value="">{copy.allOrganizations}</option>{taxonomy.organizations.map((item) => <option value={item.slug} key={item.id}>{filters.locale === "ru" ? item.nameRu : item.nameKk}</option>)}</select>
-          <select name="field" defaultValue={filters.field} aria-label={copy.field}><option value="">{copy.allFields}</option>{taxonomy.fields.map((item) => <option value={item.slug} key={item.id}>{filters.locale === "ru" ? item.nameRu : item.nameKk}</option>)}</select>
+          <select name="organization" defaultValue={filters.organization} aria-label={copy.organization}><option value="">{copy.allOrganizations}</option>{taxonomy.organizations.map((item) => <option value={item.slug} key={item.id}>{scientistTaxonomyName(item, filters.locale)}</option>)}</select>
+          <select name="field" defaultValue={filters.field} aria-label={copy.field}><option value="">{copy.allFields}</option>{taxonomy.fields.map((item) => <option value={item.slug} key={item.id}>{scientistTaxonomyName(item, filters.locale)}</option>)}</select>
           <button type="submit">{copy.find}</button>
         </form>
         {scientists.length ? <div className="scientists-grid">{scientists.map((scientist) => <PublicScientistCard scientist={scientist} locale={filters.locale} key={scientist.id} />)}</div> : <div className="journal-empty"><UsersRound aria-hidden="true" /><h2>{copy.empty}</h2><p>{copy.emptyHint}</p>{filters.query || filters.organization || filters.field ? <Link href={`/${filters.locale}/scientists`}>{copy.reset}</Link> : null}</div>}

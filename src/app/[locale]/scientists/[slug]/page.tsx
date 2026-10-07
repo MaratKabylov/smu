@@ -11,6 +11,7 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { CommunityHeader } from "@/components/scientists/CommunityHeader";
 import { getPublicScientistBySlug, PublicScientistService } from "@/server/services/scientist.service";
 import type { ScientistLocale } from "@/types/domain/scientist";
+import { scientistOrganizationCity, scientistTaxonomyName } from "@/lib/i18n/scientist-taxonomy";
 
 type Props = { params: Promise<{ locale: string; slug: string }>; searchParams: Promise<PublicQuery> };
 
@@ -46,10 +47,10 @@ export default async function ScientistProfilePage({ params, searchParams }: Pro
   }
   const copy = getDictionary(locale).scientistProfile;
   const organizationName = scientist.organization
-    ? locale === "ru" ? scientist.organization.nameRu : scientist.organization.nameKk
+    ? scientistTaxonomyName(scientist.organization, locale)
     : null;
   const city = scientist.organization
-    ? locale === "ru" ? scientist.organization.cityRu : scientist.organization.cityKk
+    ? scientistOrganizationCity(scientist.organization, locale)
     : null;
 
   return <>
@@ -60,7 +61,7 @@ export default async function ScientistProfilePage({ params, searchParams }: Pro
         <section className="scientist-profile-hero">
           <div className="scientist-profile-photo">{scientist.avatarUrl ? <img src={scientist.avatarUrl} alt={scientist.translation.fullName} /> : <span>{initials(scientist.translation.fullName)}</span>}</div>
           <div className="scientist-profile-heading">
-            <div className="scientist-profile-fields">{scientist.fields.map((field) => <Link href={`/${locale}/scientists?field=${field.slug}`} key={field.id}>{locale === "ru" ? field.nameRu : field.nameKk}</Link>)}</div>
+            <div className="scientist-profile-fields">{scientist.fields.map((field) => <Link href={`/${locale}/scientists?field=${field.slug}`} key={field.id}>{scientistTaxonomyName(field, locale)}</Link>)}</div>
             <h1>{scientist.translation.fullName}</h1>
             <p className="scientist-profile-position">{scientist.translation.academicDegree ? `${scientist.translation.academicDegree} · ` : ""}{scientist.translation.position}</p>
             {organizationName ? <p className="scientist-profile-org"><Building2 aria-hidden="true" /><span><strong>{organizationName}</strong>{city ? <small>{city}</small> : null}</span></p> : null}
@@ -76,7 +77,7 @@ export default async function ScientistProfilePage({ params, searchParams }: Pro
           </article>
           <aside className="scientist-profile-aside">
             <div className="profile-aside-heading"><Microscope aria-hidden="true" /><span><small>{copy.expertise}</small><strong>{scientist.fields.length}</strong></span></div>
-            <div className="profile-expertise-list">{scientist.fields.map((field) => <span key={field.id}>{locale === "ru" ? field.nameRu : field.nameKk}</span>)}</div>
+            <div className="profile-expertise-list">{scientist.fields.map((field) => <span key={field.id}>{scientistTaxonomyName(field, locale)}</span>)}</div>
             {scientist.publicEmail ? <a href={`mailto:${scientist.publicEmail}`}><Mail aria-hidden="true" />{scientist.publicEmail}</a> : null}
             {scientist.orcid ? <a href={`https://orcid.org/${scientist.orcid}`} target="_blank" rel="noreferrer">ORCID {scientist.orcid}<ArrowUpRight aria-hidden="true" /></a> : null}
             {scientist.scholarUrl ? <a href={scientist.scholarUrl} target="_blank" rel="noreferrer">{copy.scientificProfile}<ArrowUpRight aria-hidden="true" /></a> : null}

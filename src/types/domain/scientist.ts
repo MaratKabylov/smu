@@ -8,12 +8,14 @@ export type ScientistTaxonomyItem = {
   slug: string;
   nameRu: string;
   nameKk: string;
+  nameEn?: string | null;
   isActive: boolean;
 };
 
 export type ScientistOrganization = ScientistTaxonomyItem & {
   cityRu: string | null;
   cityKk: string | null;
+  cityEn?: string | null;
   websiteUrl: string | null;
   logoMediaId: string | null;
 };

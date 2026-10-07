@@ -2,17 +2,18 @@
 import { ArrowUpRight, Building2 } from "lucide-react";
 import Link from "next/link";
 import type { PublicScientistCard as ScientistCard, ScientistLocale } from "@/types/domain/scientist";
+import { scientistTaxonomyName } from "@/lib/i18n/scientist-taxonomy";
 
 export function PublicScientistCard({ scientist, locale }: { scientist: ScientistCard; locale: ScientistLocale }) {
   const organizationName = scientist.organization
-    ? locale === "ru" ? scientist.organization.nameRu : scientist.organization.nameKk
+    ? scientistTaxonomyName(scientist.organization, locale)
     : null;
   return <article className="scientist-card">
     <div className="scientist-card-photo">
       {scientist.avatarUrl ? <img src={scientist.avatarUrl} alt={scientist.translation.fullName} /> : <span>{initials(scientist.translation.fullName)}</span>}
     </div>
     <div className="scientist-card-content">
-      <div className="scientist-card-fields">{scientist.fields.slice(0, 2).map((field) => <span key={field.id}>{locale === "ru" ? field.nameRu : field.nameKk}</span>)}</div>
+      <div className="scientist-card-fields">{scientist.fields.slice(0, 2).map((field) => <span key={field.id}>{scientistTaxonomyName(field, locale)}</span>)}</div>
       <h2><Link href={`/${locale}/scientists/${scientist.translation.slug}`}>{scientist.translation.fullName}</Link></h2>
       <p className="scientist-position">{scientist.translation.academicDegree ? `${scientist.translation.academicDegree} · ` : ""}{scientist.translation.position}</p>
       {organizationName ? <p className="scientist-organization"><Building2 aria-hidden="true" />{organizationName}</p> : null}

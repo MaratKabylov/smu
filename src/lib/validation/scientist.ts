@@ -60,16 +60,19 @@ export const scientistTaxonomyInputSchema = z.discriminatedUnion("kind", [
     slug: slugSchema,
     nameRu: z.string().trim().min(2).max(140),
     nameKk: z.string().trim().min(2).max(140),
+    nameEn: optionalText(140).optional().default(null),
   }),
   z.object({
     kind: z.literal("organization"),
     slug: slugSchema,
     nameRu: z.string().trim().min(2).max(200),
     nameKk: z.string().trim().min(2).max(200),
+    nameEn: optionalText(200).optional().default(null),
     cityRu: optionalText(120),
     cityKk: optionalText(120),
+    cityEn: optionalText(120).optional().default(null),
     websiteUrl: optionalUrl,
-  }),
+  }).refine(value => value.nameEn !== null || value.cityEn === null, { message: "Для английского города нужно английское название." }),
 ]);
 
 export type ScientistInput = z.infer<typeof scientistInputSchema>;

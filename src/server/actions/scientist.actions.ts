@@ -126,9 +126,11 @@ export async function createScientistTaxonomy(formData: FormData) {
     slug: formData.get("slug"),
     nameRu: formData.get("nameRu"),
     nameKk: formData.get("nameKk"),
+    nameEn: formData.get("nameEn"),
     ...(kind === "organization" ? {
       cityRu: formData.get("cityRu"),
       cityKk: formData.get("cityKk"),
+      cityEn: formData.get("cityEn"),
       websiteUrl: formData.get("websiteUrl"),
     } : {}),
   });
