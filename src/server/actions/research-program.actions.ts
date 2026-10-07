@@ -23,7 +23,9 @@ export async function saveResearchProgram(id: string | null, form: FormData) {
   const target = base + (id ? "/" + id : "/new");
   const user = await access();
   const translation = (suffix: string) => ({ title: form.get("title" + suffix), slug: form.get("slug" + suffix), summary: form.get("summary" + suffix), description: form.get("description" + suffix), curriculum: form.get("curriculum" + suffix), eligibility: form.get("eligibility" + suffix), outcomes: form.get("outcomes" + suffix) });
-  const input = researchProgramInputSchema.safeParse({ coordinatorId: form.get("coordinatorId"), fieldId: form.get("fieldId"), format: form.get("format"), capacity: form.get("capacity"), applicationsOpenOn: form.get("applicationsOpenOn"), applicationDeadline: form.get("applicationDeadline"), startsOn: form.get("startsOn"), endsOn: form.get("endsOn"), ru: translation("Ru"), kk: translation("Kk") });
+  const en = translation("En");
+  const hasEnglish = Object.values(en).some(value => String(value ?? "").trim().length > 0);
+  const input = researchProgramInputSchema.safeParse({ coordinatorId: form.get("coordinatorId"), fieldId: form.get("fieldId"), format: form.get("format"), capacity: form.get("capacity"), applicationsOpenOn: form.get("applicationsOpenOn"), applicationDeadline: form.get("applicationDeadline"), startsOn: form.get("startsOn"), endsOn: form.get("endsOn"), ru: translation("Ru"), kk: translation("Kk"), ...(hasEnglish ? { en } : {}) });
   if (!input.success) redirect(target + "?error=validation");
   let saved: string;
   try { saved = await new ResearchProgramService().save(user, input.data, id); }

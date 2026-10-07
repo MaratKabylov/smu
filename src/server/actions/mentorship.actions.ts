@@ -23,7 +23,9 @@ export async function saveMentorshipOffer(id: string | null, form: FormData) {
   const target = base + (id ? "/" + id : "/new");
   const user = await access();
   const translation = (suffix: string) => ({ title: form.get("title" + suffix), slug: form.get("slug" + suffix), summary: form.get("summary" + suffix), description: form.get("description" + suffix) });
-  const input = mentorshipInputSchema.safeParse({ scientistId: form.get("scientistId"), fieldId: form.get("fieldId"), format: form.get("format"), capacity: form.get("capacity"), ru: translation("Ru"), kk: translation("Kk") });
+  const en = translation("En");
+  const hasEnglish = Object.values(en).some(value => String(value ?? "").trim().length > 0);
+  const input = mentorshipInputSchema.safeParse({ scientistId: form.get("scientistId"), fieldId: form.get("fieldId"), format: form.get("format"), capacity: form.get("capacity"), ru: translation("Ru"), kk: translation("Kk"), ...(hasEnglish ? { en } : {}) });
   if (!input.success) redirect(target + "?error=validation");
   let saved: string;
   try { saved = await new MentorshipService().save(user, input.data, id); }

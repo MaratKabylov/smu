@@ -14,6 +14,13 @@ import { ScientistService, ScientistServiceError } from "@/server/services/scien
 const idSchema = z.uuid();
 
 function inputFromFormData(formData: FormData) {
+  const translation = (suffix: "Ru" | "Kk" | "En") => ({
+    fullName: formData.get(`fullName${suffix}`), slug: formData.get(`slug${suffix}`),
+    position: formData.get(`position${suffix}`), academicDegree: formData.get(`academicDegree${suffix}`),
+    shortBio: formData.get(`shortBio${suffix}`), biography: formData.get(`biography${suffix}`),
+  });
+  const en = translation("En");
+  const hasEnglish = Object.values(en).some(value => String(value ?? "").trim().length > 0);
   return scientistInputSchema.safeParse({
     organizationId: formData.get("organizationId"),
     avatarMediaId: formData.get("avatarMediaId"),
@@ -37,6 +44,7 @@ function inputFromFormData(formData: FormData) {
       shortBio: formData.get("shortBioKk"),
       biography: formData.get("biographyKk"),
     },
+    ...(hasEnglish ? { en } : {}),
   });
 }
 

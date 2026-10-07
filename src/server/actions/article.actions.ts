@@ -25,6 +25,13 @@ function articleInputFromFormData(formData: FormData) {
     if (!value) return undefined;
     try { return JSON.parse(String(value)); } catch { return null; }
   }
+  const en = {
+    title: formData.get("titleEn"), slug: formData.get("slugEn"), excerpt: formData.get("excerptEn"),
+    body: formData.get("bodyEn"), contentJson: document("contentJsonEn"),
+    seoTitle: formData.get("seoTitleEn"), seoDescription: formData.get("seoDescriptionEn"),
+  };
+  const hasEnglish = [en.title, en.slug, en.excerpt, en.body, en.seoTitle, en.seoDescription]
+    .some(value => String(value ?? "").trim().length > 0);
   return articleInputSchema.safeParse({
     expectedVersion: formData.get("expectedVersion") ? Number(formData.get("expectedVersion")) : undefined,
     relations: formData.has("relations") ? document("relations") : undefined,
@@ -52,6 +59,7 @@ function articleInputFromFormData(formData: FormData) {
       seoTitle: formData.get("seoTitleKk"),
       seoDescription: formData.get("seoDescriptionKk"),
     },
+    ...(hasEnglish ? { en } : {}),
   });
 }
 

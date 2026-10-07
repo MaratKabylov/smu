@@ -29,16 +29,18 @@ function invalidate(kind: ScienceWorkKind) {
   revalidatePath(scienceWorkPath(kind), "layout");
 }
 function inputFromForm(form: FormData) {
-  const translation = (locale: "Ru" | "Kk") => ({
+  const translation = (locale: "Ru" | "Kk" | "En") => ({
     title: form.get("title" + locale), slug: form.get("slug" + locale),
     summary: form.get("summary" + locale), description: form.get("description" + locale),
     results: form.get("results" + locale),
   });
+  const en = translation("En");
+  const hasEnglish = Object.values(en).some(value => String(value ?? "").trim().length > 0);
   return scienceWorkInputSchema.safeParse({
     stage: form.get("stage"), organizationId: form.get("organizationId"), fieldId: form.get("fieldId"),
     coverMediaId: form.get("coverMediaId"), startDate: form.get("startDate"), endDate: form.get("endDate"),
     externalUrl: form.get("externalUrl"), doi: form.get("doi"), leadScientistId: form.get("leadScientistId"),
-    memberIds: form.getAll("memberIds"), ru: translation("Ru"), kk: translation("Kk"),
+    memberIds: form.getAll("memberIds"), ru: translation("Ru"), kk: translation("Kk"), ...(hasEnglish ? { en } : {}),
   });
 }
 export async function saveScienceWork(rawKind: string, id: string | null, form: FormData) {

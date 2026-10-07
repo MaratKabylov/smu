@@ -26,12 +26,15 @@ export async function saveEvent(id: string | null, form: FormData) {
   if (id !== null && !z.uuid().safeParse(id).success) redirect(eventAdminPath + "?error=validation");
   const target = eventAdminPath + (id ? "/" + id : "/new");
   const userAccess = await access();
-  const translation = (suffix: "Ru" | "Kk") => Object.fromEntries(
+  const translation = (suffix: "Ru" | "Kk" | "En") => Object.fromEntries(
     ["title", "slug", "summary", "description", "organizer", "location"].map(key => [key, form.get(key + suffix)]));
+  const en = translation("En");
+  const hasEnglish = Object.values(en).some(value => String(value ?? "").trim().length > 0);
   const input = eventInputSchema.safeParse({
     kind: form.get("kind"), format: form.get("format"), startsAt: form.get("startsAt"), endsAt: form.get("endsAt"),
     registrationDeadline: form.get("registrationDeadline"), registrationUrl: form.get("registrationUrl"),
     externalUrl: form.get("externalUrl"), coverMediaId: form.get("coverMediaId"), ru: translation("Ru"), kk: translation("Kk"),
+    ...(hasEnglish ? { en } : {}),
   });
   if (!input.success) redirect(target + "?error=validation");
   let savedId: string;
