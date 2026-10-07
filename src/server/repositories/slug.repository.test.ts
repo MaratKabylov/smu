@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { DatabaseClient } from "@/lib/supabase/database";
 vi.mock("server-only", () => ({}));
 import { getPublicSlugRedirect } from "./slug.repository";
 
@@ -8,7 +8,7 @@ function clientWith(results: Array<{ data: unknown; error: unknown }>) {
   for (const method of [query.select, query.eq, query.is, query.lte]) method.mockReturnValue(query);
   for (const result of results) query.maybeSingle.mockResolvedValueOnce(result);
   const from = vi.fn().mockReturnValue(query);
-  return { client: { from } as unknown as SupabaseClient, query, from };
+  return { client: { from } as unknown as DatabaseClient, query, from };
 }
 describe("public slug redirects", () => {
   it("checks publication, time and deletion even when the client has an admin session", async () => {

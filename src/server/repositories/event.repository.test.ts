@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { DatabaseClient } from "@/lib/supabase/database";
 vi.mock("server-only", () => ({}));
 import { EventRepository } from "./event.repository";
 
@@ -18,7 +18,7 @@ function clientWith(rows: Record<string, unknown[]>) {
     },
     storage: { from: () => ({ getPublicUrl: () => ({ data: { publicUrl: "https://example.kz/image.jpg" } }) }) },
   };
-  return { client: client as unknown as SupabaseClient, calls };
+  return { client: client as unknown as DatabaseClient, calls };
 }
 const filters = { locale: "ru" as const, query: "", kind: "all" as const, format: "all" as const, period: "upcoming" as const };
 describe("public event queries with manager sessions", () => {

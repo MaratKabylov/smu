@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { DatabaseClient } from "@/lib/supabase/database";
 vi.mock("server-only", () => ({}));
 const taxonomy = vi.hoisted(() => ({ fields: [{ id: "field", slug: "science", nameRu: "Наука", nameKk: "Ғылым", isActive: true }], organizations: [] }));
 vi.mock("@/server/repositories/scientist.repository", () => ({ ScientistRepository: class { async listTaxonomy() { return taxonomy; } } }));
@@ -17,7 +17,7 @@ function mockClient(rows: Record<string, unknown[]> = {}) {
     query.then = (resolve: (value: unknown) => unknown) => { calls.push({ table, operation: "execute", args: [] }); return Promise.resolve({ data: rows[table] ?? [], error: null }).then(resolve); };
     return query;
   } };
-  return { client: client as unknown as SupabaseClient, calls };
+  return { client: client as unknown as DatabaseClient, calls };
 }
 const program = { id: "program", coordinator_id: "coordinator", field_id: "field", status: "published", capacity: 3, format: "online", applications_open_on: "2026-10-01", application_deadline: "2026-10-15", starts_on: "2026-11-01", ends_on: "2026-12-01" };
 const translations = [{ program_id: "program", locale: "ru", slug: "coordinator", title: "Research skills", summary: "Summary", description: "Description", curriculum: "Research methods", eligibility: "Young scientists", outcomes: "Scientific project" }];

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { DatabaseClient } from "@/lib/supabase/database";
 vi.mock("server-only", () => ({}));
 vi.mock("@/server/repositories/scientist.repository", () => ({
   ScientistRepository: class { async listTaxonomy() { return { organizations: [], fields: [] }; } },
@@ -21,7 +21,7 @@ function clientWith(rows: Record<string, unknown[]>) {
     },
     storage: { from: () => ({ getPublicUrl: () => ({ data: { publicUrl: "https://example.kz/image.jpg" } }) }) },
   };
-  return { client: client as unknown as SupabaseClient, calls };
+  return { client: client as unknown as DatabaseClient, calls };
 }
 describe("public scientific work queries with a manager session", () => {
   it("constrains list queries by publication, kind and soft delete", async () => {

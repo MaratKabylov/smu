@@ -1,53 +1,21 @@
+import type { Tables } from "@/types/database.types";
 import "server-only";
 
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type {
-  MediaAsset,
-  MediaAssetStatus,
-  MediaBucket,
-  MediaUsage,
-} from "@/types/domain/media";
+import type { DatabaseClient } from "@/lib/supabase/database";
+import { mediaBuckets, type MediaAsset, type MediaUsage } from "@/types/domain/media";
+import { z } from "zod";
 import type {
   CreateMediaUploadInput,
   MediaListFilters,
   MediaMetadataInput,
 } from "@/lib/validation/media";
 
-type MediaRow = {
-  id: string;
-  storage_bucket: MediaBucket;
-  storage_path: string;
-  file_name: string;
-  mime_type: string;
-  file_size: number | string;
-  width: number | null;
-  height: number | null;
-  alt_ru: string | null;
-  alt_kk: string | null;
-  caption_ru: string | null;
-  caption_kk: string | null;
-  copyright_holder: string | null;
-  source_url: string | null;
-  uploaded_by: string;
-  status: MediaAssetStatus;
-  created_at: string;
-  updated_at: string;
-  deleted_at: string | null;
-};
-
-type UsageRow = {
-  id: string;
-  media_asset_id: string;
-  entity_type: string;
-  entity_id: string;
-  field_name: string;
-  created_at: string;
-};
+type MediaRow = Pick<Tables<"media_assets">, "id" | "storage_bucket" | "storage_path" | "file_name" | "mime_type" | "file_size" | "width" | "height" | "alt_ru" | "alt_kk" | "caption_ru" | "caption_kk" | "copyright_holder" | "source_url" | "uploaded_by" | "status" | "created_at" | "updated_at" | "deleted_at">;
 
 function mapMediaRow(row: MediaRow): MediaAsset {
   return {
     id: row.id,
-    storageBucket: row.storage_bucket,
+    storageBucket: z.enum(mediaBuckets).parse(row.storage_bucket),
     storagePath: row.storage_path,
     fileName: row.file_name,
     mimeType: row.mime_type,
@@ -73,7 +41,7 @@ function mapMediaRow(row: MediaRow): MediaAsset {
 }
 
 export class MediaRepository {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(private readonly client: DatabaseClient) {}
 
   async list(filters: MediaListFilters): Promise<MediaAsset[]> {
     let query = this.client
@@ -94,7 +62,7 @@ export class MediaRepository {
     const { data, error } = await query;
     if (error) throw error;
 
-    const assets = await this.withEnglishTranslations(((data ?? []) as MediaRow[]).map(mapMediaRow));
+    const assets = await this.withEnglishTranslations(((data ?? [])).map(mapMediaRow));
     if (assets.length === 0) return assets;
 
     const { data: usages, error: usagesError } = await this.client
@@ -108,7 +76,7 @@ export class MediaRepository {
     if (usagesError) throw usagesError;
 
     const counts = new Map<string, number>();
-    for (const usage of (usages ?? []) as Array<{ media_asset_id: string }>) {
+    for (const usage of (usages ?? [])) {
       counts.set(usage.media_asset_id, (counts.get(usage.media_asset_id) ?? 0) + 1);
     }
 
@@ -127,7 +95,7 @@ export class MediaRepository {
 
     if (error) throw error;
     if (!data) return null;
-    return (await this.withEnglishTranslations([mapMediaRow(data as MediaRow)]))[0];
+    return (await this.withEnglishTranslations([mapMediaRow(data)]))[0];
   }
 
   async listUsages(mediaAssetId: string): Promise<MediaUsage[]> {
@@ -139,7 +107,7 @@ export class MediaRepository {
 
     if (error) throw error;
 
-    return ((data ?? []) as UsageRow[]).map((row) => ({
+    return ((data ?? [])).map((row) => ({
       id: row.id,
       entityType: row.entity_type,
       entityId: row.entity_id,
@@ -168,7 +136,7 @@ export class MediaRepository {
       .single();
 
     if (error) throw error;
-    return mapMediaRow(data as MediaRow);
+    return mapMediaRow(data);
   }
 
   async markReady(

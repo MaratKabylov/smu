@@ -1,6 +1,7 @@
+import type { Tables } from "@/types/database.types";
 import "server-only";
 
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { callDatabaseRpc, databaseJson, type DatabaseClient } from "@/lib/supabase/database";
 import type {
   PublicScientistFilters,
   ScientistInput,
@@ -19,50 +20,15 @@ import type {
   ScientistTranslation,
 } from "@/types/domain/scientist";
 
-type ProfileRow = {
-  id: string;
-  user_id: string | null;
-  organization_id: string | null;
-  avatar_media_id: string | null;
-  status: ScientistStatus;
-  public_email: string | null;
-  orcid: string | null;
-  scholar_url: string | null;
-  verified_at: string | null;
-  created_at: string;
-  updated_at: string;
-  deleted_at: string | null;
-};
+type ProfileRow = Pick<Tables<"scientist_profiles">, "id" | "user_id" | "organization_id" | "avatar_media_id" | "status" | "public_email" | "orcid" | "scholar_url" | "verified_at" | "created_at" | "updated_at" | "deleted_at">;
 
-type TranslationRow = {
-  id: string;
-  scientist_profile_id: string;
-  locale: ScientistLocale;
-  full_name: string;
-  slug: string;
-  position: string;
-  academic_degree: string | null;
-  short_bio: string;
-  biography: string;
-};
+type TranslationRow = Pick<Tables<"scientist_profile_translations">, "id" | "scientist_profile_id" | "locale" | "full_name" | "slug" | "position" | "academic_degree" | "short_bio" | "biography">;
 
-type FieldRow = {
-  id: string;
-  slug: string;
-  name_ru: string;
-  name_kk: string;
-  is_active: boolean;
-};
+type FieldRow = Pick<Tables<"scientific_fields">, "id" | "slug" | "name_ru" | "name_kk" | "is_active">;
 
-type OrganizationRow = FieldRow & {
-  city_ru: string | null;
-  city_kk: string | null;
-  website_url: string | null;
-  logo_media_id: string | null;
-};
+type OrganizationRow = FieldRow & Pick<Tables<"scientific_organizations">, "city_ru" | "city_kk" | "website_url" | "logo_media_id">;
 
-type AvatarRow = { id: string; storage_bucket: string; storage_path: string };
-type DirectoryTranslationRow = { locale: ScientistLocale; name: string; city?: string | null };
+type DirectoryTranslationRow = Pick<Tables<"scientific_organization_translations">, "locale" | "name"> & Partial<Pick<Tables<"scientific_organization_translations">, "city">>;
 
 function mapField(row: FieldRow, translations: DirectoryTranslationRow[] = []): ScientistTaxonomyItem {
   return { id: row.id, slug: row.slug, nameRu: row.name_ru, nameKk: row.name_kk, nameEn: translations.find(item => item.locale === "en")?.name ?? null, isActive: row.is_active };
@@ -93,7 +59,7 @@ function mapTranslation(row: TranslationRow): ScientistTranslation {
 }
 
 export class ScientistRepository {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(private readonly client: DatabaseClient) {}
 
   async list(filters: ScientistListFilters): Promise<ScientistProfile[]> {
     let matchingIds: string[] | null = null;
@@ -103,7 +69,7 @@ export class ScientistRepository {
         .select("scientist_profile_id")
         .ilike("full_name", `%${filters.query}%`);
       if (error) throw error;
-      matchingIds = [...new Set(((data ?? []) as Array<{ scientist_profile_id: string }>).map((row) => row.scientist_profile_id))];
+      matchingIds = [...new Set(((data ?? [])).map((row) => row.scientist_profile_id))];
       if (matchingIds.length === 0) return [];
     }
 
@@ -117,14 +83,14 @@ export class ScientistRepository {
     if (matchingIds) query = query.in("id", matchingIds);
     const { data, error } = await query;
     if (error) throw error;
-    return this.hydrateProfiles((data ?? []) as ProfileRow[]);
+    return this.hydrateProfiles((data ?? []));
   }
 
   async getById(id: string): Promise<ScientistProfile | null> {
     const { data, error } = await this.client.from("scientist_profiles").select("*").eq("id", id).maybeSingle();
     if (error) throw error;
     if (!data) return null;
-    const [profile] = await this.hydrateProfiles([data as ProfileRow]);
+    const [profile] = await this.hydrateProfiles([data]);
     return profile ?? null;
   }
 
@@ -150,42 +116,36 @@ export class ScientistRepository {
     if (fieldsResult.error) throw fieldsResult.error;
     if (organizationTranslationsResult.error) throw organizationTranslationsResult.error;
     if (fieldTranslationsResult.error) throw fieldTranslationsResult.error;
-    const organizationTranslations = (organizationTranslationsResult.data ?? []) as Array<DirectoryTranslationRow & { organization_id: string }>;
-    const fieldTranslations = (fieldTranslationsResult.data ?? []) as Array<DirectoryTranslationRow & { field_id: string }>;
+    const organizationTranslations = (organizationTranslationsResult.data ?? []);
+    const fieldTranslations = (fieldTranslationsResult.data ?? []);
     return {
-      organizations: ((organizationsResult.data ?? []) as OrganizationRow[]).map(row => mapOrganization(row, organizationTranslations.filter(item => item.organization_id === row.id))),
-      fields: ((fieldsResult.data ?? []) as FieldRow[]).map(row => mapField(row, fieldTranslations.filter(item => item.field_id === row.id))),
+      organizations: (organizationsResult.data ?? []).map(row => mapOrganization(row, organizationTranslations.filter(item => item.organization_id === row.id))),
+      fields: (fieldsResult.data ?? []).map(row => mapField(row, fieldTranslations.filter(item => item.field_id === row.id))),
     };
   }
 
   async create(input: ScientistInput) {
-    return this.mutate<string>("save_scientist", { p_id: null, p_input: input });
+    return callDatabaseRpc(this.client, "save_scientist", { p_id: null, p_input: databaseJson(input) });
   }
 
   async update(id: string, input: ScientistInput) {
-    await this.mutate<string>("save_scientist", { p_id: id, p_input: input });
+    await callDatabaseRpc(this.client, "save_scientist", { p_id: id, p_input: databaseJson(input) });
   }
 
   async changeStatus(id: string, status: ScientistStatus) {
-    await this.mutate("change_scientist_state", { p_id: id, p_status: status, p_delete: false });
+    await callDatabaseRpc(this.client, "change_scientist_state", { p_id: id, p_status: status, p_delete: false });
   }
 
   async softDelete(id: string) {
-    await this.mutate("change_scientist_state", { p_id: id, p_status: null, p_delete: true });
+    await callDatabaseRpc(this.client, "change_scientist_state", { p_id: id, p_status: null, p_delete: true });
   }
 
   async restoreDeleted(id: string, expectedDeletedAt: string) {
-    await this.mutate("restore_deleted_scientist", { p_id: id, p_expected_deleted_at: expectedDeletedAt });
+    await callDatabaseRpc(this.client, "restore_deleted_scientist", { p_id: id, p_expected_deleted_at: expectedDeletedAt });
   }
 
   async createTaxonomyItem(input: ScientistTaxonomyInput) {
-    return this.mutate<string>("create_scientist_taxonomy", { p_input: input });
-  }
-
-  private async mutate<T = void>(name: string, args: Record<string, unknown>): Promise<T> {
-    const { data, error } = await this.client.rpc(name, args);
-    if (error) throw error;
-    return data as T;
+    return callDatabaseRpc(this.client, "create_scientist_taxonomy", { p_input: databaseJson(input) });
   }
 
   async hydrateProfiles(rows: ProfileRow[]): Promise<ScientistProfile[]> {
@@ -211,7 +171,7 @@ export class ScientistRepository {
     if (organizationsResult.error) throw organizationsResult.error;
     if (avatarsResult.error) throw avatarsResult.error;
     if (organizationTranslationsResult.error) throw organizationTranslationsResult.error;
-    const links = (linksResult.data ?? []) as Array<{ scientist_profile_id: string; scientific_field_id: string }>;
+    const links = (linksResult.data ?? []);
     const fieldIds = [...new Set(links.map((link) => link.scientific_field_id))];
     const [fieldsResult, fieldTranslationsResult] = await Promise.all([
       fieldIds.length > 0 ? this.client.from("scientific_fields").select("id, slug, name_ru, name_kk, is_active").in("id", fieldIds) : Promise.resolve({ data: [], error: null }),
@@ -219,12 +179,12 @@ export class ScientistRepository {
     ]);
     if (fieldsResult.error) throw fieldsResult.error;
     if (fieldTranslationsResult.error) throw fieldTranslationsResult.error;
-    const translations = (translationsResult.data ?? []) as TranslationRow[];
-    const organizations = (organizationsResult.data ?? []) as OrganizationRow[];
-    const avatars = (avatarsResult.data ?? []) as AvatarRow[];
-    const fields = (fieldsResult.data ?? []) as FieldRow[];
-    const organizationTranslations = (organizationTranslationsResult.data ?? []) as Array<DirectoryTranslationRow & { organization_id: string }>;
-    const fieldTranslations = (fieldTranslationsResult.data ?? []) as Array<DirectoryTranslationRow & { field_id: string }>;
+    const translations = (translationsResult.data ?? []);
+    const organizations = (organizationsResult.data ?? []);
+    const avatars = (avatarsResult.data ?? []);
+    const fields = (fieldsResult.data ?? []);
+    const organizationTranslations = (organizationTranslationsResult.data ?? []);
+    const fieldTranslations = (fieldTranslationsResult.data ?? []);
 
     return rows.map((row) => {
       const avatar = avatars.find((item) => item.id === row.avatar_media_id);
@@ -258,7 +218,7 @@ export class ScientistRepository {
 }
 
 export class PublicScientistRepository {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(private readonly client: DatabaseClient) {}
 
   async listTaxonomy() {
     return new ScientistRepository(this.client).listTaxonomy();
@@ -278,14 +238,14 @@ export class PublicScientistRepository {
     if (filters.query) translationQuery = translationQuery.ilike("full_name", `%${filters.query}%`);
     const translationResult = await translationQuery;
     if (translationResult.error) throw translationResult.error;
-    let translations = (translationResult.data ?? []) as TranslationRow[];
+    let translations = (translationResult.data ?? []);
     if (field) {
       const { data, error } = await this.client
         .from("scientist_field_links")
         .select("scientist_profile_id")
         .eq("scientific_field_id", field.id);
       if (error) throw error;
-      const matched = new Set(((data ?? []) as Array<{ scientist_profile_id: string }>).map((row) => row.scientist_profile_id));
+      const matched = new Set(((data ?? [])).map((row) => row.scientist_profile_id));
       translations = translations.filter((item) => matched.has(item.scientist_profile_id));
     }
     if (translations.length === 0) return [];
@@ -301,7 +261,7 @@ export class PublicScientistRepository {
     if (organization) profileQuery = profileQuery.eq("organization_id", organization.id);
     const { data, error } = await profileQuery;
     if (error) throw error;
-    const profiles = await new ScientistRepository(this.client).hydrateProfiles((data ?? []) as ProfileRow[]);
+    const profiles = await new ScientistRepository(this.client).hydrateProfiles((data ?? []));
     return profiles.flatMap((profile) => {
       const translation = translations.find((item) => item.scientist_profile_id === profile.id);
       return translation ? [{
@@ -323,7 +283,7 @@ export class PublicScientistRepository {
       .maybeSingle();
     if (error) throw error;
     if (!data) return null;
-    const translation = data as TranslationRow;
+    const translation = data;
     const { data: profileData, error: profileError } = await this.client
       .from("scientist_profiles")
       .select("*")
@@ -333,7 +293,7 @@ export class PublicScientistRepository {
       .maybeSingle();
     if (profileError) throw profileError;
     if (!profileData) return null;
-    const [profile] = await new ScientistRepository(this.client).hydrateProfiles([profileData as ProfileRow]);
+    const [profile] = await new ScientistRepository(this.client).hydrateProfiles([profileData]);
     if (!profile) return null;
     const { data: alternateData, error: alternateError } = await this.client
       .from("scientist_profile_translations")
@@ -350,7 +310,7 @@ export class PublicScientistRepository {
       publicEmail: profile.publicEmail,
       orcid: profile.orcid,
       scholarUrl: profile.scholarUrl,
-      alternateTranslations: ((alternateData ?? []) as TranslationRow[]).map(mapTranslation),
+      alternateTranslations: ((alternateData ?? [])).map(mapTranslation),
     };
   }
 }

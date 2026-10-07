@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { DatabaseClient } from "@/lib/supabase/database";
 import {
   permissionCodes,
   roleCodes,
@@ -12,13 +12,8 @@ import {
 const knownRoles = new Set<string>(roleCodes);
 const knownPermissions = new Set<string>(permissionCodes);
 
-type IdRow = { role_id: string };
-type RoleRow = { id: string; code: string };
-type PermissionAssignmentRow = { permission_id: string };
-type PermissionRow = { code: string };
-
 export class AccessRepository {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(private readonly client: DatabaseClient) {}
 
   async getForUser(userId: string): Promise<AccessContext> {
     const { data: assignments, error: assignmentsError } = await this.client
@@ -28,7 +23,7 @@ export class AccessRepository {
 
     if (assignmentsError) throw assignmentsError;
 
-    const roleIds = ((assignments ?? []) as IdRow[]).map(
+    const roleIds = ((assignments ?? [])).map(
       (assignment) => assignment.role_id,
     );
 
@@ -49,7 +44,7 @@ export class AccessRepository {
     if (permissionAssignments.error) throw permissionAssignments.error;
 
     const permissionIds = (
-      (permissionAssignments.data ?? []) as PermissionAssignmentRow[]
+      (permissionAssignments.data ?? [])
     ).map((assignment) => assignment.permission_id);
 
     const permissions = new Set<PermissionCode>();
@@ -62,7 +57,7 @@ export class AccessRepository {
 
       if (permissionError) throw permissionError;
 
-      for (const row of (permissionRows ?? []) as PermissionRow[]) {
+      for (const row of (permissionRows ?? [])) {
         if (knownPermissions.has(row.code)) {
           permissions.add(row.code as PermissionCode);
         }
@@ -70,7 +65,7 @@ export class AccessRepository {
     }
 
     const roles = new Set<RoleCode>();
-    for (const row of (roleRows ?? []) as RoleRow[]) {
+    for (const row of (roleRows ?? [])) {
       if (knownRoles.has(row.code)) roles.add(row.code as RoleCode);
     }
 

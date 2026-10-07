@@ -1,18 +1,14 @@
+import type { Tables } from "@/types/database.types";
 import "server-only";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { DatabaseClient } from "@/lib/supabase/database";
 import type { EventInput, EventListFilters, PublicEventFilters } from "@/lib/validation/event";
-import type { EventFormat, EventKind, EventStatus, EventTranslation, ScienceEvent } from "@/types/domain/event";
+import type { EventStatus, ScienceEvent } from "@/types/domain/event";
 import type { ScientistLocale } from "@/types/domain/scientist";
 
-type EventRow = {
-  id: string; status: EventStatus; kind: EventKind; format: EventFormat;
-  starts_at: string; ends_at: string; registration_deadline: string | null;
-  registration_url: string | null; external_url: string | null; cover_media_id: string | null; updated_at: string;
-};
-type TranslationRow = EventTranslation & { event_id: string };
+type EventRow = Pick<Tables<"events">, "id" | "status" | "kind" | "format" | "starts_at" | "ends_at" | "registration_deadline" | "registration_url" | "external_url" | "cover_media_id" | "updated_at">;
 
 export class EventRepository {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(private readonly client: DatabaseClient) {}
 
   async list(filters: EventListFilters) {
     let query = this.client.from("events").select("*").is("deleted_at", null).order("updated_at", { ascending: false }).limit(100);
@@ -24,12 +20,12 @@ export class EventRepository {
     }
     const { data, error } = await query;
     if (error) throw error;
-    return this.hydrate((data ?? []) as EventRow[]);
+    return this.hydrate((data ?? []));
   }
   async getById(id: string) {
     const { data, error } = await this.client.from("events").select("*").eq("id", id).is("deleted_at", null).maybeSingle();
     if (error) throw error;
-    return data ? (await this.hydrate([data as EventRow]))[0] ?? null : null;
+    return data ? (await this.hydrate([data]))[0] ?? null : null;
   }
   async listPublic(filters: PublicEventFilters, now = new Date()) {
     // Manager sessions can see drafts through RLS, so public queries enforce state explicitly.
@@ -46,7 +42,7 @@ export class EventRepository {
     }
     const { data, error } = await query;
     if (error) throw error;
-    return (await this.hydrate((data ?? []) as EventRow[])).filter(event => event.translations.some(item => item.locale === filters.locale));
+    return (await this.hydrate((data ?? []))).filter(event => event.translations.some(item => item.locale === filters.locale));
   }
   async getPublicBySlug(locale: ScientistLocale, slug: string) {
     const translation = await this.client.from("event_translations").select("event_id").eq("locale", locale).eq("slug", slug).maybeSingle();
@@ -55,12 +51,13 @@ export class EventRepository {
     const { data, error } = await this.client.from("events").select("*").eq("id", translation.data.event_id)
       .in("status", ["published", "cancelled"]).is("deleted_at", null).maybeSingle();
     if (error) throw error;
-    return data ? (await this.hydrate([data as EventRow]))[0] ?? null : null;
+    return data ? (await this.hydrate([data]))[0] ?? null : null;
   }
   async save(actor: string, input: EventInput, id: string | null = null) {
     const { data, error } = await this.client.rpc("save_event", { p_id: id, p_actor: actor, p_input: input });
     if (error) throw error;
-    return data as string;
+    if (data === null) throw new Error("Missing database result");
+    return data;
   }
   async changeState(actor: string, id: string, status: EventStatus | null, remove = false) {
     const { error } = await this.client.rpc("change_event_state", { p_id: id, p_actor: actor, p_status: status, p_delete: remove });
@@ -72,7 +69,7 @@ export class EventRepository {
     if (locale) query = query.eq("locale", locale);
     const { data, error } = await query;
     if (error) throw error;
-    return [...new Set((data ?? []).map(item => item.event_id as string))];
+    return [...new Set((data ?? []).map(item => item.event_id))];
   }
   private async hydrate(rows: EventRow[]): Promise<ScienceEvent[]> {
     if (!rows.length) return [];
@@ -92,7 +89,7 @@ export class EventRepository {
         registrationUrl: row.registration_url, externalUrl: row.external_url, coverMediaId: row.cover_media_id,
         coverUrl: cover ? this.client.storage.from(cover.storage_bucket).getPublicUrl(cover.storage_path).data.publicUrl : null,
         updatedAt: row.updated_at,
-        translations: ((translations.data ?? []) as TranslationRow[]).filter(item => item.event_id === row.id)
+        translations: (translations.data ?? []).filter(item => item.event_id === row.id)
           .map(item => ({ locale: item.locale, title: item.title, slug: item.slug, summary: item.summary,
             description: item.description, organizer: item.organizer, location: item.location })),
       };

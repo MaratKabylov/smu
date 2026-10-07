@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 import { getPublicSupabaseEnv, isSupabaseConfigured } from "@/lib/env";
 import { legacyPublicUrl } from "@/lib/i18n/locales";
+import type { Database } from "@/types/database.types";
 
 export async function proxy(request: NextRequest) {
   const legacy = legacyPublicUrl(new URL(request.url));
@@ -14,7 +15,7 @@ export async function proxy(request: NextRequest) {
   }
 
   const env = getPublicSupabaseEnv();
-  const supabase = createServerClient(
+  const supabase = createServerClient<Database>(
     env.NEXT_PUBLIC_SUPABASE_URL,
     env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
     {

@@ -1,11 +1,12 @@
+import type { Tables } from "@/types/database.types";
 import "server-only";
 import { loadArticleCredits, taxonomyColumns, mapTaxonomyItem } from "./article-credits.repository";
-import type { RichTextNode } from "@/lib/articles/rich-text";
+import { richTextDocumentSchema } from "@/lib/articles/rich-text";
 
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { DatabaseClient } from "@/lib/supabase/database";
+import { requiredFields } from "@/lib/supabase/database";
 import type { PublicArticleFilters } from "@/lib/validation/article";
 import type {
-  ArticleContentType,
   ArticleLocale,
   ArticleTaxonomy,
   ArticleTaxonomyItem,
@@ -15,40 +16,12 @@ import type {
   PublicArticleTranslation,
 } from "@/types/domain/article";
 
-type TaxonomyRow = {
-  id: string;
-  slug: string;
-  name_ru: string;
-  name_kk: string;
-  is_active: boolean;
-};
+type TaxonomyRow = Pick<Tables<"article_categories">, "id" | "slug" | "name_ru" | "name_kk" | "is_active">;
 
-type ArticleRow = {
-  id: string;
-  category_id: string | null;
-  cover_media_id: string | null;
-  content_type: ArticleContentType;
-  published_at: string;
-};
+type TranslationRow = Pick<Tables<"article_translations">, "article_id" | "locale" | "title" | "slug" | "excerpt">;
 
-type TranslationRow = {
-  article_id: string;
-  locale: ArticleLocale;
-  title: string;
-  slug: string;
-  excerpt: string;
-};
-
-type CoverRow = {
-  id: string;
-  storage_bucket: string;
-  storage_path: string;
-  alt_ru: string | null;
-  alt_kk: string | null;
-  caption_ru: string | null;
-  caption_kk: string | null;
-};
-type CoverTranslationRow = { media_asset_id: string; alt_text: string | null; caption: string | null };
+type CoverRow = Pick<Tables<"media_assets">, "id" | "storage_bucket" | "storage_path" | "alt_ru" | "alt_kk" | "caption_ru" | "caption_kk">;
+type CoverTranslationRow = Pick<Tables<"media_asset_translations">, "media_asset_id" | "alt_text" | "caption">;
 
 const publicMediaBuckets = [
   "avatars",
@@ -77,7 +50,7 @@ function mapTranslation(row: TranslationRow): PublicArticleTranslation {
 }
 
 export class PublicArticleRepository {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(private readonly client: DatabaseClient) {}
 
   async listTaxonomy(): Promise<ArticleTaxonomy> {
     const [categoriesResult, tagsResult, typesResult, categoryTranslations, tagTranslations, typeTranslations] = await Promise.all([
@@ -103,15 +76,15 @@ export class PublicArticleRepository {
     if (tagTranslations.error) throw tagTranslations.error;
     if (typeTranslations.error) throw typeTranslations.error;
 
-    const translated = (item: ArticleTaxonomyItem, values: unknown, key: "category_id" | "tag_id" | "type_id") => ({
+    const translated = <Key extends "category_id" | "tag_id" | "type_id">(item: ArticleTaxonomyItem, values: Array<{ name: string } & Record<Key, string>> | null, key: Key) => ({
       ...item,
-      nameEn: ((values ?? []) as Array<Record<string, string>>).find(row => row[key] === item.id)?.name ?? null,
+      nameEn: (values ?? []).find(row => row[key] === item.id)?.name ?? null,
     });
 
     return {
-      categories: ((categoriesResult.data ?? []) as TaxonomyRow[]).map(row => translated(mapTaxonomy(row), categoryTranslations.data, "category_id")),
-      tags: ((tagsResult.data ?? []) as TaxonomyRow[]).map(row => translated(mapTaxonomy(row), tagTranslations.data, "tag_id")),
-      contentTypes: ((typesResult.data ?? []) as TaxonomyRow[]).map(row => translated(mapTaxonomyItem(row), typeTranslations.data, "type_id")), authors: [],
+      categories: (categoriesResult.data ?? []).map(row => translated(mapTaxonomy(row), categoryTranslations.data, "category_id")),
+      tags: (tagsResult.data ?? []).map(row => translated(mapTaxonomy(row), tagTranslations.data, "tag_id")),
+      contentTypes: (typesResult.data ?? []).map(row => translated(mapTaxonomyItem(row), typeTranslations.data, "type_id")), authors: [],
     };
   }
 
@@ -136,12 +109,12 @@ export class PublicArticleRepository {
     }
     const translationsResult = await translationsQuery;
     if (translationsResult.error) throw translationsResult.error;
-    let translations = (translationsResult.data ?? []) as TranslationRow[];
+    let translations = (translationsResult.data ?? []);
 
     if (category) {
       const { data, error } = await this.client.from("article_category_links").select("article_id").eq("category_id", category.id);
       if (error) throw error;
-      const ids = new Set(((data ?? []) as Array<{ article_id: string }>).map(row => row.article_id));
+      const ids = new Set(((data ?? [])).map(row => row.article_id));
       translations = translations.filter(row => ids.has(row.article_id));
     }
     if (tag) {
@@ -151,7 +124,7 @@ export class PublicArticleRepository {
         .eq("tag_id", tag.id);
       if (error) throw error;
       const taggedIds = new Set(
-        ((data ?? []) as Array<{ article_id: string }>).map((row) => row.article_id),
+        ((data ?? [])).map((row) => row.article_id),
       );
       translations = translations.filter((row) => taggedIds.has(row.article_id));
     }
@@ -169,7 +142,7 @@ export class PublicArticleRepository {
 
     const { data, error } = await articlesQuery;
     if (error) throw error;
-    const articles = (data ?? []) as ArticleRow[];
+    const articles = (data ?? []).map(row => requiredFields(row, "published_at"));
     if (articles.length === 0) return [];
 
     const articleIds = articles.map((article) => article.id);
@@ -201,12 +174,9 @@ export class PublicArticleRepository {
     if (coversResult.error) throw coversResult.error;
     if (coverTranslationsResult.error) throw coverTranslationsResult.error;
 
-    const links = (linksResult.data ?? []) as Array<{
-      article_id: string;
-      tag_id: string;
-    }>;
-    const covers = (coversResult.data ?? []) as CoverRow[];
-    const coverTranslations = (coverTranslationsResult.data ?? []) as CoverTranslationRow[];
+    const links = (linksResult.data ?? []);
+    const covers = (coversResult.data ?? []);
+    const coverTranslations = (coverTranslationsResult.data ?? []);
 
     return articles.flatMap((article) => {
       const translation = translations.find((item) => item.article_id === article.id);
@@ -251,12 +221,7 @@ export class PublicArticleRepository {
     if (translationError) throw translationError;
     if (!translationData) return null;
 
-    const translation = translationData as TranslationRow & {
-      body: string;
-      content_json: RichTextNode | null;
-      seo_title: string | null;
-      seo_description: string | null;
-    };
+    const translation = translationData;
     const { data: articleData, error: articleError } = await this.client
       .from("articles")
       .select("id, category_id, cover_media_id, content_type, published_at")
@@ -267,7 +232,7 @@ export class PublicArticleRepository {
       .maybeSingle();
     if (articleError) throw articleError;
     if (!articleData) return null;
-    const article = articleData as ArticleRow;
+    const article = requiredFields(articleData, "published_at");
 
     const [alternateResult, taxonomy, linksResult, coverResult, coverTranslationResult, credits] = await Promise.all([
       this.client
@@ -302,7 +267,7 @@ export class PublicArticleRepository {
     if (coverResult.error) throw coverResult.error;
     if (coverTranslationResult.error) throw coverTranslationResult.error;
 
-    const links = (linksResult.data ?? []) as Array<{ tag_id: string }>;
+    const links = (linksResult.data ?? []);
     return {
       id: article.id,
       categories: credits.get(article.id)?.categories ?? [], authors: credits.get(article.id)?.authors ?? [],
@@ -315,15 +280,15 @@ export class PublicArticleRepository {
         const item = taxonomy.tags.find((candidate) => candidate.id === link.tag_id);
         return item ? [item] : [];
       }),
-      cover: this.mapCover((coverResult.data ?? undefined) as CoverRow | undefined, (coverTranslationResult.data ?? undefined) as CoverTranslationRow | undefined),
+      cover: this.mapCover(coverResult.data ?? undefined, coverTranslationResult.data ?? undefined),
       translation: {
         ...mapTranslation(translation),
         body: translation.body,
-        contentJson: translation.content_json,
+        contentJson: translation.content_json === null ? null : richTextDocumentSchema.parse(translation.content_json),
         seoTitle: translation.seo_title,
         seoDescription: translation.seo_description,
       },
-      alternateTranslations: ((alternateResult.data ?? []) as TranslationRow[]).map(mapTranslation),
+      alternateTranslations: (alternateResult.data ?? []).map(mapTranslation),
     };
   }
 

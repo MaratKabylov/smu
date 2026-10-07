@@ -1,10 +1,10 @@
 import "server-only";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { DatabaseClient } from "@/lib/supabase/database";
 import type { RichTextImage } from "@/components/articles/RichTextContent";
 import type { RichTextNode } from "@/lib/articles/rich-text";
 import type { ArticleLocale } from "@/types/domain/article";
 
-export async function getArticleImages(client: SupabaseClient, content: RichTextNode | null | undefined, locale: ArticleLocale): Promise<RichTextImage[]> {
+export async function getArticleImages(client: DatabaseClient, content: RichTextNode | null | undefined, locale: ArticleLocale): Promise<RichTextImage[]> {
   const ids = new Set<string>();
   function visit(node: RichTextNode, depth: number) {
     if (depth > 20) return;

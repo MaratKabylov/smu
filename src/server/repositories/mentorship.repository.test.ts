@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { DatabaseClient } from "@/lib/supabase/database";
 vi.mock("server-only", () => ({}));
 const taxonomy = vi.hoisted(() => ({ fields: [{ id: "field", slug: "science", nameRu: "Наука", nameKk: "Ғылым", isActive: true }], organizations: [] }));
 vi.mock("@/server/repositories/scientist.repository", () => ({ ScientistRepository: class { async listTaxonomy() { return taxonomy; } } }));
@@ -17,7 +17,7 @@ function mockClient(rows: Record<string, unknown[]> = {}) {
     query.then = (resolve: (value: unknown) => unknown) => { calls.push({ table, operation: "execute", args: [] }); return Promise.resolve({ data: rows[table] ?? [], error: null }).then(resolve); };
     return query;
   } };
-  return { client: client as unknown as SupabaseClient, calls };
+  return { client: client as unknown as DatabaseClient, calls };
 }
 const offer = { id: "offer", scientist_id: "mentor", field_id: "field", status: "published", capacity: 3, format: "online" };
 const translations = [{ offer_id: "offer", locale: "ru", slug: "mentor", title: "Research mentoring", summary: "Summary", description: "Description" }];

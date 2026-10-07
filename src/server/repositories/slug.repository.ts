@@ -1,10 +1,10 @@
 import "server-only";
 
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { DatabaseClient } from "@/lib/supabase/database";
 import type { Locale } from "@/lib/i18n/locales";
 
 export async function getPublicSlugRedirect(
-  client: SupabaseClient,
+  client: DatabaseClient,
   entityType: "article" | "scientist",
   locale: Locale,
   oldSlug: string,
@@ -25,9 +25,10 @@ export async function getPublicSlugRedirect(
   if (entityError) throw entityError;
   if (!entity) return null;
 
-  const { data: translation, error: translationError } = await client
-    .from(entityType === "article" ? "article_translations" : "scientist_profile_translations")
-    .select("slug").eq(entityType === "article" ? "article_id" : "scientist_profile_id", entity.id)
+  const translationQuery = entityType === "article"
+    ? client.from("article_translations").select("slug").eq("article_id", entity.id)
+    : client.from("scientist_profile_translations").select("slug").eq("scientist_profile_id", entity.id);
+  const { data: translation, error: translationError } = await translationQuery
     .eq("locale", locale).maybeSingle();
   if (translationError) throw translationError;
   return translation && translation.slug !== oldSlug ? translation.slug : null;

@@ -1,18 +1,16 @@
+import type { Tables } from "@/types/database.types";
 import "server-only";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { DatabaseClient } from "@/lib/supabase/database";
 import type { MentorshipApplicationInput, MentorshipFilters, MentorshipInput } from "@/lib/validation/mentorship";
 import { ScientistRepository } from "./scientist.repository";
 import { ScienceWorkRepository } from "./science-work.repository";
-import type { ApplicationStatus, MentorshipApplication, MentorshipFormat, MentorshipOffer, MentorshipStatus, MentorshipTranslation } from "@/types/domain/mentorship";
+import type { ApplicationStatus, MentorshipApplication, MentorshipOffer, MentorshipStatus } from "@/types/domain/mentorship";
 import type { ScientistLocale } from "@/types/domain/scientist";
 
-type OfferRow = { id: string; scientist_id: string; field_id: string; format: MentorshipFormat; capacity: number; status: MentorshipStatus; updated_at: string };
-type TranslationRow = MentorshipTranslation & { offer_id: string };
-type MentorRow = { scientist_profile_id: string; locale: ScientistLocale; full_name: string; slug: string };
-type ApplicationRow = { id: string; offer_id: string; locale: ScientistLocale; full_name: string; email: string; motivation: string; status: ApplicationStatus; manager_note: string; created_at: string; consent_at: string };
+type OfferRow = Pick<Tables<"mentorship_offers">, "id" | "scientist_id" | "field_id" | "format" | "capacity" | "status" | "updated_at">;
 
 export class MentorshipRepository {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(private readonly client: DatabaseClient) {}
 
   options() { return new ScienceWorkRepository(this.client).options(); }
 
@@ -21,12 +19,12 @@ export class MentorshipRepository {
     if (status !== "all") query = query.eq("status", status);
     const { data, error } = await query;
     if (error) throw error;
-    return this.hydrate((data ?? []) as OfferRow[]);
+    return this.hydrate((data ?? []));
   }
   async getById(id: string) {
     const { data, error } = await this.client.from("mentorship_offers").select("*").eq("id", id).is("deleted_at", null).maybeSingle();
     if (error) throw error;
-    return data ? (await this.hydrate([data as OfferRow]))[0] ?? null : null;
+    return data ? (await this.hydrate([data]))[0] ?? null : null;
   }
   async listPublic(filters: MentorshipFilters) {
     const taxonomy = await new ScientistRepository(this.client).listTaxonomy();
@@ -41,13 +39,13 @@ export class MentorshipRepository {
       const result = await this.client.from("mentorship_offer_translations").select("offer_id").eq("locale", filters.locale)
         .ilike("title", "%" + filters.query.replace(/[\\%_]/g, character => "\\" + character) + "%");
       if (result.error) throw result.error;
-      const ids = (result.data ?? []).map(item => item.offer_id as string);
+      const ids = (result.data ?? []).map(item => item.offer_id);
       if (!ids.length) return { offers: [], taxonomy };
       query = query.in("id", ids);
     }
     const { data, error } = await query;
     if (error) throw error;
-    const offers = (await this.hydrate((data ?? []) as OfferRow[], true)).filter(item => item.translations.some(t => t.locale === filters.locale) && item.mentor.some(t => t.locale === filters.locale));
+    const offers = (await this.hydrate((data ?? []), true)).filter(item => item.translations.some(t => t.locale === filters.locale) && item.mentor.some(t => t.locale === filters.locale));
     return { offers, taxonomy };
   }
   async getPublicBySlug(locale: ScientistLocale, slug: string) {
@@ -57,7 +55,7 @@ export class MentorshipRepository {
     // Explicit filtering also applies when a manager visits with an authenticated session.
     const result = await this.client.from("mentorship_offers").select("*").eq("id", translation.data.offer_id).eq("status", "published").is("deleted_at", null).maybeSingle();
     if (result.error) throw result.error;
-    const offer = result.data ? (await this.hydrate([result.data as OfferRow], true))[0] : null;
+    const offer = result.data ? (await this.hydrate([result.data], true))[0] : null;
     return offer?.mentor.some(item => item.locale === locale) ? offer : null;
   }
   async applications(offerId?: string, status: ApplicationStatus | "all" = "all"): Promise<MentorshipApplication[]> {
@@ -66,13 +64,14 @@ export class MentorshipRepository {
     if (status !== "all") query = query.eq("status", status);
     const { data, error } = await query;
     if (error) throw error;
-    return ((data ?? []) as ApplicationRow[]).map(row => ({ id: row.id, offerId: row.offer_id, locale: row.locale, fullName: row.full_name,
+    return ((data ?? [])).map(row => ({ id: row.id, offerId: row.offer_id, locale: row.locale, fullName: row.full_name,
       email: row.email, motivation: row.motivation, status: row.status, managerNote: row.manager_note, createdAt: row.created_at, consentAt: row.consent_at }));
   }
   async save(actor: string, input: MentorshipInput, id: string | null) {
     const { data, error } = await this.client.rpc("save_mentorship_offer", { p_id: id, p_actor: actor, p_input: input });
     if (error) throw error;
-    return data as string;
+    if (data === null) throw new Error("Missing database result");
+    return data;
   }
   async changeState(actor: string, id: string, status: MentorshipStatus | null, remove = false) {
     const { error } = await this.client.rpc("change_mentorship_offer_state", { p_id: id, p_actor: actor, p_status: status, p_delete: remove });
@@ -93,7 +92,7 @@ export class MentorshipRepository {
     if (publicOnly) {
       const scientists = await this.client.from("scientist_profiles").select("id").in("id", [...new Set(rows.map(row => row.scientist_id))]).eq("status", "verified").is("deleted_at", null);
       if (scientists.error) throw scientists.error;
-      const ids = new Set((scientists.data ?? []).map(item => item.id as string));
+      const ids = new Set((scientists.data ?? []).map(item => item.id));
       visibleRows = rows.filter(row => ids.has(row.scientist_id));
     }
     if (!visibleRows.length) return [];
@@ -106,8 +105,8 @@ export class MentorshipRepository {
     if (mentors.error) throw mentors.error;
     return visibleRows.filter(row => !publicOnly || taxonomy.fields.some(field => field.id === row.field_id)).map(row => ({
       id: row.id, scientistId: row.scientist_id, fieldId: row.field_id, format: row.format, capacity: row.capacity, status: row.status, updatedAt: row.updated_at,
-      translations: ((translations.data ?? []) as TranslationRow[]).filter(t => t.offer_id === row.id).map(t => ({ locale: t.locale, title: t.title, slug: t.slug, summary: t.summary, description: t.description })),
-      mentor: ((mentors.data ?? []) as MentorRow[]).filter(t => t.scientist_profile_id === row.scientist_id).map(t => ({ locale: t.locale, fullName: t.full_name, slug: t.slug })),
+      translations: (translations.data ?? []).filter(t => t.offer_id === row.id).map(t => ({ locale: t.locale, title: t.title, slug: t.slug, summary: t.summary, description: t.description })),
+      mentor: (mentors.data ?? []).filter(t => t.scientist_profile_id === row.scientist_id).map(t => ({ locale: t.locale, fullName: t.full_name, slug: t.slug })),
       field: taxonomy.fields.find(field => field.id === row.field_id) ?? null,
     }));
   }

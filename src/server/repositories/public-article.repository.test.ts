@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { DatabaseClient } from "@/lib/supabase/database";
 vi.mock("server-only", () => ({}));
 import { PublicArticleRepository } from "./public-article.repository";
 import type { ArticleTaxonomy } from "@/types/domain/article";
@@ -30,7 +30,7 @@ function clientWith(rows: Record<string, Row[]>) {
       return query;
     },
   };
-  return { client: client as unknown as SupabaseClient, calls };
+  return { client: client as unknown as DatabaseClient, calls };
 }
 const category = (id: string, slug: string) => ({ id, slug, nameRu: slug, nameKk: `KK ${slug}`, isActive: true });
 const taxonomy: ArticleTaxonomy = { categories: [category("first", "science"), category("second", "people")], tags: [], authors: [], contentTypes: [category("report", "report")] };

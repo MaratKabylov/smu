@@ -1,13 +1,13 @@
+import type { Tables } from "@/types/database.types";
+import { z } from "zod";
 import "server-only";
 import { ArticleRelationsRepository } from "./article-relations.repository";
 import { loadArticleCredits, mapAuthor, mapTaxonomyItem, authorPublicColumns, taxonomyColumns, type AuthorRow } from "./article-credits.repository";
-import type { RichTextNode } from "@/lib/articles/rich-text";
+import { richTextDocumentSchema } from "@/lib/articles/rich-text";
 
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { callDatabaseRpc, databaseJson, requiredFields, type DatabaseClient } from "@/lib/supabase/database";
 import type {
   Article,
-  ArticleContentType,
-  ArticleLocale,
   ArticleReview,
   ArticleReviewDecision,
   ArticleStatus,
@@ -21,44 +21,11 @@ import type {
   TaxonomyInput, ArticleAuthorInput, TaxonomyUpdateInput,
 } from "@/lib/validation/article";
 
-type ArticleRow = {
-  id: string;
-  author_id: string;
-  scientific_reviewer_id: string | null;
-  requires_scientific_review: boolean;
-  content_version: number;
-  approved_version: number | null;
-  category_id: string | null;
-  cover_media_id: string | null;
-  content_type: ArticleContentType;
-  status: ArticleStatus;
-  published_at: string | null;
-  scheduled_at: string | null;
-  created_at: string;
-  updated_at: string;
-  deleted_at: string | null;
-};
+type ArticleRow = Pick<Tables<"articles">, "id" | "author_id" | "scientific_reviewer_id" | "requires_scientific_review" | "content_version" | "approved_version" | "category_id" | "cover_media_id" | "content_type" | "status" | "published_at" | "scheduled_at" | "created_at" | "updated_at" | "deleted_at">;
 
-type TranslationRow = {
-  id: string;
-  article_id: string;
-  locale: ArticleLocale;
-  title: string;
-  slug: string;
-  excerpt: string;
-  body: string;
-  content_json: RichTextNode | null;
-  seo_title: string | null;
-  seo_description: string | null;
-};
+type TranslationRow = Pick<Tables<"article_translations">, "id" | "article_id" | "locale" | "title" | "slug" | "excerpt" | "body" | "content_json" | "seo_title" | "seo_description">;
 
-type TaxonomyRow = {
-  id: string;
-  slug: string;
-  name_ru: string;
-  name_kk: string;
-  is_active: boolean;
-};
+type TaxonomyRow = Pick<Tables<"article_categories">, "id" | "slug" | "name_ru" | "name_kk" | "is_active">;
 
 function mapTaxonomy(row: TaxonomyRow): ArticleTaxonomyItem {
   return {
@@ -78,14 +45,14 @@ function mapTranslation(row: TranslationRow): ArticleTranslation {
     slug: row.slug,
     excerpt: row.excerpt,
     body: row.body,
-    contentJson: row.content_json,
+    contentJson: row.content_json === null ? null : richTextDocumentSchema.parse(row.content_json),
     seoTitle: row.seo_title,
     seoDescription: row.seo_description,
   };
 }
 
 export class ArticleRepository {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(private readonly client: DatabaseClient) {}
 
   async list(filters: ArticleListFilters): Promise<Article[]> {
     let matchingIds: string[] | null = null;
@@ -97,7 +64,7 @@ export class ArticleRepository {
       if (error) throw error;
       matchingIds = [
         ...new Set(
-          ((data ?? []) as Array<{ article_id: string }>).map(
+          ((data ?? [])).map(
             (row) => row.article_id,
           ),
         ),
@@ -117,7 +84,7 @@ export class ArticleRepository {
 
     const { data, error } = await query;
     if (error) throw error;
-    return this.hydrate((data ?? []) as ArticleRow[]);
+    return this.hydrate((data ?? []));
   }
 
   async getById(id: string): Promise<Article | null> {
@@ -129,7 +96,7 @@ export class ArticleRepository {
 
     if (error) throw error;
     if (!data) return null;
-    const [article] = await this.hydrate([data as ArticleRow]);
+    const [article] = await this.hydrate([data]);
     return article ?? null;
   }
 
@@ -170,77 +137,81 @@ export class ArticleRepository {
     if (typeTranslations.error) throw typeTranslations.error;
     if (authorTranslations.error) throw authorTranslations.error;
 
-    const translatedTaxonomy = (row: TaxonomyRow, values: unknown, key: "category_id" | "tag_id" | "type_id") => {
-      const translation = ((values ?? []) as Array<Record<string, string>>).find(item => item[key] === row.id);
+    const translatedTaxonomy = <Key extends "category_id" | "tag_id" | "type_id">(row: TaxonomyRow, values: Array<{ name: string } & Record<Key, string>> | null, key: Key) => {
+      const translation = (values ?? []).find(item => item[key] === row.id);
       return { ...mapTaxonomyItem(row), nameEn: translation?.name ?? null };
     };
     const translatedAuthor = (row: AuthorRow) => {
-      const translation = ((authorTranslations.data ?? []) as Array<{ author_id: string; name: string; bio: string | null }>).find(item => item.author_id === row.id);
+      const translation = (authorTranslations.data ?? []).find(item => item.author_id === row.id);
       return { ...mapAuthor(row), nameEn: translation?.name ?? null, bioEn: translation?.bio ?? null };
     };
 
     return {
-      categories: ((categoriesResult.data ?? []) as TaxonomyRow[]).map(row => translatedTaxonomy(row, categoryTranslations.data, "category_id")),
-      tags: ((tagsResult.data ?? []) as TaxonomyRow[]).map(row => translatedTaxonomy(row, tagTranslations.data, "tag_id")),
-      contentTypes: ((typesResult.data ?? []) as TaxonomyRow[]).map(row => translatedTaxonomy(row, typeTranslations.data, "type_id")),
-      authors: ((authorsResult.data ?? []) as AuthorRow[]).map(translatedAuthor),
+      categories: (categoriesResult.data ?? []).map(row => translatedTaxonomy(row, categoryTranslations.data, "category_id")),
+      tags: (tagsResult.data ?? []).map(row => translatedTaxonomy(row, tagTranslations.data, "tag_id")),
+      contentTypes: (typesResult.data ?? []).map(row => translatedTaxonomy(row, typeTranslations.data, "type_id")),
+      authors: (authorsResult.data ?? []).map(translatedAuthor),
     };
   }
 
   async create(input: ArticleInput): Promise<string> {
-    return this.mutate<string>("save_article", { p_id: null, p_input: input });
+    return callDatabaseRpc(this.client, "save_article", { p_id: null, p_input: databaseJson(input) });
   }
 
   async update(id: string, input: ArticleInput) {
-    await this.mutate<string>("save_article", { p_id: id, p_input: input });
+    await callDatabaseRpc(this.client, "save_article", { p_id: id, p_input: databaseJson(input) });
   }
 
   async changeStatus(id: string, status: ArticleStatus, expectedVersion: number) {
-    await this.mutate("change_article_state", { p_id: id, p_status: status, p_delete: false, p_expected_version: expectedVersion });
+    await callDatabaseRpc(this.client, "change_article_state", { p_id: id, p_status: status, p_delete: false, p_expected_version: expectedVersion });
   }
 
   async softDelete(id: string) {
-    await this.mutate("change_article_state", { p_id: id, p_status: null, p_delete: true });
+    await callDatabaseRpc(this.client, "change_article_state", { p_id: id, p_status: null, p_delete: true });
   }
 
   async restoreDeleted(id: string, expectedDeletedAt: string) {
-    await this.mutate("restore_deleted_article", { p_id: id, p_expected_deleted_at: expectedDeletedAt });
+    await callDatabaseRpc(this.client, "restore_deleted_article", { p_id: id, p_expected_deleted_at: expectedDeletedAt });
   }
 
   async schedule(id: string, expectedVersion: number, scheduledAt: string | null, expectedScheduledAt: string | null) {
-    await this.mutate("schedule_article", {
+    await callDatabaseRpc(this.client, "schedule_article", {
       p_id: id, p_expected_version: expectedVersion,
       p_scheduled_at: scheduledAt, p_expected_scheduled_at: expectedScheduledAt,
     });
   }
 
   async createTaxonomyItem(input: TaxonomyInput) {
-    return this.mutate<string>("create_article_taxonomy", { p_input: input });
+    return callDatabaseRpc(this.client, "create_article_taxonomy", { p_input: databaseJson(input) });
   }
 
   async updateTaxonomyItem(input: TaxonomyUpdateInput) {
-    return this.mutate<string>("save_article_taxonomy", { p_id: input.id, p_input: input });
+    return callDatabaseRpc(this.client, "save_article_taxonomy", { p_id: input.id, p_input: databaseJson(input) });
   }
 
   async saveAuthor(id: string | null, input: ArticleAuthorInput) {
-    return this.mutate<string>("save_article_author", { p_id: id, p_input: input });
+    return callDatabaseRpc(this.client, "save_article_author", { p_id: id, p_input: databaseJson(input) });
   }
 
   async listAuthorProfiles() {
-    return this.mutate<Array<{ id: string; display_name: string | null }>>("list_article_author_profiles", {});
+    const rows = await callDatabaseRpc(this.client, "list_article_author_profiles", {});
+    return rows.map(row => requiredFields(row, "id"));
   }
 
   async listReviewers() {
-    const rows = await this.mutate<Array<{ id: string; display_name: string | null }>>("list_article_reviewers", {});
-    return rows.map((row) => ({ id: row.id, displayName: row.display_name ?? "Рецензент" }));
+    const rows = await callDatabaseRpc(this.client, "list_article_reviewers", {});
+    return rows.map(value => {
+      const row = requiredFields(value, "id");
+      return { id: row.id, displayName: row.display_name ?? "Рецензент" };
+    });
   }
 
   async assignReviewer(id: string, reviewerId: string | null) {
-    await this.mutate("assign_article_reviewer", { p_id: id, p_reviewer: reviewerId });
+    await callDatabaseRpc(this.client, "assign_article_reviewer", { p_id: id, p_reviewer: reviewerId });
   }
 
   async configureReview(id: string, requiresScientificReview: boolean, reviewerId: string | null) {
-    await this.mutate("configure_article_review", {
+    await callDatabaseRpc(this.client, "configure_article_review", {
       p_id: id,
       p_requires_scientific_review: requiresScientificReview,
       p_reviewer: reviewerId,
@@ -248,7 +219,7 @@ export class ArticleRepository {
   }
 
   async submitReview(id: string, expectedVersion: number, decision: ArticleReviewDecision, comment: string) {
-    return this.mutate<string>("submit_article_review", {
+    return callDatabaseRpc(this.client, "submit_article_review", {
       p_id: id,
       p_expected_version: expectedVersion,
       p_decision: decision,
@@ -257,26 +228,20 @@ export class ArticleRepository {
   }
 
   async listReviews(id: string): Promise<ArticleReview[]> {
-    const rows = await this.mutate<Array<{
-      id: string; article_id: string; content_version: number; reviewer_id: string;
-      reviewer_name: string; decision: ArticleReviewDecision; comment: string; created_at: string;
-    }>>("list_article_reviews", { p_id: id });
-    return rows.map(row => ({
-      id: row.id,
-      articleId: row.article_id,
-      contentVersion: row.content_version,
-      reviewerId: row.reviewer_id,
-      reviewerName: row.reviewer_name,
-      decision: row.decision,
-      comment: row.comment,
-      createdAt: row.created_at,
-    }));
-  }
-
-  private async mutate<T = void>(name: string, args: Record<string, unknown>): Promise<T> {
-    const { data, error } = await this.client.rpc(name, args);
-    if (error) throw error;
-    return data as T;
+    const rows = await callDatabaseRpc(this.client, "list_article_reviews", { p_id: id });
+    return rows.map(value => {
+      const row = requiredFields(value, "id", "article_id", "content_version", "reviewer_id", "reviewer_name", "comment", "created_at");
+      return {
+        id: row.id,
+        articleId: row.article_id,
+        contentVersion: row.content_version,
+        reviewerId: row.reviewer_id,
+        reviewerName: row.reviewer_name,
+        decision: z.enum(["approved", "changes_requested"]).parse(row.decision),
+        comment: row.comment,
+        createdAt: row.created_at,
+      };
+    });
   }
 
   private async hydrate(rows: ArticleRow[]): Promise<Article[]> {
@@ -319,10 +284,7 @@ export class ArticleRepository {
     if (categoriesResult.error) throw categoriesResult.error;
     if (typesResult.error) throw typesResult.error;
 
-    const links = (linksResult.data ?? []) as Array<{
-      article_id: string;
-      tag_id: string;
-    }>;
+    const links = (linksResult.data ?? []);
     const tagIds = [...new Set(links.map((link) => link.tag_id))];
     const tagsResult =
       tagIds.length > 0
@@ -333,13 +295,10 @@ export class ArticleRepository {
         : { data: [], error: null };
     if (tagsResult.error) throw tagsResult.error;
 
-    const translations = (translationsResult.data ?? []) as TranslationRow[];
-    const profiles = (profilesResult.data ?? []) as Array<{
-      id: string;
-      display_name: string | null;
-    }>;
-    const categories = (categoriesResult.data ?? []) as TaxonomyRow[];
-    const tags = (tagsResult.data ?? []) as TaxonomyRow[];
+    const translations = translationsResult.data ?? [];
+    const profiles = (profilesResult.data ?? []);
+    const categories = (categoriesResult.data ?? []);
+    const tags = (tagsResult.data ?? []);
 
     return rows.map((row) => ({
       id: row.id,
@@ -354,7 +313,7 @@ export class ArticleRepository {
         null,
       categories: credits.get(row.id)?.categories ?? [],
       authors: credits.get(row.id)?.authors ?? [],
-      contentTypeItem: ((typesResult.data ?? []) as TaxonomyRow[]).map(mapTaxonomyItem).find(item => item.slug === row.content_type) ?? null,
+      contentTypeItem: (typesResult.data ?? []).map(mapTaxonomyItem).find(item => item.slug === row.content_type) ?? null,
       categoryId: row.category_id,
       category:
         categories.find((category) => category.id === row.category_id)

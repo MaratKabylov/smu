@@ -1,19 +1,10 @@
 import "server-only";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { DatabaseClient } from "@/lib/supabase/database";
 import type { ArticleRevision, ArticleRevisionSummary, ArticleSnapshot } from "@/types/domain/article";
+import type { Tables } from "@/types/database.types";
 
-type RevisionRow = {
-  id: string;
-  article_id: string;
-  revision_number: number;
-  content_version: number;
-  reason: ArticleRevisionSummary["reason"];
-  title_ru: string;
-  title_kk: string;
-  created_by: string | null;
-  is_system: boolean;
-  creator: { display_name: string | null } | Array<{ display_name: string | null }> | null;
-  created_at: string;
+type RevisionRow = Pick<Tables<"article_revisions">, "id" | "article_id" | "revision_number" | "content_version" | "reason" | "title_ru" | "title_kk" | "created_by" | "is_system" | "created_at"> & {
+  creator: Pick<Tables<"profiles">, "display_name"> | Array<Pick<Tables<"profiles">, "display_name">> | null;
 };
 const summaryColumns = "id, article_id, revision_number, content_version, reason, title_ru, title_kk, created_by, is_system, created_at, creator:profiles!article_revisions_created_by_fkey(display_name)";
 function summary(row: RevisionRow): ArticleRevisionSummary {
@@ -27,7 +18,7 @@ function summary(row: RevisionRow): ArticleRevisionSummary {
 }
 
 export class ArticleRevisionRepository {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(private readonly client: DatabaseClient) {}
 
   async list(articleId: string, page: number): Promise<{ revisions: ArticleRevisionSummary[]; total: number }> {
     const pageSize = 20;
@@ -35,7 +26,7 @@ export class ArticleRevisionRepository {
       .select(summaryColumns, { count: "exact" }).eq("article_id", articleId)
       .order("revision_number", { ascending: false }).range((page - 1) * pageSize, page * pageSize - 1);
     if (error) throw error;
-    return { revisions: ((data ?? []) as RevisionRow[]).map(summary), total: count ?? 0 };
+    return { revisions: ((data ?? [])).map(summary), total: count ?? 0 };
   }
 
   async get(articleId: string, revisionId: string): Promise<ArticleRevision | null> {
@@ -43,14 +34,14 @@ export class ArticleRevisionRepository {
       .select(`${summaryColumns}, snapshot`).eq("article_id", articleId).eq("id", revisionId).maybeSingle();
     if (error) throw error;
     if (!data) return null;
-    const row = data as RevisionRow & { snapshot: ArticleSnapshot };
-    return { ...summary(row), snapshot: row.snapshot };
+    return { ...summary(data), snapshot: data.snapshot as ArticleSnapshot };
   }
 
   async create(articleId: string, expectedVersion: number): Promise<string> {
     const { data, error } = await this.client.rpc("create_article_revision", { p_id: articleId, p_expected_version: expectedVersion });
     if (error) throw error;
-    return data as string;
+    if (data === null) throw new Error("Missing revision ID");
+    return data;
   }
 
   async restore(articleId: string, revisionId: string, expectedVersion: number): Promise<number> {
@@ -58,6 +49,7 @@ export class ArticleRevisionRepository {
       p_id: articleId, p_revision: revisionId, p_expected_version: expectedVersion,
     });
     if (error) throw error;
-    return data as number;
+    if (data === null) throw new Error("Missing restored content version");
+    return data;
   }
 }
