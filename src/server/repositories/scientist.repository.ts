@@ -339,8 +339,7 @@ export class PublicScientistRepository {
       .from("scientist_profile_translations")
       .select("*")
       .eq("scientist_profile_id", profile.id)
-      .neq("locale", locale)
-      .maybeSingle();
+      .neq("locale", locale);
     if (alternateError) throw alternateError;
     return {
       id: profile.id,
@@ -351,7 +350,7 @@ export class PublicScientistRepository {
       publicEmail: profile.publicEmail,
       orcid: profile.orcid,
       scholarUrl: profile.scholarUrl,
-      alternateTranslation: alternateData ? mapTranslation(alternateData as TranslationRow) : null,
+      alternateTranslations: ((alternateData ?? []) as TranslationRow[]).map(mapTranslation),
     };
   }
 }

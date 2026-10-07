@@ -19,9 +19,9 @@ export function PublicArticleCard({
   const categoryName = article.category
     ? locale === "ru"
       ? article.category.nameRu
-      : article.category.nameKk
+      : locale === "en" ? article.category.nameEn ?? article.category.nameRu : article.category.nameKk
     : null;
-  const date = new Intl.DateTimeFormat(locale === "ru" ? "ru-RU" : "kk-KZ", {
+  const date = new Intl.DateTimeFormat(locale === "ru" ? "ru-RU" : locale === "en" ? "en-GB" : "kk-KZ", {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -29,7 +29,7 @@ export function PublicArticleCard({
   const alt = article.cover
     ? locale === "ru"
       ? article.cover.altRu
-      : article.cover.altKk
+      : locale === "en" ? article.cover.altEn ?? article.cover.altRu : article.cover.altKk
     : null;
 
   return (
@@ -59,7 +59,7 @@ export function PublicArticleCard({
         <p>{article.translation.excerpt}</p>
         <ArticleCredits authors={article.authors} locale={locale} />
         <Link className="public-card-link" href={`/${locale}/journal/${article.translation.slug}`}>
-          {locale === "ru" ? "Читать материал" : "Материалды оқу"}
+          {locale === "ru" ? "Читать материал" : locale === "en" ? "Read article" : "Материалды оқу"}
           <ArrowUpRight aria-hidden="true" />
         </Link>
       </div>

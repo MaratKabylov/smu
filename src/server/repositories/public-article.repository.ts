@@ -48,6 +48,7 @@ type CoverRow = {
   caption_ru: string | null;
   caption_kk: string | null;
 };
+type CoverTranslationRow = { media_asset_id: string; alt_text: string | null; caption: string | null };
 
 const publicMediaBuckets = [
   "avatars",
@@ -175,7 +176,7 @@ export class PublicArticleRepository {
     const coverIds = articles.flatMap((article) =>
       article.cover_media_id ? [article.cover_media_id] : [],
     );
-    const [linksResult, coversResult, credits] = await Promise.all([
+    const [linksResult, coversResult, coverTranslationsResult, credits] = await Promise.all([
       this.client
         .from("article_tag_links")
         .select("article_id, tag_id")
@@ -191,16 +192,21 @@ export class PublicArticleRepository {
             .is("deleted_at", null)
             .in("storage_bucket", publicMediaBuckets)
         : Promise.resolve({ data: [], error: null }),
+      coverIds.length > 0
+        ? this.client.from("media_asset_translations").select("media_asset_id, alt_text, caption").eq("locale", "en").in("media_asset_id", coverIds)
+        : Promise.resolve({ data: [], error: null }),
       loadArticleCredits(this.client, articleIds),
     ]);
     if (linksResult.error) throw linksResult.error;
     if (coversResult.error) throw coversResult.error;
+    if (coverTranslationsResult.error) throw coverTranslationsResult.error;
 
     const links = (linksResult.data ?? []) as Array<{
       article_id: string;
       tag_id: string;
     }>;
     const covers = (coversResult.data ?? []) as CoverRow[];
+    const coverTranslations = (coverTranslationsResult.data ?? []) as CoverTranslationRow[];
 
     return articles.flatMap((article) => {
       const translation = translations.find((item) => item.article_id === article.id);
@@ -222,6 +228,7 @@ export class PublicArticleRepository {
             }),
           cover: this.mapCover(
             covers.find((cover) => cover.id === article.cover_media_id),
+            coverTranslations.find(item => item.media_asset_id === article.cover_media_id),
           ),
           translation: mapTranslation(translation),
         },
@@ -262,13 +269,12 @@ export class PublicArticleRepository {
     if (!articleData) return null;
     const article = articleData as ArticleRow;
 
-    const [alternateResult, taxonomy, linksResult, coverResult, credits] = await Promise.all([
+    const [alternateResult, taxonomy, linksResult, coverResult, coverTranslationResult, credits] = await Promise.all([
       this.client
         .from("article_translations")
         .select("article_id, locale, title, slug, excerpt")
         .eq("article_id", article.id)
-        .neq("locale", locale)
-        .maybeSingle(),
+        .neq("locale", locale),
       this.listTaxonomy(),
       this.client
         .from("article_tag_links")
@@ -286,11 +292,15 @@ export class PublicArticleRepository {
             .in("storage_bucket", publicMediaBuckets)
             .maybeSingle()
         : Promise.resolve({ data: null, error: null }),
+      article.cover_media_id
+        ? this.client.from("media_asset_translations").select("media_asset_id, alt_text, caption").eq("media_asset_id", article.cover_media_id).eq("locale", "en").maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
       loadArticleCredits(this.client, [article.id]),
     ]);
     if (alternateResult.error) throw alternateResult.error;
     if (linksResult.error) throw linksResult.error;
     if (coverResult.error) throw coverResult.error;
+    if (coverTranslationResult.error) throw coverTranslationResult.error;
 
     const links = (linksResult.data ?? []) as Array<{ tag_id: string }>;
     return {
@@ -305,7 +315,7 @@ export class PublicArticleRepository {
         const item = taxonomy.tags.find((candidate) => candidate.id === link.tag_id);
         return item ? [item] : [];
       }),
-      cover: this.mapCover((coverResult.data ?? undefined) as CoverRow | undefined),
+      cover: this.mapCover((coverResult.data ?? undefined) as CoverRow | undefined, (coverTranslationResult.data ?? undefined) as CoverTranslationRow | undefined),
       translation: {
         ...mapTranslation(translation),
         body: translation.body,
@@ -313,13 +323,11 @@ export class PublicArticleRepository {
         seoTitle: translation.seo_title,
         seoDescription: translation.seo_description,
       },
-      alternateTranslation: alternateResult.data
-        ? mapTranslation(alternateResult.data as TranslationRow)
-        : null,
+      alternateTranslations: ((alternateResult.data ?? []) as TranslationRow[]).map(mapTranslation),
     };
   }
 
-  private mapCover(row?: CoverRow): PublicArticleCover | null {
+  private mapCover(row?: CoverRow, en?: CoverTranslationRow): PublicArticleCover | null {
     if (!row) return null;
     const { data } = this.client.storage
       .from(row.storage_bucket)
@@ -328,8 +336,10 @@ export class PublicArticleRepository {
       url: data.publicUrl,
       altRu: row.alt_ru,
       altKk: row.alt_kk,
+      altEn: en?.alt_text ?? null,
       captionRu: row.caption_ru,
       captionKk: row.caption_kk,
+      captionEn: en?.caption ?? null,
     };
   }
 }

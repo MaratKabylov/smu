@@ -18,10 +18,15 @@ export async function getArticleImages(client: SupabaseClient, content: RichText
     .in("id", [...ids]).eq("storage_bucket", "article-media").eq("status", "ready")
     .like("mime_type", "image/%").is("deleted_at", null);
   if (error) throw error;
+  const { data: translated, error: translatedError } = await client.from("media_asset_translations")
+    .select("media_asset_id, alt_text, caption").eq("locale", locale).in("media_asset_id", [...ids]);
+  if (translatedError) throw translatedError;
   return (data ?? []).map(asset => ({
     id: asset.id,
     url: client.storage.from(asset.storage_bucket).getPublicUrl(asset.storage_path).data.publicUrl,
-    alt: (locale === "ru" ? asset.alt_ru : asset.alt_kk) ?? "",
-    caption: locale === "ru" ? asset.caption_ru : asset.caption_kk,
+    alt: translated?.find(item => item.media_asset_id === asset.id)?.alt_text
+      ?? (locale === "kk" ? asset.alt_kk : asset.alt_ru) ?? "",
+    caption: translated?.find(item => item.media_asset_id === asset.id)?.caption
+      ?? (locale === "kk" ? asset.caption_kk : asset.caption_ru),
   }));
 }

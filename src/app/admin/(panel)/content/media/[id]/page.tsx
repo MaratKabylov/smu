@@ -155,6 +155,16 @@ export default async function MediaDetailPage({
             </div>
             <div className="form-two-columns">
               <label>
+                Alt-текст · EN (необязательно)
+                <input name="altEn" defaultValue={asset.altEn ?? ""} disabled={!mayEdit} />
+              </label>
+              <label>
+                Подпись · EN (необязательно)
+                <textarea name="captionEn" defaultValue={asset.captionEn ?? ""} disabled={!mayEdit} rows={3} />
+              </label>
+            </div>
+            <div className="form-two-columns">
+              <label>
                 Правообладатель
                 <input
                   name="copyrightHolder"

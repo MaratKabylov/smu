@@ -67,5 +67,5 @@ export type PublicScientistDetail = PublicScientistCard & {
   publicEmail: string | null;
   orcid: string | null;
   scholarUrl: string | null;
-  alternateTranslation: ScientistTranslation | null;
+  alternateTranslations: ScientistTranslation[];
 };

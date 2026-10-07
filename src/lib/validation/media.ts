@@ -34,8 +34,10 @@ const optionalUrl = z
 export const mediaMetadataSchema = z.object({
   altRu: optionalText,
   altKk: optionalText,
+  altEn: optionalText,
   captionRu: optionalText,
   captionKk: optionalText,
+  captionEn: optionalText,
   copyrightHolder: optionalText,
   sourceUrl: optionalUrl,
 });

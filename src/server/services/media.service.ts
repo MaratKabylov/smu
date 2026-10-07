@@ -232,8 +232,10 @@ export class MediaService {
       oldData: {
         altRu: asset.altRu,
         altKk: asset.altKk,
+        altEn: asset.altEn,
         captionRu: asset.captionRu,
         captionKk: asset.captionKk,
+        captionEn: asset.captionEn,
         copyrightHolder: asset.copyrightHolder,
         sourceUrl: asset.sourceUrl,
       },

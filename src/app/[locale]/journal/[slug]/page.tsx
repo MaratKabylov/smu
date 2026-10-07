@@ -62,7 +62,7 @@ export default async function PublicArticlePage({ params, searchParams }: Public
       ? article.category.nameRu
       : locale === "en" ? article.category.nameEn ?? article.category.nameRu : article.category.nameKk
     : articleTypeLabel(article.contentType, article.contentTypeItem, locale);
-  const date = new Intl.DateTimeFormat(locale === "ru" ? "ru-RU" : "kk-KZ", {
+  const date = new Intl.DateTimeFormat(locale === "ru" ? "ru-RU" : locale === "en" ? "en-GB" : "kk-KZ", {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -72,17 +72,17 @@ export default async function PublicArticlePage({ params, searchParams }: Public
   const coverAlt = article.cover
     ? locale === "ru"
       ? article.cover.altRu
-      : article.cover.altKk
+      : locale === "en" ? article.cover.altEn ?? article.cover.altRu : article.cover.altKk
     : null;
   const coverCaption = article.cover
     ? locale === "ru"
       ? article.cover.captionRu
-      : article.cover.captionKk
+      : locale === "en" ? article.cover.captionEn ?? article.cover.captionRu : article.cover.captionKk
     : null;
 
   return (
     <>
-      <JournalHeader locale={locale} translations={[article.translation, ...(article.alternateTranslation ? [article.alternateTranslation] : [])]} />
+      <JournalHeader locale={locale} translations={[article.translation, ...article.alternateTranslations]} />
       <main className="public-article-page" lang={locale}>
         <div className="public-article-shell">
           <nav className="public-breadcrumbs" aria-label={copy.breadcrumbs}>
@@ -103,12 +103,12 @@ export default async function PublicArticlePage({ params, searchParams }: Public
               <div className="public-article-byline">
                 <span><CalendarDays aria-hidden="true" />{date}</span>
                 <span>{readingMinutes} {copy.minutes}</span>
-                {article.alternateTranslation ? (
-                  <Link href={`/${article.alternateTranslation.locale}/journal/${article.alternateTranslation.slug}`}>
+                {article.alternateTranslations.map(item => (
+                  <Link key={item.locale} href={`/${item.locale}/journal/${item.slug}`}>
                     <Languages aria-hidden="true" />
-                    {locale === "ru" ? "Қазақша оқу" : "Читать по-русски"}
+                    {item.locale === "ru" ? "Читать по-русски" : item.locale === "en" ? "Read in English" : "Қазақша оқу"}
                   </Link>
-                ) : null}
+                ))}
               </div>
             </header>
 

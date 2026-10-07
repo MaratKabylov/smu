@@ -144,8 +144,10 @@ export type PublicArticleCover = {
   url: string;
   altRu: string | null;
   altKk: string | null;
+  altEn: string | null;
   captionRu: string | null;
   captionKk: string | null;
+  captionEn: string | null;
 };
 
 export type PublicArticleTranslation = {
@@ -175,5 +177,5 @@ export type PublicArticleDetail = Omit<PublicArticleCard, "translation"> & {
     seoTitle: string | null;
     seoDescription: string | null;
   };
-  alternateTranslation: PublicArticleTranslation | null;
+  alternateTranslations: PublicArticleTranslation[];
 };

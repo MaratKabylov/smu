@@ -54,7 +54,7 @@ export default async function ScientistProfilePage({ params, searchParams }: Pro
     : null;
 
   return <>
-    <CommunityHeader locale={locale} translations={[scientist.translation, ...(scientist.alternateTranslation ? [scientist.alternateTranslation] : [])]} />
+    <CommunityHeader locale={locale} translations={[scientist.translation, ...scientist.alternateTranslations]} />
     <main className="scientist-profile-page">
       <div className="scientist-profile-shell">
         <nav className="public-breadcrumbs" aria-label={copy.breadcrumbs}><Link href={`/${locale}/scientists`}><ArrowLeft aria-hidden="true" />{copy.catalog}</Link><span>/</span><span>{scientist.translation.fullName}</span></nav>
@@ -65,7 +65,7 @@ export default async function ScientistProfilePage({ params, searchParams }: Pro
             <h1>{scientist.translation.fullName}</h1>
             <p className="scientist-profile-position">{scientist.translation.academicDegree ? `${scientist.translation.academicDegree} · ` : ""}{scientist.translation.position}</p>
             {organizationName ? <p className="scientist-profile-org"><Building2 aria-hidden="true" /><span><strong>{organizationName}</strong>{city ? <small>{city}</small> : null}</span></p> : null}
-            {scientist.alternateTranslation ? <Link className="profile-language-link" href={`/${scientist.alternateTranslation.locale}/scientists/${scientist.alternateTranslation.slug}`}>{scientist.alternateTranslation.locale === "ru" ? "Русская версия" : "Қазақша нұсқа"}</Link> : null}
+            {scientist.alternateTranslations.map(item => <Link key={item.locale} className="profile-language-link" href={`/${item.locale}/scientists/${item.slug}`}>{item.locale === "ru" ? "Русская версия" : item.locale === "en" ? "English version" : "Қазақша нұсқа"}</Link>)}
           </div>
         </section>
 

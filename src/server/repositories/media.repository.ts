@@ -56,8 +56,10 @@ function mapMediaRow(row: MediaRow): MediaAsset {
     height: row.height,
     altRu: row.alt_ru,
     altKk: row.alt_kk,
+    altEn: null,
     captionRu: row.caption_ru,
     captionKk: row.caption_kk,
+    captionEn: null,
     copyrightHolder: row.copyright_holder,
     sourceUrl: row.source_url,
     uploadedBy: row.uploaded_by,
@@ -92,7 +94,7 @@ export class MediaRepository {
     const { data, error } = await query;
     if (error) throw error;
 
-    const assets = ((data ?? []) as MediaRow[]).map(mapMediaRow);
+    const assets = await this.withEnglishTranslations(((data ?? []) as MediaRow[]).map(mapMediaRow));
     if (assets.length === 0) return assets;
 
     const { data: usages, error: usagesError } = await this.client
@@ -124,7 +126,8 @@ export class MediaRepository {
       .maybeSingle();
 
     if (error) throw error;
-    return data ? mapMediaRow(data as MediaRow) : null;
+    if (!data) return null;
+    return (await this.withEnglishTranslations([mapMediaRow(data as MediaRow)]))[0];
   }
 
   async listUsages(mediaAssetId: string): Promise<MediaUsage[]> {
@@ -198,20 +201,21 @@ export class MediaRepository {
   }
 
   async updateMetadata(id: string, input: MediaMetadataInput) {
-    const { error } = await this.client
-      .from("media_assets")
-      .update({
-        alt_ru: input.altRu,
-        alt_kk: input.altKk,
-        caption_ru: input.captionRu,
-        caption_kk: input.captionKk,
-        copyright_holder: input.copyrightHolder,
-        source_url: input.sourceUrl,
-      })
-      .eq("id", id)
-      .is("deleted_at", null);
+    const { error } = await this.client.rpc("save_media_metadata", { p_id: id, p_input: input });
 
     if (error) throw error;
+  }
+
+  private async withEnglishTranslations(assets: MediaAsset[]) {
+    if (assets.length === 0) return assets;
+    const { data, error } = await this.client.from("media_asset_translations")
+      .select("media_asset_id, alt_text, caption").eq("locale", "en")
+      .in("media_asset_id", assets.map(asset => asset.id));
+    if (error) throw error;
+    return assets.map(asset => {
+      const translation = (data ?? []).find(row => row.media_asset_id === asset.id);
+      return { ...asset, altEn: translation?.alt_text ?? null, captionEn: translation?.caption ?? null };
+    });
   }
 
   async softDelete(id: string) {

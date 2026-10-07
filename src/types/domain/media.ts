@@ -23,8 +23,10 @@ export type MediaAsset = {
   height: number | null;
   altRu: string | null;
   altKk: string | null;
+  altEn: string | null;
   captionRu: string | null;
   captionKk: string | null;
+  captionEn: string | null;
   copyrightHolder: string | null;
   sourceUrl: string | null;
   uploadedBy: string;

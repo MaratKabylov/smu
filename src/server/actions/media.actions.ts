@@ -21,8 +21,10 @@ export async function updateMediaMetadata(id: string, formData: FormData) {
   const input = mediaMetadataSchema.safeParse({
     altRu: formData.get("altRu"),
     altKk: formData.get("altKk"),
+    altEn: formData.get("altEn"),
     captionRu: formData.get("captionRu"),
     captionKk: formData.get("captionKk"),
+    captionEn: formData.get("captionEn"),
     copyrightHolder: formData.get("copyrightHolder"),
     sourceUrl: formData.get("sourceUrl"),
   });

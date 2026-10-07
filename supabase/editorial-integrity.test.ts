@@ -168,6 +168,21 @@ const trash = (user: string, kind = "all", query = "", page = 1) => asUser(user,
   db.query<{ id: string; entity_type: string; title_ru: string; title_kk: string; deleted_at: Date }>(
     "select * from public.list_deleted_editorial_records($1, $2, $3)", [kind, query, page]));
 
+describe("localized media metadata", () => {
+  it("stores optional English in translation rows and removes it atomically", async () => {
+    const metadata = { altRu: "Обложка", altKk: "Мұқаба", altEn: "Cover", captionRu: "Подпись", captionKk: "Қолтаңба", captionEn: "Caption", copyrightHolder: "SMU", sourceUrl: "https://example.kz/source" };
+    await asUser(null, () => db.query("select public.save_media_metadata($1, $2::jsonb)", [cover, JSON.stringify(metadata)]), "service_role");
+    expect((await db.query("select locale, alt_text, caption from public.media_asset_translations where media_asset_id=$1 order by locale", [cover])).rows)
+      .toEqual([{ locale: "en", alt_text: "Cover", caption: "Caption" }, { locale: "kk", alt_text: "Мұқаба", caption: "Қолтаңба" }, { locale: "ru", alt_text: "Обложка", caption: "Подпись" }]);
+    await asUser(null, () => db.query("select public.save_media_metadata($1, $2::jsonb)", [cover, JSON.stringify({ ...metadata, altEn: null, captionEn: null })]), "service_role");
+    expect((await db.query("select locale from public.media_asset_translations where media_asset_id=$1 order by locale", [cover])).rows)
+      .toEqual([{ locale: "kk" }, { locale: "ru" }]);
+  });
+  it("does not expose the write RPC to application roles", async () => {
+    await expect(asUser(admin, () => db.query("select public.save_media_metadata($1, '{}'::jsonb)", [cover]))).rejects.toThrow(/permission denied/);
+  });
+});
+
 describe("soft delete restoration", () => {
   it("adds restore RPCs without changing existing published content or approval", () => {
     expect(restoreUpgrade).toMatchObject({ status: "published", content_version: 1, approved_version: 1, deleted_at: null, preserved: true });

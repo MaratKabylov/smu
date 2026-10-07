@@ -75,7 +75,7 @@ export function RichTextEditor({ locale, value, disabled, media, onChange }: {
         <label>Подпись<input value={caption} onChange={event => setCaption(event.target.value)} maxLength={1000} /></label>
         <button type="button" disabled={!editor || !selectedImage} onClick={() => {
           const asset = media.find(asset => asset.id === selectedImage);
-          if (asset?.previewUrl) editor?.chain().focus().insertContent({ type: "image", attrs: { src: asset.previewUrl, mediaId: asset.id, alt: (locale === "Ru" ? asset.altRu : asset.altKk) ?? "", caption } }).run();
+          if (asset?.previewUrl) editor?.chain().focus().insertContent({ type: "image", attrs: { src: asset.previewUrl, mediaId: asset.id, alt: (locale === "Ru" ? asset.altRu : locale === "En" ? asset.altEn ?? asset.altRu : asset.altKk) ?? "", caption } }).run();
         }}>Вставить изображение</button>
       </div>
       <details className="rich-text-block-tools">
