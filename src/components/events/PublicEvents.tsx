@@ -1,3 +1,5 @@
+import { Pagination } from "@/components/search/Pagination";
+import { readPage } from "@/lib/search";
 import { requireLocale, type LocaleParams } from "@/lib/i18n/server";
 import { PublicHeader } from "@/components/i18n/PublicHeader";
 import { getDictionary } from "@/lib/i18n/dictionaries";
@@ -13,7 +15,7 @@ import { getPublicEvent, PublicEventService } from "@/server/services/event.serv
 import { eventFormats, eventKinds, type EventTranslation } from "@/types/domain/event";
 import type { ScientistLocale } from "@/types/domain/scientist";
 
-export type EventCatalogSearch = Promise<{ lang?: string; q?: string; kind?: string; format?: string; period?: string }>;
+export type EventCatalogSearch = Promise<{ page?: string; lang?: string; q?: string; kind?: string; format?: string; period?: string }>;
 export type EventDetailParams = Promise<{ locale: string; slug: string }>;
 
 function Header({ locale, translations }: { locale: ScientistLocale; translations?: EventTranslation[] }) {
@@ -29,7 +31,7 @@ export async function PublicEventCatalog({ searchParams, params }: { searchParam
   const locale = requireLocale((await params).locale);
   const parsed = publicEventFiltersSchema.safeParse({ locale, query: state.q ?? "", kind: state.kind ?? "all", format: state.format ?? "all", period: state.period ?? "upcoming" });
   const filters = parsed.success ? parsed.data : publicEventFiltersSchema.parse({ locale });
-  const events = await new PublicEventService().list(filters);
+  const { events, pagination } = await new PublicEventService().listPage(filters, readPage(state.page));
   const text = getDictionary(locale).events;
   return <>
     <Header locale={locale} />
@@ -39,12 +41,13 @@ export async function PublicEventCatalog({ searchParams, params }: { searchParam
         <select name="kind" defaultValue={filters.kind} aria-label={text.kinds}><option value="all">{text.kinds}</option>{eventKinds.map(kind => <option key={kind} value={kind}>{eventKindLabels[locale][kind]}</option>)}</select>
         <select name="format" defaultValue={filters.format} aria-label={text.formats}><option value="all">{text.formats}</option>{eventFormats.map(format => <option key={format} value={format}>{eventFormatLabels[locale][format]}</option>)}</select>
         <select name="period" defaultValue={filters.period} aria-label={text.period}>{(["upcoming", "past", "all"] as const).map(period => <option key={period} value={period}>{text[period]}</option>)}</select><button type="submit">{text.find}</button>
-      </form><p className="science-count" aria-live="polite">{events.length} {text.count} · {text.zone}</p>
+      </form><p className="science-count" aria-live="polite">{pagination.total} {text.count} · {text.zone}</p>
       {events.length ? <div className="public-article-grid">{events.map(event => {
         const translation = event.translations.find(item => item.locale === locale)!;
         const href = "/" + locale + "/events/" + translation.slug;
         return <article className="public-article-card science-card" key={event.id}><Link className="public-card-cover" href={href} aria-label={translation.title}>{event.coverUrl ? <img src={event.coverUrl} alt="" loading="lazy" /> : <CalendarDays aria-hidden="true" />}</Link><div className="public-card-content"><div className="public-card-meta"><span>{eventKindLabels[locale][event.kind]}</span><span>{eventFormatLabels[locale][event.format]}</span></div>{event.status === "cancelled" ? <p className="event-cancelled">{text.cancelled}</p> : null}<h2><Link href={href}>{translation.title}</Link></h2><p>{translation.summary}</p><p className="event-card-date"><time dateTime={event.startsAt}>{eventDate(event.startsAt, locale)}</time></p>{translation.location ? <small className="science-card-field">{translation.location}</small> : null}<Link className="public-card-link" href={href}>{text.read}<ArrowUpRight aria-hidden="true" /></Link></div></article>;
       })}</div> : <div className="journal-empty"><CalendarDays aria-hidden="true" /><h2>{text.empty}</h2><p>{text.hint}</p><Link href={"/" + locale + "/events"}>{text.reset}</Link></div>}
+      <Pagination {...pagination} path={`/${locale}/events`} query={state} locale={locale} />
       </section>
     </main><footer className="journal-footer"><span>© {new Date().getFullYear()} {text.footer}</span><Link href={"/" + locale + "/scientists"}>{locale === "ru" ? "Научное сообщество" : "Ғылыми қауымдастық"}</Link></footer>
   </>;

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { LogOut } from "lucide-react";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { logout } from "@/server/actions/auth.actions";
@@ -17,6 +18,7 @@ export function AdminShell({ children, email }: AdminShellProps) {
           <div>
             <span className="environment-dot" aria-hidden="true" />
             <span>Рабочая среда</span>
+            <Link href="/admin/search">Поиск</Link>
           </div>
           <div className="admin-account">
             <span>{email ?? "Пользователь СМУ"}</span>

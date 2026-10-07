@@ -45,9 +45,11 @@ export class ScienceWorkRepository {
     return data ? (await this.hydrate([data]))[0] ?? null : null;
   }
 
-  async listPublic(kind: ScienceWorkKind, filters: PublicScienceWorkFilters) {
+  async listPublic(kind: ScienceWorkKind, filters: PublicScienceWorkFilters, selectedIds?: string[]) {
     const taxonomy = await new ScientistRepository(this.client).listTaxonomy();
     let query = this.client.from("science_works").select("*").eq("kind", kind).eq("status", "published").is("deleted_at", null).order("updated_at", { ascending: false }).limit(100);
+    if (selectedIds && !selectedIds.length) return { works: [], taxonomy };
+    if (selectedIds) query = query.in("id", selectedIds);
     if (filters.stage !== "all") query = query.eq("stage", filters.stage);
     if (filters.field) {
       const field = taxonomy.fields.find(item => item.slug === filters.field);

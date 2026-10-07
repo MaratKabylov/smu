@@ -1,3 +1,5 @@
+import { SearchRepository } from "@/server/repositories/search.repository";
+import { emptySearchPage, orderBySearch } from "@/lib/search";
 import "server-only";
 import { cache } from "react";
 import { isSupabaseConfigured } from "@/lib/env";
@@ -25,8 +27,8 @@ export class ResearchProgramService {
   async options(access: AccessContext) {
     this.assertAccess(access); return new ResearchProgramRepository(await createServerSupabaseClient()).options();
   }
-  async applications(access: AccessContext, programId?: string, status: ApplicationStatus | "all" = "all") {
-    this.assertAccess(access); return new ResearchProgramRepository(await createServerSupabaseClient()).applications(programId, status);
+  async applications(access: AccessContext, programId?: string, status: ApplicationStatus | "all" = "all", applicationId?: string) {
+    this.assertAccess(access); return new ResearchProgramRepository(await createServerSupabaseClient()).applications(programId, status, applicationId);
   }
   async save(access: AccessContext, input: ResearchProgramInput, id: string | null) {
     this.assertAccess(access); return new ResearchProgramRepository(createServiceRoleSupabaseClient()).save(access.userId, input, id);
@@ -39,6 +41,15 @@ export class ResearchProgramService {
   }
 }
 export class PublicResearchProgramService {
+  async listPage(filters: ResearchProgramFilters, page = 1) {
+    if (!isSupabaseConfigured()) return { programs: [], taxonomy: { organizations: [], fields: [] }, pagination: emptySearchPage(page) };
+    const client = await createServerSupabaseClient();
+    const { locale, query, ...attributes } = filters;
+    const pagination = await new SearchRepository(client).publicPage(locale, query, "research-program", attributes, page);
+    const result = await new ResearchProgramRepository(client).listPublic({ ...filters, query: "" }, pagination.items.map(item => item.id));
+    return { ...result, programs: orderBySearch(result.programs, pagination), pagination };
+  }
+
   async list(filters: ResearchProgramFilters) {
     if (!isSupabaseConfigured()) return { programs: [], taxonomy: { organizations: [], fields: [] } };
     return new ResearchProgramRepository(await createServerSupabaseClient()).listPublic(filters);

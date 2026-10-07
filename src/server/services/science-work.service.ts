@@ -1,3 +1,5 @@
+import { SearchRepository } from "@/server/repositories/search.repository";
+import { emptySearchPage, orderBySearch } from "@/lib/search";
 import "server-only";
 import { cache } from "react";
 import { isSupabaseConfigured } from "@/lib/env";
@@ -43,6 +45,15 @@ export class ScienceWorkService {
   }
 }
 export class PublicScienceWorkService {
+  async listPage(kind: ScienceWorkKind, filters: PublicScienceWorkFilters, page = 1) {
+    if (!isSupabaseConfigured()) return { works: [], taxonomy: { organizations: [], fields: [] }, pagination: emptySearchPage(page) };
+    const client = await createServerSupabaseClient();
+    const { locale, query, ...attributes } = filters;
+    const pagination = await new SearchRepository(client).publicPage(locale, query, kind === "project" ? "projects" : "research", attributes, page);
+    const result = await new ScienceWorkRepository(client).listPublic(kind, { ...filters, query: "" }, pagination.items.map(item => item.id));
+    return { ...result, works: orderBySearch(result.works, pagination), pagination };
+  }
+
   async list(kind: ScienceWorkKind, filters: PublicScienceWorkFilters) {
     if (!isSupabaseConfigured()) return { works: [], taxonomy: { organizations: [], fields: [] } };
     return new ScienceWorkRepository(await createServerSupabaseClient()).listPublic(kind, filters);

@@ -1,3 +1,5 @@
+import { Pagination } from "@/components/search/Pagination";
+import { readPage } from "@/lib/search";
 import { requireLocale, type LocaleParams } from "@/lib/i18n/server";
 import { localizedPath } from "@/lib/i18n/locales";
 import { getDictionary } from "@/lib/i18n/dictionaries";
@@ -15,7 +17,7 @@ import { scienceWorkStages, type ScienceWorkKind } from "@/types/domain/science-
 import type { ScientistLocale } from "@/types/domain/scientist";
 import { scientistTaxonomyName } from "@/lib/i18n/scientist-taxonomy";
 
-type SearchParams = Promise<{ lang?: string; q?: string; organization?: string; field?: string; stage?: string }>;
+type SearchParams = Promise<{ page?: string; lang?: string; q?: string; organization?: string; field?: string; stage?: string }>;
 export type ScienceDetailParams = Promise<{ locale: string; slug: string }>;
 
 function validLocale(locale: string): ScientistLocale {
@@ -30,7 +32,7 @@ export async function PublicScienceWorkCatalog({ kind, searchParams, params }: {
   const locale = requireLocale((await params).locale);
   const parsed = publicScienceWorkFiltersSchema.safeParse({ locale, query: state.q ?? "", organization: state.organization ?? "", field: state.field ?? "", stage: state.stage ?? "all" });
   const filters = parsed.success ? parsed.data : publicScienceWorkFiltersSchema.parse({ locale });
-  const { works, taxonomy } = await new PublicScienceWorkService().list(kind, filters);
+  const { works, taxonomy, pagination } = await new PublicScienceWorkService().listPage(kind, filters, readPage(state.page));
   const text = getDictionary(filters.locale).science;
   const base = localizedPath(locale, scienceWorkPath(kind));
   return <>
@@ -41,12 +43,13 @@ export async function PublicScienceWorkCatalog({ kind, searchParams, params }: {
         <select name="organization" defaultValue={filters.organization} aria-label={text.organization}><option value="">{text.organizations}</option>{taxonomy.organizations.map(item => <option key={item.id} value={item.slug}>{scientistTaxonomyName(item, filters.locale)}</option>)}</select>
         <select name="field" defaultValue={filters.field} aria-label={text.fields}><option value="">{text.fields}</option>{taxonomy.fields.map(item => <option key={item.id} value={item.slug}>{scientistTaxonomyName(item, filters.locale)}</option>)}</select>
         <select name="stage" defaultValue={filters.stage} aria-label={text.stages}><option value="all">{text.stages}</option>{scienceWorkStages.map(stage => <option key={stage} value={stage}>{scienceWorkStageLabels[filters.locale][stage]}</option>)}</select><button type="submit">{text.find}</button>
-      </form><p className="science-count" aria-live="polite">{works.length} {text.count}</p>
+      </form><p className="science-count" aria-live="polite">{pagination.total} {text.count}</p>
       {works.length ? <div className="public-article-grid">{works.map(work => {
         const translation = work.translations.find(item => item.locale === filters.locale)!;
         const href = base + "/" + translation.slug;
         return <article className="public-article-card science-card" key={work.id}><Link className="public-card-cover" href={href} aria-label={translation.title}>{work.coverUrl ? <img src={work.coverUrl} alt="" loading="lazy" /> : <FlaskConical aria-hidden="true" />}</Link><div className="public-card-content"><div className="public-card-meta"><span>{scienceWorkStageLabels[filters.locale][work.stage]}</span></div><h2><Link href={href}>{translation.title}</Link></h2><p>{translation.summary}</p>{work.field ? <small className="science-card-field">{scientistTaxonomyName(work.field, filters.locale)}</small> : null}<Link className="public-card-link" href={href}>{text.read}<ArrowUpRight aria-hidden="true" /></Link></div></article>;
       })}</div> : <div className="journal-empty"><FlaskConical aria-hidden="true" /><h2>{text.empty}</h2><p>{text.hint}</p>{filters.query || filters.field || filters.organization || filters.stage !== "all" ? <Link href={base}>{text.reset}</Link> : null}</div>}
+      <Pagination {...pagination} path={base} query={state} locale={locale} />
       </section>
     </main><footer className="journal-footer"><span>© {new Date().getFullYear()} {text.footer}</span><Link href={"/" + filters.locale + "/scientists"}>{filters.locale === "ru" ? "Научное сообщество" : "Ғылыми қауымдастық"}</Link></footer>
   </>;

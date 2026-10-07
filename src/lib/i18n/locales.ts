@@ -34,7 +34,7 @@ export function legacyPublicUrl(url: URL): URL | null {
   const locale = isLocale(requestedLocale) ? requestedLocale : defaultLocale;
   if (parts.length === 0) {
     target.pathname = `/${locale}/journal`;
-  } else if (publicSections.some(item => item === section) && parts.length === 1) {
+  } else if ((publicSections.some(item => item === section) || section === "search") && parts.length === 1) {
     target.pathname = `/${locale}/${section}`;
   } else if (publicSections.some(item => item === section) && parts.length === 3 && isLocale(parts[1])) {
     target.pathname = `/${parts[1]}/${section}/${parts[2]}`;

@@ -11,7 +11,7 @@ import { getAdminAccess } from "@/server/services/access.service";
 import { MentorshipService } from "@/server/services/mentorship.service";
 import { applicationStatuses, mentorshipStatuses, type MentorshipApplication } from "@/types/domain/mentorship";
 
-export type MentorshipAdminSearch = Promise<{ status?: string; error?: string; saved?: string; deleted?: string; application_saved?: string }>;
+export type MentorshipAdminSearch = Promise<{ application?: string; status?: string; error?: string; saved?: string; deleted?: string; application_saved?: string }>;
 const errors: Record<string, string> = {
   validation: "Проверьте обязательные поля RU/KK и количество мест.", forbidden: "Недостаточно прав.",
   invalid_reference: "Наставник должен иметь верифицированный профиль с обеими языковыми версиями, направление должно быть активно.",
@@ -71,7 +71,8 @@ export async function MentorshipApplicationQueue({ searchParams }: { searchParam
   const state = await searchParams;
   const parsed = applicationStatusSchema.safeParse(state.status);
   const status = parsed.success ? parsed.data : "all";
-  const applications = await new MentorshipService().applications(access, undefined, status);
+  if (state.application && !z.uuid().safeParse(state.application).success) notFound();
+  const applications = await new MentorshipService().applications(access, undefined, status, state.application);
   return <div className="content-page"><Link className="back-link" href={base}>← Наставничество</Link><div className="page-heading"><div><p className="page-kicker">Наставничество</p><h1>Заявки на участие</h1><p>До 100 последних заявок по выбранному статусу.</p></div></div><Notice state={state} />
     <section className="media-toolbar"><form className="media-filters"><select name="status" defaultValue={status} aria-label="Статус заявки"><option value="all">Все статусы</option>{applicationStatuses.map(value => <option key={value} value={value}>{applicationStatusLabels[value]}</option>)}</select><button className="secondary-button">Применить</button></form></section>
     {applications.length ? <div className="mentorship-applications">{applications.map(application => <div key={application.id}><Link className="back-link" href={base + "/" + application.offerId + "#applications"}>Открыть предложение →</Link><ApplicationCard application={application} queue /></div>)}</div> : <div className="empty-state"><h2>Заявки не найдены</h2><p>Измените фильтр или дождитесь новых заявок.</p></div>}

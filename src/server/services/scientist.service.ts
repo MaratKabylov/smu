@@ -1,3 +1,5 @@
+import { SearchRepository } from "@/server/repositories/search.repository";
+import { emptySearchPage, orderBySearch } from "@/lib/search";
 import "server-only";
 
 import { cache } from "react";
@@ -103,6 +105,16 @@ export class ScientistService {
 const emptyTaxonomy: ScientistTaxonomy = { organizations: [], fields: [] };
 
 export class PublicScientistService {
+  async listPage(filters: PublicScientistFilters, page = 1) {
+    if (!isSupabaseConfigured()) return { scientists: [], taxonomy: emptyTaxonomy, pagination: emptySearchPage(page) };
+    const client = await createServerSupabaseClient();
+    const pagination = await new SearchRepository(client).publicPage(filters.locale, filters.query, "scientists", { organization: filters.organization, field: filters.field }, page);
+    const repository = new PublicScientistRepository(client);
+    const taxonomy = await repository.listTaxonomy();
+    const scientists = await repository.list({ ...filters, query: "", organization: "", field: "" }, taxonomy, pagination.items.map(item => item.id));
+    return { scientists: orderBySearch(scientists, pagination), taxonomy, pagination };
+  }
+
   async getSlugRedirect(locale: ScientistLocale, slug: string) {
     if (!isSupabaseConfigured()) return null;
     return getPublicSlugRedirect(await createServerSupabaseClient(), "scientist", locale, slug);

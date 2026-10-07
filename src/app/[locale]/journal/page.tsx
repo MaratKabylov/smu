@@ -1,3 +1,5 @@
+import { Pagination } from "@/components/search/Pagination";
+import { readPage } from "@/lib/search";
 import { requireLocale, type LocaleParams } from "@/lib/i18n/server";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import type { Metadata } from "next";
@@ -16,7 +18,7 @@ export async function generateMetadata({ params }: { params: LocaleParams }): Pr
 
 type JournalPageProps = {
   params: LocaleParams; searchParams: Promise<{
-    lang?: string;
+    page?: string; lang?: string;
     q?: string;
     category?: string;
     tag?: string;
@@ -35,7 +37,7 @@ export default async function JournalPage({ searchParams, params: routeParams }:
   const filters = parsed.success
     ? parsed.data
     : { locale, query: "", category: "", tag: "" };
-  const { articles, taxonomy } = await new PublicArticleService().list(filters);
+  const { articles, taxonomy, pagination } = await new PublicArticleService().listPage(filters, readPage(params.page));
   const [featured, ...rest] = articles;
   const copy = getDictionary(filters.locale).journalCatalog;
 
@@ -83,7 +85,7 @@ export default async function JournalPage({ searchParams, params: routeParams }:
               </select>
               <button type="submit">{copy.find}</button>
             </form>
-            <span>{articles.length} {copy.materials}</span>
+            <span>{pagination.total} {copy.materials}</span>
           </div>
 
           {featured ? (
@@ -103,7 +105,8 @@ export default async function JournalPage({ searchParams, params: routeParams }:
               {filters.query || filters.category || filters.tag ? <Link href={`/${filters.locale}/journal`}>{copy.reset}</Link> : null}
             </div>
           )}
-        </section>
+        <Pagination {...pagination} path={`/${locale}/journal`} query={params} locale={locale} />
+      </section>
       </main>
       <footer className="journal-footer">
         <span>© {new Date().getFullYear()} {getDictionary(locale).common.footer}</span>

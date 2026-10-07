@@ -91,6 +91,7 @@ export class PublicArticleRepository {
   async list(
     filters: PublicArticleFilters,
     taxonomy: ArticleTaxonomy,
+    selectedIds?: string[],
   ): Promise<PublicArticleCard[]> {
     const category = filters.category
       ? taxonomy.categories.find((item) => item.slug === filters.category)
@@ -104,6 +105,8 @@ export class PublicArticleRepository {
       .from("article_translations")
       .select("article_id, locale, title, slug, excerpt")
       .eq("locale", filters.locale);
+    if (selectedIds && !selectedIds.length) return [];
+    if (selectedIds) translationsQuery = translationsQuery.in("article_id", selectedIds);
     if (filters.query) {
       translationsQuery = translationsQuery.ilike("title", `%${filters.query}%`);
     }

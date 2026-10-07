@@ -224,7 +224,7 @@ export class PublicScientistRepository {
     return new ScientistRepository(this.client).listTaxonomy();
   }
 
-  async list(filters: PublicScientistFilters, taxonomy: ScientistTaxonomy): Promise<PublicScientistCard[]> {
+  async list(filters: PublicScientistFilters, taxonomy: ScientistTaxonomy, selectedIds?: string[]): Promise<PublicScientistCard[]> {
     const organization = filters.organization
       ? taxonomy.organizations.find((item) => item.slug === filters.organization)
       : null;
@@ -235,6 +235,8 @@ export class PublicScientistRepository {
       .from("scientist_profile_translations")
       .select("*")
       .eq("locale", filters.locale);
+    if (selectedIds && !selectedIds.length) return [];
+    if (selectedIds) translationQuery = translationQuery.in("scientist_profile_id", selectedIds);
     if (filters.query) translationQuery = translationQuery.ilike("full_name", `%${filters.query}%`);
     const translationResult = await translationQuery;
     if (translationResult.error) throw translationResult.error;

@@ -3129,3 +3129,13 @@ fieldset.article-editor-panel { min-width: 0; }
     grid-template-columns: minmax(220px, 1fr) minmax(0, 2fr) auto;
   }
 }
+/* Shared public catalog and platform search navigation. */
+.catalog-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 14px; margin: 32px 0; }
+.catalog-pagination a, .catalog-pagination [aria-current] { display: inline-block; padding: 8px 12px; border: 1px solid #d8e0dc; border-radius: 8px; }
+.catalog-pagination [aria-current] { background: #184c3a; color: white; }
+.platform-search { padding-top: 32px; padding-bottom: 48px; }
+.platform-search .science-filters { margin: 24px 0; }
+.platform-search-results ul { list-style: none; padding: 0; }
+.platform-search-results li { padding: 24px 0; border-bottom: 1px solid #d8e0dc; }
+.platform-search-results h2 { font-size: 22px; margin: 8px 0; }
+.platform-search-results p { white-space: pre-wrap; overflow-wrap: anywhere; }

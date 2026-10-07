@@ -1,3 +1,5 @@
+import { SearchRepository } from "@/server/repositories/search.repository";
+import { emptySearchPage, orderBySearch } from "@/lib/search";
 import "server-only";
 import { cache } from "react";
 import { isSupabaseConfigured } from "@/lib/env";
@@ -25,8 +27,8 @@ export class MentorshipService {
   async options(access: AccessContext) {
     this.assertAccess(access); return new MentorshipRepository(await createServerSupabaseClient()).options();
   }
-  async applications(access: AccessContext, offerId?: string, status: ApplicationStatus | "all" = "all") {
-    this.assertAccess(access); return new MentorshipRepository(await createServerSupabaseClient()).applications(offerId, status);
+  async applications(access: AccessContext, offerId?: string, status: ApplicationStatus | "all" = "all", applicationId?: string) {
+    this.assertAccess(access); return new MentorshipRepository(await createServerSupabaseClient()).applications(offerId, status, applicationId);
   }
   async save(access: AccessContext, input: MentorshipInput, id: string | null) {
     this.assertAccess(access); return new MentorshipRepository(createServiceRoleSupabaseClient()).save(access.userId, input, id);
@@ -39,6 +41,15 @@ export class MentorshipService {
   }
 }
 export class PublicMentorshipService {
+  async listPage(filters: MentorshipFilters, page = 1) {
+    if (!isSupabaseConfigured()) return { offers: [], taxonomy: { organizations: [], fields: [] }, pagination: emptySearchPage(page) };
+    const client = await createServerSupabaseClient();
+    const { locale, query, ...attributes } = filters;
+    const pagination = await new SearchRepository(client).publicPage(locale, query, "mentorship", attributes, page);
+    const result = await new MentorshipRepository(client).listPublic({ ...filters, query: "" }, pagination.items.map(item => item.id));
+    return { ...result, offers: orderBySearch(result.offers, pagination), pagination };
+  }
+
   async list(filters: MentorshipFilters) {
     if (!isSupabaseConfigured()) return { offers: [], taxonomy: { organizations: [], fields: [] } };
     return new MentorshipRepository(await createServerSupabaseClient()).listPublic(filters);

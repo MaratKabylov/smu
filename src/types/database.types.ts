@@ -394,6 +394,7 @@ export type Database = {
           "created_at": string;
           "updated_at": string;
           "content_json": Json;
+          "search_document": string | null;
         };
         Insert: {
           "id"?: string;
@@ -408,6 +409,7 @@ export type Database = {
           "created_at"?: string;
           "updated_at"?: string;
           "content_json": Json;
+          "search_document"?: never;
         };
         Update: {
           "id"?: string;
@@ -422,6 +424,7 @@ export type Database = {
           "created_at"?: string;
           "updated_at"?: string;
           "content_json"?: Json;
+          "search_document"?: never;
         };
         Relationships: [
           { foreignKeyName: "article_translations_article_id_fkey"; columns: ["article_id"]; isOneToOne: false; referencedRelation: "articles"; referencedColumns: ["id"] },
@@ -664,6 +667,7 @@ export type Database = {
           "description": string;
           "organizer": string;
           "location": string;
+          "search_document": string | null;
         };
         Insert: {
           "event_id": string;
@@ -674,6 +678,7 @@ export type Database = {
           "description": string;
           "organizer": string;
           "location"?: string;
+          "search_document"?: never;
         };
         Update: {
           "event_id"?: string;
@@ -684,6 +689,7 @@ export type Database = {
           "description"?: string;
           "organizer"?: string;
           "location"?: string;
+          "search_document"?: never;
         };
         Relationships: [
           { foreignKeyName: "event_translations_event_id_fkey"; columns: ["event_id"]; isOneToOne: false; referencedRelation: "events"; referencedColumns: ["id"] },
@@ -790,6 +796,7 @@ export type Database = {
           "created_at": string;
           "updated_at": string;
           "deleted_at": string | null;
+          "search_document": string | null;
         };
         Insert: {
           "id"?: string;
@@ -811,6 +818,7 @@ export type Database = {
           "created_at"?: string;
           "updated_at"?: string;
           "deleted_at"?: string | null;
+          "search_document"?: never;
         };
         Update: {
           "id"?: string;
@@ -832,6 +840,7 @@ export type Database = {
           "created_at"?: string;
           "updated_at"?: string;
           "deleted_at"?: string | null;
+          "search_document"?: never;
         };
         Relationships: [
           { foreignKeyName: "media_assets_uploaded_by_fkey"; columns: ["uploaded_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
@@ -880,6 +889,7 @@ export type Database = {
           "created_at": string;
           "updated_at": string;
           "deleted_at": string | null;
+          "search_document": string | null;
         };
         Insert: {
           "id"?: string;
@@ -894,6 +904,7 @@ export type Database = {
           "created_at"?: string;
           "updated_at"?: string;
           "deleted_at"?: string | null;
+          "search_document"?: never;
         };
         Update: {
           "id"?: string;
@@ -908,6 +919,7 @@ export type Database = {
           "created_at"?: string;
           "updated_at"?: string;
           "deleted_at"?: string | null;
+          "search_document"?: never;
         };
         Relationships: [
           { foreignKeyName: "mentorship_applications_offer_id_fkey"; columns: ["offer_id"]; isOneToOne: false; referencedRelation: "mentorship_offers"; referencedColumns: ["id"] },
@@ -921,6 +933,7 @@ export type Database = {
           "slug": string;
           "summary": string;
           "description": string;
+          "search_document": string | null;
         };
         Insert: {
           "offer_id": string;
@@ -929,6 +942,7 @@ export type Database = {
           "slug": string;
           "summary": string;
           "description": string;
+          "search_document"?: never;
         };
         Update: {
           "offer_id"?: string;
@@ -937,6 +951,7 @@ export type Database = {
           "slug"?: string;
           "summary"?: string;
           "description"?: string;
+          "search_document"?: never;
         };
         Relationships: [
           { foreignKeyName: "mentorship_offer_translations_offer_id_fkey"; columns: ["offer_id"]; isOneToOne: false; referencedRelation: "mentorship_offers"; referencedColumns: ["id"] },
@@ -1013,18 +1028,21 @@ export type Database = {
           "display_name": string | null;
           "created_at": string;
           "updated_at": string;
+          "search_document": string | null;
         };
         Insert: {
           "id": string;
           "display_name"?: string | null;
           "created_at"?: string;
           "updated_at"?: string;
+          "search_document"?: never;
         };
         Update: {
           "id"?: string;
           "display_name"?: string | null;
           "created_at"?: string;
           "updated_at"?: string;
+          "search_document"?: never;
         };
         Relationships: [
         ];
@@ -1045,6 +1063,7 @@ export type Database = {
           "updated_at": string;
           "published_at": string | null;
           "deleted_at": string | null;
+          "search_document": string | null;
         };
         Insert: {
           "id"?: string;
@@ -1061,6 +1080,7 @@ export type Database = {
           "updated_at"?: string;
           "published_at"?: string | null;
           "deleted_at"?: string | null;
+          "search_document"?: never;
         };
         Update: {
           "id"?: string;
@@ -1077,6 +1097,7 @@ export type Database = {
           "updated_at"?: string;
           "published_at"?: string | null;
           "deleted_at"?: string | null;
+          "search_document"?: never;
         };
         Relationships: [
           { foreignKeyName: "publications_created_by_fkey"; columns: ["created_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
@@ -1097,6 +1118,7 @@ export type Database = {
           "created_at": string;
           "updated_at": string;
           "deleted_at": string | null;
+          "search_document": string | null;
         };
         Insert: {
           "id"?: string;
@@ -1111,6 +1133,7 @@ export type Database = {
           "created_at"?: string;
           "updated_at"?: string;
           "deleted_at"?: string | null;
+          "search_document"?: never;
         };
         Update: {
           "id"?: string;
@@ -1125,6 +1148,7 @@ export type Database = {
           "created_at"?: string;
           "updated_at"?: string;
           "deleted_at"?: string | null;
+          "search_document"?: never;
         };
         Relationships: [
           { foreignKeyName: "research_program_applications_program_id_fkey"; columns: ["program_id"]; isOneToOne: false; referencedRelation: "research_programs"; referencedColumns: ["id"] },
@@ -1141,6 +1165,7 @@ export type Database = {
           "curriculum": string;
           "eligibility": string;
           "outcomes": string;
+          "search_document": string | null;
         };
         Insert: {
           "program_id": string;
@@ -1152,6 +1177,7 @@ export type Database = {
           "curriculum": string;
           "eligibility": string;
           "outcomes": string;
+          "search_document"?: never;
         };
         Update: {
           "program_id"?: string;
@@ -1163,6 +1189,7 @@ export type Database = {
           "curriculum"?: string;
           "eligibility"?: string;
           "outcomes"?: string;
+          "search_document"?: never;
         };
         Relationships: [
           { foreignKeyName: "research_program_translations_program_id_fkey"; columns: ["program_id"]; isOneToOne: false; referencedRelation: "research_programs"; referencedColumns: ["id"] },
@@ -1293,6 +1320,7 @@ export type Database = {
           "summary": string;
           "description": string;
           "results": string;
+          "search_document": string | null;
         };
         Insert: {
           "work_id": string;
@@ -1302,6 +1330,7 @@ export type Database = {
           "summary": string;
           "description": string;
           "results"?: string;
+          "search_document"?: never;
         };
         Update: {
           "work_id"?: string;
@@ -1311,6 +1340,7 @@ export type Database = {
           "summary"?: string;
           "description"?: string;
           "results"?: string;
+          "search_document"?: never;
         };
         Relationships: [
           { foreignKeyName: "science_work_translations_work_id_fkey"; columns: ["work_id"]; isOneToOne: false; referencedRelation: "science_works"; referencedColumns: ["id"] },
@@ -1435,18 +1465,21 @@ export type Database = {
           "locale": "ru" | "kk" | "en";
           "name": string;
           "city": string | null;
+          "search_document": string | null;
         };
         Insert: {
           "organization_id": string;
           "locale": "ru" | "kk" | "en";
           "name": string;
           "city"?: string | null;
+          "search_document"?: never;
         };
         Update: {
           "organization_id"?: string;
           "locale"?: "ru" | "kk" | "en";
           "name"?: string;
           "city"?: string | null;
+          "search_document"?: never;
         };
         Relationships: [
           { foreignKeyName: "scientific_organization_translations_organization_id_fkey"; columns: ["organization_id"]; isOneToOne: false; referencedRelation: "scientific_organizations"; referencedColumns: ["id"] },
@@ -1530,6 +1563,7 @@ export type Database = {
           "biography": string;
           "created_at": string;
           "updated_at": string;
+          "search_document": string | null;
         };
         Insert: {
           "id"?: string;
@@ -1543,6 +1577,7 @@ export type Database = {
           "biography": string;
           "created_at"?: string;
           "updated_at"?: string;
+          "search_document"?: never;
         };
         Update: {
           "id"?: string;
@@ -1556,6 +1591,7 @@ export type Database = {
           "biography"?: string;
           "created_at"?: string;
           "updated_at"?: string;
+          "search_document"?: never;
         };
         Relationships: [
           { foreignKeyName: "scientist_profile_translations_scientist_profile_id_fkey"; columns: ["scientist_profile_id"]; isOneToOne: false; referencedRelation: "scientist_profiles"; referencedColumns: ["id"] },
@@ -1673,6 +1709,24 @@ export type Database = {
       };
     };
     Views: {
+      "search_entries": {
+        Row: {
+          "id": string | null;
+          "section": string | null;
+          "locale": string | null;
+          "title": string | null;
+          "summary": string | null;
+          "href": string | null;
+          "admin_href": string | null;
+          "is_public": boolean | null;
+          "admin_allowed": boolean | null;
+          "sort_at": string | null;
+          "updated_at": string | null;
+          "search_document": string | null;
+          "attributes": Json | null;
+        };
+        Relationships: [];
+      };
       "smu_article_links": {
         Row: {
           "article_id": string | null;
@@ -2063,6 +2117,15 @@ export type Database = {
         };
         Returns: undefined;
       };
+      "search_admin": {
+        Args: {
+          "p_query": string | null;
+          "p_section"?: string | null;
+          "p_page"?: number | null;
+          "p_page_size"?: number | null;
+        };
+        Returns: Json;
+      };
       "search_article_relation_targets": {
         Args: {
           "p_kind": string | null;
@@ -2070,6 +2133,25 @@ export type Database = {
           "p_ids"?: (string)[] | null;
         };
         Returns: ({ "kind": string | null; "entity_id": string | null; "title_ru": string | null; "title_kk": string | null })[];
+      };
+      "search_public": {
+        Args: {
+          "p_locale": string | null;
+          "p_query"?: string | null;
+          "p_section"?: string | null;
+          "p_filters"?: Json | null;
+          "p_page"?: number | null;
+          "p_page_size"?: number | null;
+        };
+        Returns: Json;
+      };
+      "search_vector": {
+        Args: {
+          "p_locale": string | null;
+          "p_title": string | null;
+          "p_body": string | null;
+        };
+        Returns: string;
       };
       "smu_plain_text_document": {
         Args: {

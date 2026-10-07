@@ -26,9 +26,11 @@ export class ResearchProgramRepository {
     if (error) throw error;
     return data ? (await this.hydrate([data]))[0] ?? null : null;
   }
-  async listPublic(filters: ResearchProgramFilters) {
+  async listPublic(filters: ResearchProgramFilters, selectedIds?: string[]) {
     const taxonomy = await new ScientistRepository(this.client).listTaxonomy();
     let query = this.client.from("research_programs").select("*").eq("status", "published").is("deleted_at", null).order("updated_at", { ascending: false }).limit(100);
+    if (selectedIds && !selectedIds.length) return { programs: [], taxonomy };
+    if (selectedIds) query = query.in("id", selectedIds);
     if (filters.format !== "all") query = query.eq("format", filters.format);
     if (filters.field) {
       const field = taxonomy.fields.find(item => item.slug === filters.field);
@@ -58,9 +60,10 @@ export class ResearchProgramRepository {
     const program = result.data ? (await this.hydrate([result.data], true))[0] : null;
     return program?.coordinator.some(item => item.locale === locale) ? program : null;
   }
-  async applications(programId?: string, status: ApplicationStatus | "all" = "all"): Promise<ResearchProgramApplication[]> {
+  async applications(programId?: string, status: ApplicationStatus | "all" = "all", applicationId?: string): Promise<ResearchProgramApplication[]> {
     let query = this.client.from("research_program_applications").select("*").is("deleted_at", null).order("created_at", { ascending: false }).limit(100);
     if (programId) query = query.eq("program_id", programId);
+    if (applicationId) query = query.eq("id", applicationId);
     if (status !== "all") query = query.eq("status", status);
     const { data, error } = await query;
     if (error) throw error;

@@ -11,7 +11,7 @@ import { getAdminAccess } from "@/server/services/access.service";
 import { ResearchProgramService } from "@/server/services/research-program.service";
 import { applicationStatuses, researchProgramStatuses, type ResearchProgramApplication } from "@/types/domain/research-program";
 
-export type ResearchProgramAdminSearch = Promise<{ status?: string; error?: string; saved?: string; deleted?: string; application_saved?: string }>;
+export type ResearchProgramAdminSearch = Promise<{ application?: string; status?: string; error?: string; saved?: string; deleted?: string; application_saved?: string }>;
 const errors: Record<string, string> = {
   validation: "Проверьте поля RU/KK, количество мест и последовательность дат набора и проведения.", forbidden: "Недостаточно прав.",
   invalid_reference: "Координатор должен иметь верифицированный профиль с обеими языковыми версиями, направление должно быть активно.",
@@ -71,7 +71,8 @@ export async function ResearchProgramApplicationQueue({ searchParams }: { search
   const state = await searchParams;
   const parsed = applicationStatusSchema.safeParse(state.status);
   const status = parsed.success ? parsed.data : "all";
-  const applications = await new ResearchProgramService().applications(access, undefined, status);
+  if (state.application && !z.uuid().safeParse(state.application).success) notFound();
+  const applications = await new ResearchProgramService().applications(access, undefined, status, state.application);
   return <div className="content-page"><Link className="back-link" href={base}>← Research Program</Link><div className="page-heading"><div><p className="page-kicker">Research Program</p><h1>Заявки на участие</h1><p>До 100 последних заявок по выбранному статусу.</p></div></div><Notice state={state} />
     <section className="media-toolbar"><form className="media-filters"><select name="status" defaultValue={status} aria-label="Статус заявки"><option value="all">Все статусы</option>{applicationStatuses.map(value => <option key={value} value={value}>{applicationStatusLabels[value]}</option>)}</select><button className="secondary-button">Применить</button></form></section>
     {applications.length ? <div className="mentorship-applications">{applications.map(application => <div key={application.id}><Link className="back-link" href={base + "/" + application.programId + "#applications"}>Открыть программу →</Link><ApplicationCard application={application} queue /></div>)}</div> : <div className="empty-state"><h2>Заявки не найдены</h2><p>Измените фильтр или дождитесь новых заявок.</p></div>}
