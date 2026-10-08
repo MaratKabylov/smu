@@ -1,3 +1,5 @@
+import { catalogMetadata, pageAlternates, openGraphLocale } from "@/lib/seo/metadata";
+import type { PublicQuery } from "@/lib/i18n/locales";
 import { Pagination } from "@/components/search/Pagination";
 import { readPage } from "@/lib/search";
 import { requireLocale, type LocaleParams } from "@/lib/i18n/server";
@@ -22,9 +24,9 @@ function Header({ locale, translations }: { locale: ScientistLocale; translation
   return <PublicHeader locale={locale} section="events" translations={translations} />;
 }
 
-export async function eventCatalogMetadata(params: LocaleParams): Promise<Metadata> {
+export async function eventCatalogMetadata(params: LocaleParams, searchParams: Promise<PublicQuery> = Promise.resolve({})): Promise<Metadata> {
   const locale = requireLocale((await params).locale);
-  return { title: getDictionary(locale).events.title, description: getDictionary(locale).events.intro };
+  return catalogMetadata(locale, "events", getDictionary(locale).events.title, getDictionary(locale).events.intro, await searchParams);
 }
 export async function PublicEventCatalog({ searchParams, params }: { searchParams: EventCatalogSearch; params: LocaleParams }) {
   const state = await searchParams;
@@ -62,12 +64,12 @@ async function detail(params: EventDetailParams) {
 }
 export async function eventDetailMetadata(params: EventDetailParams): Promise<Metadata> {
   const { event, translation, locale } = await detail(params);
-  const path = "/" + locale + "/events/" + translation.slug;
+  const alternates = pageAlternates(locale, "events", event.translations);
   return {
     title: translation.title, description: translation.summary,
-    alternates: { canonical: path, languages: Object.fromEntries(event.translations.map(item => [item.locale, "/" + item.locale + "/events/" + item.slug])) },
-    openGraph: { title: translation.title, description: translation.summary, url: path, type: "website",
-      locale: locale === "ru" ? "ru_RU" : "kk_KZ", images: event.coverUrl ? [{ url: event.coverUrl }] : undefined },
+    alternates,
+    openGraph: { title: translation.title, description: translation.summary, url: alternates.canonical, type: "website",
+      locale: openGraphLocale[locale], images: event.coverUrl ? [{ url: event.coverUrl }] : undefined },
   };
 }
 export async function PublicEventDetail({ params }: { params: EventDetailParams }) {

@@ -42,6 +42,7 @@ export class PublicationService {
     }
   }
   async listPublic(locale: ArticleLocale, id: string | null = null, scientistId: string | null = null) {
+    if (!isSupabaseConfigured()) return [];
     return new PublicationRepository(await createServerSupabaseClient()).listPublic(locale, id, scientistId);
   }
 }

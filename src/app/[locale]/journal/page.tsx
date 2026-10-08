@@ -1,3 +1,5 @@
+import { catalogMetadata } from "@/lib/seo/metadata";
+import type { PublicQuery } from "@/lib/i18n/locales";
 import { Pagination } from "@/components/search/Pagination";
 import { readPage } from "@/lib/search";
 import { requireLocale, type LocaleParams } from "@/lib/i18n/server";
@@ -11,9 +13,10 @@ import { publicArticleFiltersSchema } from "@/lib/validation/article";
 import { PublicArticleService } from "@/server/services/public-article.service";
 import type { ArticleLocale } from "@/types/domain/article";
 
-export async function generateMetadata({ params }: { params: LocaleParams }): Promise<Metadata> {
-  const copy = getDictionary(requireLocale((await params).locale));
-  return { title: copy.common.brands.journal, description: copy.journalCatalog.intro };
+export async function generateMetadata({ params, searchParams = Promise.resolve({}) }: { params: LocaleParams; searchParams?: Promise<PublicQuery> }): Promise<Metadata> {
+  const locale = requireLocale((await params).locale);
+  const copy = getDictionary(locale);
+  return catalogMetadata(locale, "journal", copy.common.brands.journal, copy.journalCatalog.intro, await searchParams);
 }
 
 type JournalPageProps = {

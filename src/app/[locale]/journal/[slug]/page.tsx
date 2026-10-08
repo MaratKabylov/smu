@@ -1,3 +1,6 @@
+import { pageAlternates, openGraphLocale, noIndex } from "@/lib/seo/metadata";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { articleJsonLd } from "@/lib/seo/structured-data";
 import { appendPublicQuery, isLocale, type PublicQuery } from "@/lib/i18n/locales";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import type { Metadata } from "next";
@@ -23,9 +26,9 @@ export async function generateMetadata({
   params,
 }: PublicArticlePageProps): Promise<Metadata> {
   const { locale: rawLocale, slug } = await params;
-  if (!isArticleLocale(rawLocale)) return { title: "Материал не найден" };
+  if (!isArticleLocale(rawLocale)) return { title: "Материал не найден", robots: noIndex };
   const article = await getPublishedArticleBySlug(rawLocale, slug);
-  if (!article) return { title: "Материал не найден" };
+  if (!article) return { title: "Материал не найден", robots: noIndex };
 
   const title = article.translation.seoTitle ?? article.translation.title;
   const description =
@@ -33,12 +36,14 @@ export async function generateMetadata({
   return {
     title,
     description,
+    alternates: pageAlternates(rawLocale, "journal", [article.translation, ...article.alternateTranslations]),
     openGraph: {
       type: "article",
       title,
       description,
       publishedTime: article.publishedAt,
-      locale: rawLocale === "ru" ? "ru_RU" : "kk_KZ",
+      url: pageAlternates(rawLocale, "journal", [article.translation, ...article.alternateTranslations]).canonical,
+      locale: openGraphLocale[rawLocale],
       images: article.cover ? [{ url: article.cover.url }] : undefined,
     },
   };
@@ -82,6 +87,7 @@ export default async function PublicArticlePage({ params, searchParams }: Public
 
   return (
     <>
+      <JsonLd data={articleJsonLd(article)} />
       <JournalHeader locale={locale} translations={[article.translation, ...article.alternateTranslations]} />
       <main className="public-article-page" lang={locale}>
         <div className="public-article-shell">

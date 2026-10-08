@@ -1,3 +1,5 @@
+import { catalogMetadata } from "@/lib/seo/metadata";
+import type { PublicQuery } from "@/lib/i18n/locales";
 import { Pagination } from "@/components/search/Pagination";
 import { readPage } from "@/lib/search";
 import { requireLocale, type LocaleParams } from "@/lib/i18n/server";
@@ -11,9 +13,10 @@ import { publicScientistFiltersSchema } from "@/lib/validation/scientist";
 import { PublicScientistService } from "@/server/services/scientist.service";
 import { scientistTaxonomyName } from "@/lib/i18n/scientist-taxonomy";
 
-export async function generateMetadata({ params }: { params: LocaleParams }): Promise<Metadata> {
-  const copy = getDictionary(requireLocale((await params).locale));
-  return { title: copy.common.brands.scientists, description: copy.scientistCatalog.intro };
+export async function generateMetadata({ params, searchParams = Promise.resolve({}) }: { params: LocaleParams; searchParams?: Promise<PublicQuery> }): Promise<Metadata> {
+  const locale = requireLocale((await params).locale);
+  const copy = getDictionary(locale);
+  return catalogMetadata(locale, "scientists", copy.common.brands.scientists, copy.scientistCatalog.intro, await searchParams);
 }
 
 type Props = { params: LocaleParams; searchParams: Promise<{ page?: string; lang?: string; q?: string; organization?: string; field?: string }> };

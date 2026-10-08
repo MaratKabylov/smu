@@ -19,6 +19,7 @@ export function PublicHeader({ locale, section, translations, paths }: {
     <nav className="journal-nav" aria-label={copy.navigation}>
       {publicSections.map(item => <Link key={item} href={localizedPath(locale, `/${item}`)} aria-current={item === section ? "page" : undefined}>{copy.sections[item]}</Link>)}
       <Link href={localizedPath(locale, "/search")}>{searchCopy[locale].find}</Link>
+      <a href={localizedPath(locale, "/feed.xml")}>RSS</a>
       <a href="/admin" target="_blank" rel="noreferrer">SMU Admin <ArrowUpRight aria-hidden="true" /></a>
     </nav>
     <Suspense fallback={<div className="journal-language" aria-label={copy.language}>{locales.map(language => <Link key={language} href={languagePaths?.[language] ?? localizedPath(language, `/${section}`)} hrefLang={language} className={language === locale ? "is-active" : ""}>{language === "ru" ? "RU" : "ҚАЗ"}</Link>)}</div>}>

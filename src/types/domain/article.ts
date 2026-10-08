@@ -177,5 +177,6 @@ export type PublicArticleDetail = Omit<PublicArticleCard, "translation"> & {
     seoTitle: string | null;
     seoDescription: string | null;
   };
+  updatedAt?: string;
   alternateTranslations: PublicArticleTranslation[];
 };

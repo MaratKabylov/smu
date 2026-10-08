@@ -1,3 +1,5 @@
+import { catalogMetadata, pageAlternates, openGraphLocale } from "@/lib/seo/metadata";
+import type { PublicQuery } from "@/lib/i18n/locales";
 import { Pagination } from "@/components/search/Pagination";
 import { readPage } from "@/lib/search";
 import { requireLocale, type LocaleParams } from "@/lib/i18n/server";
@@ -5,7 +7,6 @@ import { PublicHeader } from "@/components/i18n/PublicHeader";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { z } from "zod";
 import { ApplicationForm } from "./ApplicationForm";
 import { programApplicationsOpen, programDate, researchProgramFormatLabels } from "@/lib/research-program";
 import { researchProgramFiltersSchema } from "@/lib/validation/research-program";
@@ -20,9 +21,9 @@ function Header({ locale, translations }: { locale: ScientistLocale; translation
   return <PublicHeader locale={locale} section="research-program" translations={translations} />;
 }
 
-export async function researchProgramCatalogMetadata(params: LocaleParams): Promise<Metadata> {
+export async function researchProgramCatalogMetadata(params: LocaleParams, searchParams: Promise<PublicQuery> = Promise.resolve({})): Promise<Metadata> {
   const locale = requireLocale((await params).locale);
-  return { title: locale === "ru" ? "Research Program — СМУ" : "Зерттеу бағдарламасы — СМУ", description: locale === "ru" ? "Программы научного сообщества Актюбинской области. Выберите направление и подайте заявку на участие." : "Ақтөбе облысының ғылыми қауымдастық зерттеу бағдарламалары. Бағытты таңдап, қатысуға өтінім беріңіз." };
+  return catalogMetadata(locale, "research-program", locale === "en" ? "Research Program" : (locale === "ru" ? "Research Program — СМУ" : "Зерттеу бағдарламасы — СМУ"), locale === "en" ? "Research programs from the scientific community of the Aktobe region. Choose a field and apply." : (locale === "ru" ? "Программы научного сообщества Актюбинской области. Выберите направление и подайте заявку на участие." : "Ақтөбе облысының ғылыми қауымдастық зерттеу бағдарламалары. Бағытты таңдап, қатысуға өтінім беріңіз."), await searchParams);
 }
 export async function PublicResearchProgramCatalog({ searchParams, params }: { searchParams: ResearchProgramCatalogSearch; params: LocaleParams }) {
   const state = await searchParams;
@@ -48,24 +49,25 @@ export async function PublicResearchProgramCatalog({ searchParams, params }: { s
 }
 async function detail(params: ResearchProgramDetailParams) {
   const value = await params;
-  const locale = z.enum(["ru", "kk"]).safeParse(value.locale);
-  if (!locale.success || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value.slug) || value.slug.length > 160) notFound();
-  const program = await getPublicResearchProgram(locale.data, value.slug);
-  const translation = program?.translations.find(item => item.locale === locale.data);
+  const locale = requireLocale(value.locale);
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value.slug) || value.slug.length > 160) notFound();
+  const program = await getPublicResearchProgram(locale, value.slug);
+  const translation = program?.translations.find(item => item.locale === locale);
   if (!program || !translation) notFound();
-  return { locale: locale.data, program, translation };
+  return { locale: locale, program, translation };
 }
 export async function researchProgramDetailMetadata(params: ResearchProgramDetailParams): Promise<Metadata> {
   const { locale, program, translation } = await detail(params);
-  const canonical = "/" + locale + "/research-program/" + translation.slug;
+  const translations = program.translations.filter(t => program.coordinator.some(person => person.locale === t.locale));
+  const alternates = pageAlternates(locale, "research-program", translations);
   return { title: translation.title + " — СМУ", description: translation.summary,
-    alternates: { canonical, languages: Object.fromEntries(program.translations.map(t => [t.locale, "/" + t.locale + "/research-program/" + t.slug])) },
-    openGraph: { type: "website", title: translation.title, description: translation.summary, url: canonical, locale: locale === "ru" ? "ru_RU" : "kk_KZ" } };
+    alternates,
+    openGraph: { type: "website", title: translation.title, description: translation.summary, url: alternates.canonical, locale: openGraphLocale[locale] } };
 }
 export async function PublicResearchProgramDetail({ params }: { params: ResearchProgramDetailParams }) {
   const { locale, program, translation } = await detail(params);
   const coordinator = program.coordinator.find(item => item.locale === locale)!;
-  return <><Header locale={locale} translations={program.translations} /><main className="public-article-shell" lang={locale}>
+  return <><Header locale={locale} translations={program.translations.filter(t => program.coordinator.some(person => person.locale === t.locale))} /><main className="public-article-shell" lang={locale}>
     <nav className="public-breadcrumbs" aria-label={locale === "ru" ? "Хлебные крошки" : "Навигация"}><Link href={"/" + locale + "/research-program"}>{locale === "ru" ? "Research Program" : "Зерттеу бағдарламасы"}</Link><span>/</span><span>{translation.title}</span></nav>
     <header className="public-article-header"><p className="science-card-field">{program.field ? scientistTaxonomyName(program.field, locale) : null}</p><h1>{translation.title}</h1><p className="public-article-lead">{translation.summary}</p></header>
     <div className="public-article-layout"><div className="science-work-body">

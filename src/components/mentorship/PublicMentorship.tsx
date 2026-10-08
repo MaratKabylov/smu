@@ -1,3 +1,5 @@
+import { catalogMetadata, pageAlternates, openGraphLocale } from "@/lib/seo/metadata";
+import type { PublicQuery } from "@/lib/i18n/locales";
 import { Pagination } from "@/components/search/Pagination";
 import { readPage } from "@/lib/search";
 import { requireLocale, type LocaleParams } from "@/lib/i18n/server";
@@ -5,7 +7,6 @@ import { PublicHeader } from "@/components/i18n/PublicHeader";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { z } from "zod";
 import { ApplicationForm } from "./ApplicationForm";
 import { mentorshipFormatLabels } from "@/lib/mentorship";
 import { mentorshipFiltersSchema } from "@/lib/validation/mentorship";
@@ -20,9 +21,9 @@ function Header({ locale, translations }: { locale: ScientistLocale; translation
   return <PublicHeader locale={locale} section="mentorship" translations={translations} />;
 }
 
-export async function mentorshipCatalogMetadata(params: LocaleParams): Promise<Metadata> {
+export async function mentorshipCatalogMetadata(params: LocaleParams, searchParams: Promise<PublicQuery> = Promise.resolve({})): Promise<Metadata> {
   const locale = requireLocale((await params).locale);
-  return { title: locale === "ru" ? "Наставничество — СМУ" : "Тәлімгерлік — СМУ", description: locale === "ru" ? "Наставники научного сообщества Актюбинской области. Выберите направление и подайте заявку на участие." : "Ақтөбе облысының ғылыми қауымдастық тәлімгерлері. Бағытты таңдап, қатысуға өтінім беріңіз." };
+  return catalogMetadata(locale, "mentorship", locale === "en" ? "Mentorship" : (locale === "ru" ? "Наставничество — СМУ" : "Тәлімгерлік — СМУ"), locale === "en" ? "Mentors from the scientific community of the Aktobe region. Choose a field and apply." : (locale === "ru" ? "Наставники научного сообщества Актюбинской области. Выберите направление и подайте заявку на участие." : "Ақтөбе облысының ғылыми қауымдастық тәлімгерлері. Бағытты таңдап, қатысуға өтінім беріңіз."), await searchParams);
 }
 export async function PublicMentorshipCatalog({ searchParams, params }: { searchParams: MentorshipCatalogSearch; params: LocaleParams }) {
   const state = await searchParams;
@@ -45,24 +46,25 @@ export async function PublicMentorshipCatalog({ searchParams, params }: { search
 }
 async function detail(params: MentorshipDetailParams) {
   const value = await params;
-  const locale = z.enum(["ru", "kk"]).safeParse(value.locale);
-  if (!locale.success || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value.slug) || value.slug.length > 160) notFound();
-  const offer = await getPublicMentorship(locale.data, value.slug);
-  const translation = offer?.translations.find(item => item.locale === locale.data);
+  const locale = requireLocale(value.locale);
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value.slug) || value.slug.length > 160) notFound();
+  const offer = await getPublicMentorship(locale, value.slug);
+  const translation = offer?.translations.find(item => item.locale === locale);
   if (!offer || !translation) notFound();
-  return { locale: locale.data, offer, translation };
+  return { locale: locale, offer, translation };
 }
 export async function mentorshipDetailMetadata(params: MentorshipDetailParams): Promise<Metadata> {
   const { locale, offer, translation } = await detail(params);
-  const canonical = "/" + locale + "/mentorship/" + translation.slug;
+  const translations = offer.translations.filter(t => offer.mentor.some(person => person.locale === t.locale));
+  const alternates = pageAlternates(locale, "mentorship", translations);
   return { title: translation.title + " — СМУ", description: translation.summary,
-    alternates: { canonical, languages: Object.fromEntries(offer.translations.map(t => [t.locale, "/" + t.locale + "/mentorship/" + t.slug])) },
-    openGraph: { type: "website", title: translation.title, description: translation.summary, url: canonical, locale: locale === "ru" ? "ru_RU" : "kk_KZ" } };
+    alternates,
+    openGraph: { type: "website", title: translation.title, description: translation.summary, url: alternates.canonical, locale: openGraphLocale[locale] } };
 }
 export async function PublicMentorshipDetail({ params }: { params: MentorshipDetailParams }) {
   const { locale, offer, translation } = await detail(params);
   const mentor = offer.mentor.find(item => item.locale === locale)!;
-  return <><Header locale={locale} translations={offer.translations} /><main className="public-article-shell" lang={locale}>
+  return <><Header locale={locale} translations={offer.translations.filter(t => offer.mentor.some(person => person.locale === t.locale))} /><main className="public-article-shell" lang={locale}>
     <nav className="public-breadcrumbs" aria-label={locale === "ru" ? "Хлебные крошки" : "Навигация"}><Link href={"/" + locale + "/mentorship"}>{locale === "ru" ? "Наставничество" : "Тәлімгерлік"}</Link><span>/</span><span>{translation.title}</span></nav>
     <header className="public-article-header"><p className="science-card-field">{offer.field ? scientistTaxonomyName(offer.field, locale) : null}</p><h1>{translation.title}</h1><p className="public-article-lead">{translation.summary}</p></header>
     <div className="public-article-layout"><div className="science-work-body"><h2>{locale === "ru" ? "О наставничестве" : "Тәлімгерлік туралы"}</h2><p>{translation.description}</p><ApplicationForm offerId={offer.id} locale={locale} /></div>

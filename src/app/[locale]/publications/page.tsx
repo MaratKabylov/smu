@@ -1,3 +1,5 @@
+import { catalogMetadata } from "@/lib/seo/metadata";
+import { getDictionary } from "@/lib/i18n/dictionaries";
 import { requireLocale, type LocaleParams } from "@/lib/i18n/server";
 import { PublicHeader } from "@/components/i18n/PublicHeader";
 import Link from "next/link";
@@ -5,6 +7,10 @@ import { PublicationService } from "@/server/services/publication.service";
 import { Pagination } from "@/components/search/Pagination";
 import { readPage, readSearch, searchCopy } from "@/lib/search";
 import type { PublicQuery } from "@/lib/i18n/locales";
+export async function generateMetadata({ params, searchParams }: { params: LocaleParams; searchParams: Promise<PublicQuery> }) {
+  const locale = requireLocale((await params).locale);
+  return catalogMetadata(locale, "publications", getDictionary(locale).common.brands.publications, getDictionary(locale).science.intro, await searchParams);
+}
 export default async function Page({ params, searchParams }: { params: LocaleParams; searchParams: Promise<PublicQuery> }) {
   const locale = requireLocale((await params).locale);
   const state = await searchParams;

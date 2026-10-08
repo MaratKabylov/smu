@@ -2153,6 +2153,22 @@ export type Database = {
         };
         Returns: string;
       };
+      "seo_public_feed": {
+        Args: {
+          "p_locale": string | null;
+          "p_limit"?: number | null;
+        };
+        Returns: Json;
+      };
+      "seo_public_page": {
+        Args: {
+          "p_page"?: number | null;
+          "p_page_size"?: number | null;
+          "p_section"?: string | null;
+          "p_id"?: string | null;
+        };
+        Returns: Json;
+      };
       "smu_plain_text_document": {
         Args: {
           "p_text": string | null;

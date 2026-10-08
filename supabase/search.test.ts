@@ -149,6 +149,7 @@ describe("database search and pagination", () => {
           'A complete scientific project summary','A complete scientific description of regional data','aquifer measurements');
     `, async () => {
       expect((await publicSearch("aquifer", "projects", { field: "water", stage: "completed" }, 1, "en")).total).toBe(1);
+      expect((await seoPage(1, 1000, "projects")).items[0].translations).toEqual([{ locale: "en", href: "/en/projects/regional-project" }]);
       expect((await publicSearch("aquifer", "projects", { stage: "active" }, 1, "en")).total).toBe(0);
       expect((await publicSearch("aquifer", "research", {}, 1, "en")).total).toBe(0);
     });
@@ -157,8 +158,10 @@ describe("database search and pagination", () => {
     await temporary(`insert into public.publications(scientist_id,title,year,journal,publication_type,status,created_by,published_at)
       values('${person}','Aquifer discovery',2026,'Geosciences','article','published','${admin}',now())`, async () => {
       expect((await publicSearch("aquifer", "publications", {}, 1, "en")).total).toBe(1);
+      expect((await seoPage(1, 1000, "publications")).items[0].translations).toHaveLength(3);
       await db.query("update public.scientist_profiles set status='draft' where id=$1", [person]);
       expect((await publicSearch("aquifer", "publications", {}, 1, "en", admin)).total).toBe(0);
+      expect((await seoPage(1, 1000, "publications", admin)).items).toEqual([]);
       expect((await adminSearch(admin, "aquifer", "publications")).total).toBe(1);
     });
   });
@@ -171,6 +174,7 @@ describe("database search and pagination", () => {
           'Scientific seminar about water management','Scientific seminar about water management and aquifers','University');
     `, async () => {
       expect((await publicSearch("aquifer", "events", { period: "upcoming", format: "offline", kind: "seminar" }, 1, "en")).total).toBe(1);
+      expect((await seoPage(1, 1000, "events")).items[0].translations[0].href).toBe("/en/events/water-seminar");
       expect((await publicSearch("aquifer", "events", { period: "past" }, 1, "en")).total).toBe(0);
       expect((await publicSearch("aquifer", "events", { format: "online" }, 1, "en")).total).toBe(0);
     });
@@ -189,9 +193,13 @@ describe("database search and pagination", () => {
           'Learn scientific water measurement methods','Learn scientific water measurement methods and aquifer analysis',
           'Learn scientific measurement methods','Young scientists with experience','Scientific measurement datasets');
     `, async () => {
-      for (const section of ["mentorship", "research-program"]) expect((await publicSearch("aquifer", section, { format: "offline", field: "water" }, 1, "en")).total).toBe(1);
+      for (const section of ["mentorship", "research-program"]) {
+        expect((await publicSearch("aquifer", section, { format: "offline", field: "water" }, 1, "en")).total).toBe(1);
+        expect((await seoPage(1, 1000, section)).items[0].translations).toHaveLength(1);
+      }
       await db.query("delete from public.scientist_profile_translations where scientist_profile_id=$1 and locale='en'", [person]);
       expect((await publicSearch("aquifer", "mentorship", {}, 1, "en", admin)).total).toBe(0);
+      for (const section of ["mentorship", "research-program"]) expect((await seoPage(1, 1000, section, admin)).items).toEqual([]);
       await db.query("update public.scientific_fields set is_active=false where id=$1", [field]);
       expect((await publicSearch("aquifer", "research-program", {}, 1, "en", admin)).total).toBe(0);
     });
@@ -210,5 +218,75 @@ describe("database search and pagination", () => {
       expect((await adminSearch(author, "privatequartz", "mentorship-applications")).total).toBe(0);
       expect((await publicSearch("privatequartz", "", {}, 1, "ru", admin)).total).toBe(0);
     });
+  });
+});
+
+
+type SeoPage = { total: number; items: Array<{ id: string; section: string; updatedAt: string; translations: Array<{ locale: string; href: string }> }> };
+type FeedItem = { id: string; title: string; summary: string; href: string; publishedAt: string };
+async function seoPage(page = 1, size = 1000, section = "", user: string | null = null) {
+  return asRole(user, async () => (await db.query<{ result: SeoPage }>("select public.seo_public_page($1,$2,$3) result", [page, size, section])).rows[0].result);
+}
+async function seoFeed(locale = "ru", user: string | null = null, limit = 50) {
+  return asRole(user, async () => (await db.query<{ result: FeedItem[] }>("select public.seo_public_feed($1,$2) result", [locale, limit])).rows[0].result);
+}
+
+describe("public SEO database projection", () => {
+  it("preserves existing published content when applying the SEO migration", async () => {
+    const before = (await db.query("select a.status,a.published_at,a.content_version,t.title,t.body,t.slug from public.articles a join public.article_translations t on t.article_id=a.id where a.id=$1 order by t.locale", [article])).rows;
+    await temporary("drop function public.seo_public_page(integer,integer,text,uuid); drop function public.seo_public_feed(text,integer)", async () => {
+      await db.exec(await readFile(new URL("./migrations/024_public_seo.sql", import.meta.url), "utf8"));
+      expect((await db.query("select a.status,a.published_at,a.content_version,t.title,t.body,t.slug from public.articles a join public.article_translations t on t.article_id=a.id where a.id=$1 order by t.locale", [article])).rows).toEqual(before);
+      expect((await seoPage()).total).toBe(131);
+    });
+  });
+  it("groups translations by entity, preserves real language slugs and excludes private data", async () => {
+    const result = await seoPage();
+    expect(result.total).toBe(131);
+    expect(result.items.find(item => item.id === article)?.translations).toEqual([{ locale: "en", href: "/en/journal/water-en" }, { locale: "kk", href: "/kk/journal/water-kk" }, { locale: "ru", href: "/ru/journal/material-0" }]);
+    expect(result.items.filter(item => item.section === "journal" && item.id !== article).every(item => item.translations.length === 1)).toBe(true);
+    expect(JSON.stringify(result)).not.toMatch(/privatequartz|admin\//);
+    expect(result.items[0]).not.toHaveProperty("title");
+    expect(result.items[0]).not.toHaveProperty("summary");
+  });
+  it("covers all 130 articles in stable pages without truncation or duplicate translations", async () => {
+    const ids: string[] = [];
+    for (let n = 1; n <= 11; n++) { const result = await seoPage(n, 12, "journal"); expect(result.total).toBe(130); ids.push(...result.items.map(item => item.id)); }
+    expect(ids).toHaveLength(130); expect(new Set(ids).size).toBe(130);
+    expect((await seoPage(12, 12, "journal")).items).toEqual([]);
+    expect((await seoPage(1, 1, "journal")).items).toHaveLength(1);
+  });
+  it("gives anon and admin identical public indexing data", async () => {
+    expect(await seoPage(1, 1000, "", admin)).toEqual(await seoPage());
+    expect(await seoFeed("ru", admin)).toEqual(await seoFeed());
+    expect(await seoFeed()).toHaveLength(50);
+    expect(await seoFeed("en")).toHaveLength(1);
+    expect((await seoFeed("kk"))[0].href).toBe("/kk/journal/water-kk");
+    expect(JSON.stringify(await seoFeed())).not.toMatch(/privatequartz|body|admin\//);
+    const raw = (await db.query<{ published_at: Date }>("select published_at from public.articles where id=$1", [article])).rows[0];
+    expect(new Date((await seoFeed("en"))[0].publishedAt).toISOString()).toBe(new Date(raw.published_at).toISOString());
+  });
+  it("filters future, deleted and draft articles before feed limits and sitemap counts", async () => {
+    for (const patch of ["status='draft'", "deleted_at=now()", "published_at=now()+interval '1 day'"]) await temporary("update public.articles set " + patch + " where id='" + article + "'", async () => {
+      expect(await seoFeed("en", admin)).toEqual([]); expect((await seoPage(1, 1000, "journal", admin)).total).toBe(129);
+    });
+  });
+  it("targets visible records without revealing private ids or counts", async () => {
+    const lookup = async (id: string) => asRole(null, async () => (await db.query<{ result: SeoPage }>("select public.seo_public_page(1,1,'journal',$1) result", [id])).rows[0].result);
+    expect((await lookup(article)).total).toBe(1);
+    const privateId = (await db.query<{ id: string }>("select id from public.articles where status='draft' limit 1")).rows[0].id;
+    expect(await lookup(privateId)).toEqual({ total: 0, items: [] });
+  });
+  it("denies service-role execution and retains a closed source view", async () => {
+    await db.exec("set role service_role");
+    try {
+      await expect(db.query("select public.seo_public_page()" )).rejects.toThrow(/permission denied/);
+      await expect(db.query("select public.seo_public_feed('ru')")).rejects.toThrow(/permission denied/);
+      await expect(db.query("select * from public.search_entries")).rejects.toThrow(/permission denied/);
+    } finally { await db.exec("reset role"); }
+  });
+  it("rejects invalid sitemap and feed inputs at the database boundary", async () => {
+    for (const args of [[0, 1000, ""], [1, 1001, ""], [1, 0, ""], [null, 12, ""], [1, 12, "users"], [1, 12, null]]) await expect(asRole(null, () => db.query("select public.seo_public_page($1,$2,$3)", args))).rejects.toThrow("invalid_input");
+    for (const args of [["de", 50], [null, 50], ["ru", 0], ["ru", 101], ["ru", null]]) await expect(asRole(null, () => db.query("select public.seo_public_feed($1,$2)", args))).rejects.toThrow("invalid_input");
   });
 });

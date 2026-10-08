@@ -1,3 +1,5 @@
+import { catalogMetadata, pageAlternates, openGraphLocale, noIndex } from "@/lib/seo/metadata";
+import type { PublicQuery } from "@/lib/i18n/locales";
 import { Pagination } from "@/components/search/Pagination";
 import { readPage } from "@/lib/search";
 import { requireLocale, type LocaleParams } from "@/lib/i18n/server";
@@ -23,9 +25,9 @@ export type ScienceDetailParams = Promise<{ locale: string; slug: string }>;
 function validLocale(locale: string): ScientistLocale {
   return requireLocale(locale);
 }
-export async function scienceCatalogMetadata(kind: ScienceWorkKind, params: LocaleParams): Promise<Metadata> {
+export async function scienceCatalogMetadata(kind: ScienceWorkKind, params: LocaleParams, searchParams: Promise<PublicQuery> = Promise.resolve({})): Promise<Metadata> {
   const locale = requireLocale((await params).locale);
-  return { title: scienceWorkTitles[locale][kind], description: getDictionary(locale).science.intro };
+  return catalogMetadata(locale, kind === "project" ? "projects" : "research", scienceWorkTitles[locale][kind], getDictionary(locale).science.intro, await searchParams);
 }
 export async function PublicScienceWorkCatalog({ kind, searchParams, params }: { kind: ScienceWorkKind; searchParams: SearchParams; params: LocaleParams }) {
   const state = await searchParams;
@@ -59,12 +61,12 @@ export async function scienceDetailMetadata(kind: ScienceWorkKind, params: Scien
   const locale = validLocale(rawLocale);
   const work = await getPublicScienceWork(kind, locale, slug);
   const translation = work?.translations.find(item => item.locale === locale);
-  if (!work || !translation) return { title: getDictionary(locale).science.notFound };
-  const path = scienceWorkPath(kind);
+  if (!work || !translation) return { title: getDictionary(locale).science.notFound, robots: noIndex };
+  const section = kind === "project" ? "projects" : "research";
   return {
     title: translation.title, description: translation.summary,
-    alternates: { canonical: localizedPath(locale, path + "/" + slug), languages: Object.fromEntries(work.translations.map(item => [item.locale, localizedPath(item.locale, path + "/" + item.slug)])) },
-    openGraph: { title: translation.title, description: translation.summary, type: "article", locale: locale === "ru" ? "ru_RU" : "kk_KZ", images: work.coverUrl ? [{ url: work.coverUrl }] : undefined },
+    alternates: pageAlternates(locale, section, work.translations),
+    openGraph: { title: translation.title, description: translation.summary, type: "article", url: pageAlternates(locale, section, work.translations).canonical, locale: openGraphLocale[locale], images: work.coverUrl ? [{ url: work.coverUrl }] : undefined },
   };
 }
 export async function PublicScienceWorkDetail({ kind, params }: { kind: ScienceWorkKind; params: ScienceDetailParams }) {

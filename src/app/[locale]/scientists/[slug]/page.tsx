@@ -1,3 +1,6 @@
+import { pageAlternates, openGraphLocale, noIndex } from "@/lib/seo/metadata";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { personJsonLd } from "@/lib/seo/structured-data";
 import { requireLocale } from "@/lib/i18n/server";
 import { appendPublicQuery, type PublicQuery } from "@/lib/i18n/locales";
 import { getDictionary } from "@/lib/i18n/dictionaries";
@@ -23,11 +26,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale: rawLocale, slug } = await params;
   const locale = localeOrNotFound(rawLocale);
   const scientist = await getPublicScientistBySlug(locale, slug);
-  if (!scientist) return { title: locale === "ru" ? "Профиль не найден" : "Профиль табылмады" };
+  if (!scientist) return { title: locale === "ru" ? "Профиль не найден" : locale === "en" ? "Profile not found" : "Профиль табылмады", robots: noIndex };
   return {
     title: scientist.translation.fullName,
     description: scientist.translation.shortBio,
+    alternates: pageAlternates(locale, "scientists", [scientist.translation, ...scientist.alternateTranslations]),
     openGraph: {
+      url: pageAlternates(locale, "scientists", [scientist.translation, ...scientist.alternateTranslations]).canonical,
+      locale: openGraphLocale[locale],
       title: scientist.translation.fullName,
       description: scientist.translation.shortBio,
       images: scientist.avatarUrl ? [{ url: scientist.avatarUrl }] : undefined,
@@ -54,6 +60,7 @@ export default async function ScientistProfilePage({ params, searchParams }: Pro
     : null;
 
   return <>
+    <JsonLd data={personJsonLd(scientist)} />
     <CommunityHeader locale={locale} translations={[scientist.translation, ...scientist.alternateTranslations]} />
     <main className="scientist-profile-page">
       <div className="scientist-profile-shell">

@@ -135,7 +135,7 @@ export class PublicArticleRepository {
 
     const articlesQuery = this.client
       .from("articles")
-      .select("id, category_id, cover_media_id, content_type, published_at")
+      .select("id, category_id, cover_media_id, content_type, published_at, updated_at")
       .eq("status", "published")
       .is("deleted_at", null)
       .lte("published_at", new Date().toISOString())
@@ -227,7 +227,7 @@ export class PublicArticleRepository {
     const translation = translationData;
     const { data: articleData, error: articleError } = await this.client
       .from("articles")
-      .select("id, category_id, cover_media_id, content_type, published_at")
+      .select("id, category_id, cover_media_id, content_type, published_at, updated_at")
       .eq("id", translation.article_id)
       .eq("status", "published")
       .is("deleted_at", null)
@@ -291,6 +291,7 @@ export class PublicArticleRepository {
         seoTitle: translation.seo_title,
         seoDescription: translation.seo_description,
       },
+      updatedAt: article.updated_at,
       alternateTranslations: (alternateResult.data ?? []).map(mapTranslation),
     };
   }
