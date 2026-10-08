@@ -20,7 +20,7 @@ export async function getPublicSlugRedirect(
     .select("id").eq("id", history.entity_id)
     .eq("status", entityType === "article" ? "published" : "verified")
     .is("deleted_at", null);
-  if (entityType === "article") query = query.lte("published_at", new Date().toISOString());
+  if (entityType === "article") query = query.lte("published_at", "now");
   const { data: entity, error: entityError } = await query.maybeSingle();
   if (entityError) throw entityError;
   if (!entity) return null;

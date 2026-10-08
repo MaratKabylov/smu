@@ -13,17 +13,25 @@ describe("public redirects and session proxy", () => {
     expect(result.headers.get("location")).toBe("https://example.org/kk/journal/story?q=test");
     expect(mocks.client).not.toHaveBeenCalled();
   });
-  it.each(["/admin/login", "/ru/journal", "/kk/mentorship/offer"])("continues session refresh on %s", async path => {
+  it.each(["/admin/login", "/admin", "/api/admin/media/uploads"])("continues session refresh on %s", async path => {
     const result = await proxy(new NextRequest(`https://example.org${path}`));
     expect(result.headers.get("location")).toBeNull(); expect(mocks.user).toHaveBeenCalledOnce();
   });
-  it("preserves session cookies after locale routing", async () => {
+  it("preserves refreshed session cookies on admin routes", async () => {
     mocks.client.mockImplementationOnce((_url, _key, options) => {
       options.cookies.setAll([{ name: "session", value: "refreshed", options: { httpOnly: true } }]);
       return { auth: { getUser: mocks.user } };
     });
-    const result = await proxy(new NextRequest("https://example.org/kk/events"));
+    const result = await proxy(new NextRequest("https://example.org/admin/content/articles"));
     expect(result.cookies.get("session")?.value).toBe("refreshed");
+  });
+  it.each(["/ru/journal", "/kk/mentorship/offer", "/en/search?q=water", "/sitemap.xml", "/ru/feed.xml", "/administrator"])("ignores session cookies and auth refresh on %s", async path => {
+    const request = new NextRequest(`https://example.org${path}`, { headers: { Cookie: "session=admin" } });
+    const result = await proxy(request);
+    expect(result.status).toBe(200);
+    expect(result.headers.get("set-cookie")).toBeNull();
+    expect(mocks.client).not.toHaveBeenCalled();
+    expect(mocks.user).not.toHaveBeenCalled();
   });
   it("works without Supabase configuration", async () => {
     mocks.configured.mockReturnValue(false);

@@ -1,3 +1,4 @@
+import { createPublicSupabaseClient } from "@/lib/supabase/public";
 import { SearchRepository } from "@/server/repositories/search.repository";
 import { emptySearchPage, orderBySearch } from "@/lib/search";
 import "server-only";
@@ -43,20 +44,20 @@ export class EventService {
 export class PublicEventService {
   async listPage(filters: PublicEventFilters, page = 1) {
     if (!isSupabaseConfigured()) return { events: [], pagination: emptySearchPage(page) };
-    const client = await createServerSupabaseClient();
+    const client = createPublicSupabaseClient();
     const { locale, query, ...attributes } = filters;
     const pagination = await new SearchRepository(client).publicPage(locale, query, "events", attributes, page);
-    const events = await new EventRepository(client).listPublic({ ...filters, query: "" }, new Date(), pagination.items.map(item => item.id));
+    const events = await new EventRepository(client).listPublic({ ...filters, query: "" }, "now", pagination.items.map(item => item.id));
     return { events: orderBySearch(events, pagination), pagination };
   }
 
   async list(filters: PublicEventFilters) {
     if (!isSupabaseConfigured()) return [];
-    return new EventRepository(await createServerSupabaseClient()).listPublic(filters);
+    return new EventRepository(createPublicSupabaseClient()).listPublic(filters);
   }
   async getBySlug(locale: ScientistLocale, slug: string) {
     if (!isSupabaseConfigured()) return null;
-    return new EventRepository(await createServerSupabaseClient()).getPublicBySlug(locale, slug);
+    return new EventRepository(createPublicSupabaseClient()).getPublicBySlug(locale, slug);
   }
 }
 export const getPublicEvent = cache((locale: ScientistLocale, slug: string) => new PublicEventService().getBySlug(locale, slug));

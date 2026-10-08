@@ -10,7 +10,9 @@ export async function proxy(request: NextRequest) {
 
   let response = NextResponse.next({ request });
 
-  if (!isSupabaseConfigured()) {
+  // Public requests never refresh or depend on a visitor's auth session.
+  const needsSession = request.nextUrl.pathname === "/admin" || request.nextUrl.pathname.startsWith("/admin/") || request.nextUrl.pathname.startsWith("/api/admin/");
+  if (!needsSession || !isSupabaseConfigured()) {
     return response;
   }
 

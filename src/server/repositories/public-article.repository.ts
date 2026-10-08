@@ -138,7 +138,8 @@ export class PublicArticleRepository {
       .select("id, category_id, cover_media_id, content_type, published_at, updated_at")
       .eq("status", "published")
       .is("deleted_at", null)
-      .lte("published_at", new Date().toISOString())
+      // PostgreSQL resolves now on a cache miss; the URL remains reusable.
+      .lte("published_at", "now")
       .in("id", translations.map((row) => row.article_id))
       .order("published_at", { ascending: false })
       .limit(60);
@@ -231,7 +232,8 @@ export class PublicArticleRepository {
       .eq("id", translation.article_id)
       .eq("status", "published")
       .is("deleted_at", null)
-      .lte("published_at", new Date().toISOString())
+      // PostgreSQL resolves now on a cache miss; the URL remains reusable.
+      .lte("published_at", "now")
       .maybeSingle();
     if (articleError) throw articleError;
     if (!articleData) return null;

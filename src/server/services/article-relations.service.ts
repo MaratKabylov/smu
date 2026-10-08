@@ -1,4 +1,5 @@
 import "server-only";
+import { createPublicSupabaseClient } from "@/lib/supabase/public";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { hasPermission } from "@/lib/permissions/permissions";
 import { ArticleServiceError } from "./article.service";
@@ -16,9 +17,9 @@ export class ArticleRelationsService {
     return new ArticleRelationsRepository(await createServerSupabaseClient()).search(kind, query, ids);
   }
   async publicRelations(id: string, locale: ArticleLocale) {
-    return new ArticleRelationsRepository(await createServerSupabaseClient()).publicRelations(id, locale);
+    return new ArticleRelationsRepository(createPublicSupabaseClient()).publicRelations(id, locale);
   }
   async relatedArticles(kind: ArticleRelationKind, id: string, locale: ArticleLocale) {
-    return new ArticleRelationsRepository(await createServerSupabaseClient()).relatedArticles(kind, id, locale);
+    return new ArticleRelationsRepository(createPublicSupabaseClient()).relatedArticles(kind, id, locale);
   }
 }

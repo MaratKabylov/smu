@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { siteOrigin, absoluteUrl } from "@/lib/seo/site";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { organizationJsonLd } from "@/lib/seo/structured-data";
@@ -7,6 +8,7 @@ import { getDictionary } from "@/lib/i18n/dictionaries";
 import "../globals.css";
 
 export async function generateMetadata({ params }: { params: LocaleParams }): Promise<Metadata> {
+  await connection();
   const locale = requireLocale((await params).locale);
   const copy = getDictionary(locale).common;
   return {
@@ -18,6 +20,7 @@ export async function generateMetadata({ params }: { params: LocaleParams }): Pr
 }
 
 export default async function PublicLayout({ children, params }: { children: React.ReactNode; params: LocaleParams }) {
+  await connection();
   const locale = requireLocale((await params).locale);
   return <html lang={locale}><body><JsonLd data={organizationJsonLd(locale)} />{children}</body></html>;
 }

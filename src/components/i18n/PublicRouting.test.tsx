@@ -1,3 +1,4 @@
+vi.mock("next/server", () => ({ connection: vi.fn().mockResolvedValue(undefined) }));
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 const mocks = vi.hoisted(() => ({ articles: vi.fn(), scientists: vi.fn(), works: vi.fn(), events: vi.fn(), mentorship: vi.fn(), programs: vi.fn(), publications: vi.fn(), articleDetail: vi.fn(), scientistDetail: vi.fn(), articleRedirect: vi.fn(), scientistRedirect: vi.fn() }));
@@ -12,7 +13,7 @@ vi.mock("@/server/services/publication.service", () => ({ PublicationService: cl
 vi.mock("@/components/mentorship/ApplicationForm", () => ({ ApplicationForm: () => null }));
 vi.mock("@/components/research-program/ApplicationForm", () => ({ ApplicationForm: () => null }));
 vi.mock("@/components/articles/PublicArticleRelations", () => ({ RelatedArticles: () => null, PublicArticleRelations: () => null }));
-vi.mock("@/lib/supabase/server", () => ({ createServerSupabaseClient: vi.fn() }));
+vi.mock("@/lib/supabase/public", () => ({ createPublicSupabaseClient: vi.fn() }));
 vi.mock("@/server/repositories/article-images.repository", () => ({ getArticleImages: vi.fn() }));
 import Journal, { generateMetadata as journalMetadata } from "@/app/[locale]/journal/page";
 import Scientists from "@/app/[locale]/scientists/page";

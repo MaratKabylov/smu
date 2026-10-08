@@ -1,10 +1,10 @@
+import { createPublicSupabaseClient } from "@/lib/supabase/public";
 import { SearchRepository } from "@/server/repositories/search.repository";
 import { emptySearchPage, orderBySearch } from "@/lib/search";
 import "server-only";
 
 import { cache } from "react";
 import { isSupabaseConfigured } from "@/lib/env";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { PublicArticleFilters } from "@/lib/validation/article";
 import { PublicArticleRepository } from "@/server/repositories/public-article.repository";
 import { getPublicSlugRedirect } from "@/server/repositories/slug.repository";
@@ -15,7 +15,7 @@ const emptyTaxonomy: ArticleTaxonomy = { categories: [], tags: [], authors: [], 
 export class PublicArticleService {
   async listPage(filters: PublicArticleFilters, page = 1) {
     if (!isSupabaseConfigured()) return { articles: [], taxonomy: emptyTaxonomy, pagination: emptySearchPage(page) };
-    const client = await createServerSupabaseClient();
+    const client = createPublicSupabaseClient();
     const pagination = await new SearchRepository(client).publicPage(filters.locale, filters.query, "journal", { category: filters.category, tag: filters.tag }, page);
     const repository = new PublicArticleRepository(client);
     const taxonomy = await repository.listTaxonomy();
@@ -25,13 +25,13 @@ export class PublicArticleService {
 
   async getSlugRedirect(locale: ArticleLocale, slug: string) {
     if (!isSupabaseConfigured()) return null;
-    return getPublicSlugRedirect(await createServerSupabaseClient(), "article", locale, slug);
+    return getPublicSlugRedirect(createPublicSupabaseClient(), "article", locale, slug);
   }
   async list(filters: PublicArticleFilters) {
     if (!isSupabaseConfigured()) {
       return { articles: [], taxonomy: emptyTaxonomy };
     }
-    const client = await createServerSupabaseClient();
+    const client = createPublicSupabaseClient();
     const repository = new PublicArticleRepository(client);
     const taxonomy = await repository.listTaxonomy();
     const articles = await repository.list(filters, taxonomy);
@@ -40,7 +40,7 @@ export class PublicArticleService {
 
   async getBySlug(locale: ArticleLocale, slug: string) {
     if (!isSupabaseConfigured()) return null;
-    const client = await createServerSupabaseClient();
+    const client = createPublicSupabaseClient();
     return new PublicArticleRepository(client).getBySlug(locale, slug);
   }
 }

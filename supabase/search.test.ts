@@ -60,6 +60,11 @@ beforeAll(async () => {
 afterAll(async () => { await db?.close(); });
 
 describe("database search and pagination", () => {
+  it("evaluates stable PostgREST now timestamp filters at the database clock without exposing future articles", async () => {
+    const visible = () => asRole(null, () => db.query<{ id: string }>("select id from public.articles where id=$1 and status='published' and deleted_at is null and published_at <= 'now'::timestamptz", [article]));
+    expect((await visible()).rows.map(row => row.id)).toEqual([article]);
+    await temporary(`update public.articles set published_at=now()+interval '1 day' where id='${article}'`, async () => { expect((await visible()).rows).toEqual([]); });
+  });
   it("searches the body with Russian stemming, counts all records and goes beyond the former 100-row cap", async () => {
     const first = await publicSearch("водные", "journal");
     expect(first.total).toBe(130); expect(first.items).toHaveLength(12);

@@ -2,6 +2,7 @@ import { SearchRepository } from "@/server/repositories/search.repository";
 import { emptySearchPage, orderBySearch } from "@/lib/search";
 import { isSupabaseConfigured } from "@/lib/env";
 import "server-only";
+import { createPublicSupabaseClient } from "@/lib/supabase/public";
 import { hasPermission } from "@/lib/permissions/permissions";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { databaseErrorCode } from "@/lib/security/database-error";
@@ -13,7 +14,7 @@ import type { PublicationInput } from "@/lib/validation/publication";
 export class PublicationService {
   async listPublicPage(locale: ArticleLocale, query: string, page = 1) {
     if (!isSupabaseConfigured()) return { publications: [], pagination: emptySearchPage(page) };
-    const client = await createServerSupabaseClient();
+    const client = createPublicSupabaseClient();
     const pagination = await new SearchRepository(client).publicPage(locale, query, "publications", {}, page);
     const repository = new PublicationRepository(client);
     const publications = (await Promise.all(pagination.items.map(item => repository.listPublic(locale, item.id)))).flat();
@@ -43,6 +44,6 @@ export class PublicationService {
   }
   async listPublic(locale: ArticleLocale, id: string | null = null, scientistId: string | null = null) {
     if (!isSupabaseConfigured()) return [];
-    return new PublicationRepository(await createServerSupabaseClient()).listPublic(locale, id, scientistId);
+    return new PublicationRepository(createPublicSupabaseClient()).listPublic(locale, id, scientistId);
   }
 }

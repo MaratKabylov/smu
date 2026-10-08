@@ -27,14 +27,14 @@ export class EventRepository {
     if (error) throw error;
     return data ? (await this.hydrate([data]))[0] ?? null : null;
   }
-  async listPublic(filters: PublicEventFilters, now = new Date(), selectedIds?: string[]) {
+  async listPublic(filters: PublicEventFilters, now: Date | "now" = "now", selectedIds?: string[]) {
     // Manager sessions can see drafts through RLS, so public queries enforce state explicitly.
     let query = this.client.from("events").select("*").in("status", ["published", "cancelled"])
       .is("deleted_at", null).order("starts_at", { ascending: filters.period !== "past" }).limit(100);
     if (selectedIds && !selectedIds.length) return [];
     if (selectedIds) query = query.in("id", selectedIds);
-    if (filters.period === "upcoming") query = query.gt("ends_at", now.toISOString());
-    if (filters.period === "past") query = query.lte("ends_at", now.toISOString());
+    if (filters.period === "upcoming") query = query.gt("ends_at", now instanceof Date ? now.toISOString() : now);
+    if (filters.period === "past") query = query.lte("ends_at", now instanceof Date ? now.toISOString() : now);
     if (filters.kind !== "all") query = query.eq("kind", filters.kind);
     if (filters.format !== "all") query = query.eq("format", filters.format);
     if (filters.query) {

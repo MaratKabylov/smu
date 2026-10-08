@@ -1,3 +1,4 @@
+import { createPublicSupabaseClient } from "@/lib/supabase/public";
 import { SearchRepository } from "@/server/repositories/search.repository";
 import { emptySearchPage, orderBySearch } from "@/lib/search";
 import "server-only";
@@ -43,7 +44,7 @@ export class ResearchProgramService {
 export class PublicResearchProgramService {
   async listPage(filters: ResearchProgramFilters, page = 1) {
     if (!isSupabaseConfigured()) return { programs: [], taxonomy: { organizations: [], fields: [] }, pagination: emptySearchPage(page) };
-    const client = await createServerSupabaseClient();
+    const client = createPublicSupabaseClient();
     const { locale, query, ...attributes } = filters;
     const pagination = await new SearchRepository(client).publicPage(locale, query, "research-program", attributes, page);
     const result = await new ResearchProgramRepository(client).listPublic({ ...filters, query: "" }, pagination.items.map(item => item.id));
@@ -52,11 +53,11 @@ export class PublicResearchProgramService {
 
   async list(filters: ResearchProgramFilters) {
     if (!isSupabaseConfigured()) return { programs: [], taxonomy: { organizations: [], fields: [] } };
-    return new ResearchProgramRepository(await createServerSupabaseClient()).listPublic(filters);
+    return new ResearchProgramRepository(createPublicSupabaseClient()).listPublic(filters);
   }
   async getBySlug(locale: ScientistLocale, slug: string) {
     if (!isSupabaseConfigured()) return null;
-    return new ResearchProgramRepository(await createServerSupabaseClient()).getPublicBySlug(locale, slug);
+    return new ResearchProgramRepository(createPublicSupabaseClient()).getPublicBySlug(locale, slug);
   }
   async submit(input: ResearchProgramApplicationInput) {
     return new ResearchProgramRepository(createServiceRoleSupabaseClient()).submit(input);

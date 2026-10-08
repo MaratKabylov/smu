@@ -1,3 +1,4 @@
+import { createPublicSupabaseClient } from "@/lib/supabase/public";
 import { SearchRepository } from "@/server/repositories/search.repository";
 import { emptySearchPage, orderBySearch } from "@/lib/search";
 import "server-only";
@@ -107,7 +108,7 @@ const emptyTaxonomy: ScientistTaxonomy = { organizations: [], fields: [] };
 export class PublicScientistService {
   async listPage(filters: PublicScientistFilters, page = 1) {
     if (!isSupabaseConfigured()) return { scientists: [], taxonomy: emptyTaxonomy, pagination: emptySearchPage(page) };
-    const client = await createServerSupabaseClient();
+    const client = createPublicSupabaseClient();
     const pagination = await new SearchRepository(client).publicPage(filters.locale, filters.query, "scientists", { organization: filters.organization, field: filters.field }, page);
     const repository = new PublicScientistRepository(client);
     const taxonomy = await repository.listTaxonomy();
@@ -117,12 +118,12 @@ export class PublicScientistService {
 
   async getSlugRedirect(locale: ScientistLocale, slug: string) {
     if (!isSupabaseConfigured()) return null;
-    return getPublicSlugRedirect(await createServerSupabaseClient(), "scientist", locale, slug);
+    return getPublicSlugRedirect(createPublicSupabaseClient(), "scientist", locale, slug);
   }
 
   async list(filters: PublicScientistFilters) {
     if (!isSupabaseConfigured()) return { scientists: [], taxonomy: emptyTaxonomy };
-    const client = await createServerSupabaseClient();
+    const client = createPublicSupabaseClient();
     const repository = new PublicScientistRepository(client);
     const taxonomy = await repository.listTaxonomy();
     return { scientists: await repository.list(filters, taxonomy), taxonomy };
@@ -130,7 +131,7 @@ export class PublicScientistService {
 
   async getBySlug(locale: ScientistLocale, slug: string) {
     if (!isSupabaseConfigured()) return null;
-    const client = await createServerSupabaseClient();
+    const client = createPublicSupabaseClient();
     return new PublicScientistRepository(client).getBySlug(locale, slug);
   }
 }

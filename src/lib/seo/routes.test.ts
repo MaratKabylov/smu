@@ -1,3 +1,4 @@
+vi.mock("next/server", () => ({ connection: vi.fn().mockResolvedValue(undefined) }));
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ page: vi.fn(), feed: vi.fn() }));
 vi.mock("server-only", () => ({}));

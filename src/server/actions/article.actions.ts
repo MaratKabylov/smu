@@ -281,6 +281,7 @@ export async function createArticleTaxonomy(formData: FormData) {
       `/admin/content/articles/taxonomy?error=${errorReason(error)}`,
     );
   }
+  invalidateArticles();
   revalidatePath("/admin/content/articles/taxonomy");
   revalidatePath("/admin/content/articles/new");
   redirect("/admin/content/articles/taxonomy?created=1");

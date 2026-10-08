@@ -1,3 +1,4 @@
+import { createPublicSupabaseClient } from "@/lib/supabase/public";
 import { SearchRepository } from "@/server/repositories/search.repository";
 import { emptySearchPage, orderBySearch } from "@/lib/search";
 import "server-only";
@@ -43,7 +44,7 @@ export class MentorshipService {
 export class PublicMentorshipService {
   async listPage(filters: MentorshipFilters, page = 1) {
     if (!isSupabaseConfigured()) return { offers: [], taxonomy: { organizations: [], fields: [] }, pagination: emptySearchPage(page) };
-    const client = await createServerSupabaseClient();
+    const client = createPublicSupabaseClient();
     const { locale, query, ...attributes } = filters;
     const pagination = await new SearchRepository(client).publicPage(locale, query, "mentorship", attributes, page);
     const result = await new MentorshipRepository(client).listPublic({ ...filters, query: "" }, pagination.items.map(item => item.id));
@@ -52,11 +53,11 @@ export class PublicMentorshipService {
 
   async list(filters: MentorshipFilters) {
     if (!isSupabaseConfigured()) return { offers: [], taxonomy: { organizations: [], fields: [] } };
-    return new MentorshipRepository(await createServerSupabaseClient()).listPublic(filters);
+    return new MentorshipRepository(createPublicSupabaseClient()).listPublic(filters);
   }
   async getBySlug(locale: ScientistLocale, slug: string) {
     if (!isSupabaseConfigured()) return null;
-    return new MentorshipRepository(await createServerSupabaseClient()).getPublicBySlug(locale, slug);
+    return new MentorshipRepository(createPublicSupabaseClient()).getPublicBySlug(locale, slug);
   }
   async submit(input: MentorshipApplicationInput) {
     return new MentorshipRepository(createServiceRoleSupabaseClient()).submit(input);

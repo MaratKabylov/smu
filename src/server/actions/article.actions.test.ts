@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
-const mocks = vi.hoisted(() => ({ access: vi.fn(), update: vi.fn(), create: vi.fn(), schedule: vi.fn(), invalidate: vi.fn() }));
-vi.mock("next/cache", () => ({ revalidatePath: mocks.invalidate }));
+const mocks = vi.hoisted(() => ({ access: vi.fn(), update: vi.fn(), create: vi.fn(), schedule: vi.fn(), invalidate: vi.fn(), invalidateTag: vi.fn() }));
+vi.mock("next/cache", () => ({ revalidatePath: mocks.invalidate, revalidateTag: mocks.invalidateTag }));
 vi.mock("next/navigation", () => ({ redirect: (path: string) => { throw new Error(`redirect:${path}`); } }));
 vi.mock("@/server/services/access.service", () => ({ getAdminAccess: mocks.access }));
 vi.mock("@/server/services/article.service", () => ({
@@ -36,6 +36,7 @@ describe("inline editorial saves", () => {
       expectedVersion: 3, expectedScheduledAt: "2099-10-06T07:00:00.000Z", scheduledAt: "2099-10-06T19:15:00.000Z",
     });
     expect(mocks.invalidate).toHaveBeenCalledWith("/admin/content/articles", "layout");
+    expect(mocks.invalidateTag).toHaveBeenCalledWith("smu:public-content:v1", { expire: 0 });
   });
   it("cancels explicitly without requiring the date field", async () => {
     const data = new FormData(); data.set("intent", "cancel");
@@ -59,7 +60,7 @@ describe("inline editorial saves", () => {
     expect(mocks.schedule).not.toHaveBeenCalled();
     mocks.schedule.mockRejectedValueOnce(new ArticleServiceError("stale_version", "Conflict"));
     await expect(scheduleArticle(id, 3, null, data)).rejects.toThrow("error=stale_version");
-    expect(mocks.invalidate).not.toHaveBeenCalled();
+    expect(mocks.invalidate).not.toHaveBeenCalled(); expect(mocks.invalidateTag).not.toHaveBeenCalled();
   });
   it("passes relations through autosave and invalidates reverse-link pages", async () => {
     const data = form(); const relations = [{ kind: "scientist", entityId: id, relationType: "expert" }];
@@ -111,7 +112,7 @@ describe("inline editorial saves", () => {
   it("returns version conflicts so the client can preserve its form", async () => {
     mocks.update.mockRejectedValueOnce(new ArticleServiceError("stale_version", "Conflict"));
     expect(await saveArticleDraft(id, form())).toEqual({ ok: false, error: "stale_version" });
-    expect(mocks.invalidate).not.toHaveBeenCalled();
+    expect(mocks.invalidate).not.toHaveBeenCalled(); expect(mocks.invalidateTag).not.toHaveBeenCalled();
   });
   it("rejects missing versions, invalid JSON and unsafe structured links", async () => {
     const missing = form(); missing.delete("expectedVersion");

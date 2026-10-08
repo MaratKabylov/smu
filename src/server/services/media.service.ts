@@ -1,4 +1,5 @@
 import "server-only";
+import { invalidatePublicContent } from "@/lib/i18n/revalidation";
 
 import {
   canCreateMedia,
@@ -191,6 +192,7 @@ export class MediaService {
       width: input.width ?? null,
       height: input.height ?? null,
     });
+    invalidatePublicContent();
 
     await new AuditRepository(serviceClient).create({
       userId: access.userId,
@@ -224,6 +226,7 @@ export class MediaService {
     }
 
     await repository.updateMetadata(id, input);
+    invalidatePublicContent();
     await new AuditRepository(serviceClient).create({
       userId: access.userId,
       entityType: "media_asset",
@@ -262,6 +265,7 @@ export class MediaService {
     }
 
     await repository.softDelete(id);
+    invalidatePublicContent();
     await new AuditRepository(serviceClient).create({
       userId: access.userId,
       entityType: "media_asset",

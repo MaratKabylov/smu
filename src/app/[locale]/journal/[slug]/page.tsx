@@ -11,7 +11,7 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { JournalHeader } from "@/components/journal/JournalHeader";
 import { RichTextContent } from "@/components/articles/RichTextContent";
 import { getArticleImages } from "@/server/repositories/article-images.repository";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createPublicSupabaseClient } from "@/lib/supabase/public";
 import { articleTypeLabel } from "@/lib/articles/presentation";
 import { ArticleCredits } from "@/components/articles/ArticleCredits";
 import { getPublishedArticleBySlug, PublicArticleService } from "@/server/services/public-article.service";
@@ -61,7 +61,7 @@ export default async function PublicArticlePage({ params, searchParams }: Public
   }
 
   const copy = getDictionary(locale).journalDetail;
-  const images = await getArticleImages(await createServerSupabaseClient(), article.translation.contentJson, locale);
+  const images = await getArticleImages(createPublicSupabaseClient(), article.translation.contentJson, locale);
   const categoryName = article.category
     ? locale === "ru"
       ? article.category.nameRu

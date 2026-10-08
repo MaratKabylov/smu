@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
-const mocks = vi.hoisted(() => ({ publish: vi.fn(), invalidate: vi.fn() }));
-vi.mock("next/cache", () => ({ revalidatePath: mocks.invalidate }));
+const mocks = vi.hoisted(() => ({ publish: vi.fn(), invalidate: vi.fn(), invalidateTag: vi.fn() }));
+vi.mock("next/cache", () => ({ revalidatePath: mocks.invalidate, revalidateTag: mocks.invalidateTag }));
 vi.mock("@/server/services/article-scheduling.service", () => ({
   ArticleSchedulingService: class { publishDue = mocks.publish; },
 }));
@@ -31,7 +31,7 @@ describe("scheduled publishing endpoint", () => {
       expect(response.status).toBe(401);
       expect(response.headers.get("cache-control")).toBe("private, no-store");
     }
-    expect(mocks.publish).not.toHaveBeenCalled(); expect(mocks.invalidate).not.toHaveBeenCalled();
+    expect(mocks.publish).not.toHaveBeenCalled(); expect(mocks.invalidate).not.toHaveBeenCalled(); expect(mocks.invalidateTag).not.toHaveBeenCalled();
   });
   it("returns only aggregate counts and refreshes both public and editorial pages", async () => {
     const response = await GET(request(`Bearer ${secret}`));
@@ -40,6 +40,7 @@ describe("scheduled publishing endpoint", () => {
     expect(response.headers.get("cache-control")).toBe("private, no-store");
     for (const path of ["/admin/content/articles", "/journal", "/scientists", "/projects", "/research", "/events", "/publications"]) {
       for (const target of path.startsWith("/admin") ? [path] : [`/ru${path}`, `/kk${path}`]) expect(mocks.invalidate).toHaveBeenCalledWith(target, "layout");
+      expect(mocks.invalidateTag).toHaveBeenCalledWith("smu:public-content:v1", { expire: 0 });
     }
   });
   it("invalidates even an empty retry after an earlier commit with a lost HTTP response", async () => {
@@ -55,7 +56,7 @@ describe("scheduled publishing endpoint", () => {
       expect(response.status).toBe(500);
       expect(await response.json()).toEqual({ error: "publishing_failed" });
       expect(log).toHaveBeenCalledWith("Scheduled article publishing failed.");
-      expect(mocks.invalidate).not.toHaveBeenCalled();
+      expect(mocks.invalidate).not.toHaveBeenCalled(); expect(mocks.invalidateTag).not.toHaveBeenCalled();
     } finally { log.mockRestore(); }
   });
   it("does not allow a HEAD health check to execute the publishing GET", () => {

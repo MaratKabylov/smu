@@ -19,7 +19,7 @@ function clientWith(rows: Record<string, Row[]>) {
           if (operation === "eq" || operation === "is") result = result.filter(row => row[key] === args[1]);
           if (operation === "neq") result = result.filter(row => row[key] !== args[1]);
           if (operation === "in") result = result.filter(row => (args[1] as unknown[]).includes(row[key]));
-          if (operation === "lte") result = result.filter(row => row[key] !== null && String(row[key]) <= String(args[1]));
+          if (operation === "lte") result = result.filter(row => row[key] !== null && String(row[key]) <= (args[1] === "now" ? new Date().toISOString() : String(args[1])));
           if (operation === "limit") result = result.slice(0, Number(args[0]));
           if (operation === "order") result.sort((a, b) => String(a[key]).localeCompare(String(b[key])));
           return query;

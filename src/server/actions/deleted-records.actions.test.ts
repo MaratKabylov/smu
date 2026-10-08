@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-const mocks = vi.hoisted(() => ({ access: vi.fn(), article: vi.fn(), scientist: vi.fn(), invalidate: vi.fn() }));
-vi.mock("next/cache", () => ({ revalidatePath: mocks.invalidate }));
+const mocks = vi.hoisted(() => ({ access: vi.fn(), article: vi.fn(), scientist: vi.fn(), invalidate: vi.fn(), invalidateTag: vi.fn() }));
+vi.mock("next/cache", () => ({ revalidatePath: mocks.invalidate, revalidateTag: mocks.invalidateTag }));
 vi.mock("next/navigation", () => ({ redirect: (path: string) => { throw new Error(`redirect:${path}`); } }));
 vi.mock("@/server/services/access.service", () => ({ getAdminAccess: mocks.access }));
 vi.mock("@/server/services/article.service", () => ({
@@ -28,6 +28,7 @@ describe("deleted record actions", () => {
     expect(kind === "article" ? mocks.scientist : mocks.article).not.toHaveBeenCalled();
     for (const path of ["/journal", "/scientists", "/publications", "/mentorship", "/research-program", "/admin/content/articles", "/admin/science/scientists"]) for (const target of path.startsWith("/admin") ? [path] : [`/ru${path}`, `/kk${path}`]) expect(mocks.invalidate).toHaveBeenCalledWith(target, "layout");
     expect(mocks.invalidate).toHaveBeenCalledWith("/admin/deleted");
+    expect(mocks.invalidateTag).toHaveBeenCalledWith("smu:public-content:v1", { expire: 0 });
   });
   it("rejects invalid kind, id, timestamp or missing confirmation before authenticating", async () => {
     for (const [key, value] of [["kind", "media"], ["id", "bad"], ["expectedDeletedAt", "invalid"], ["confirm", ""]]) {
@@ -41,13 +42,13 @@ describe("deleted record actions", () => {
     await expect(restoreDeletedRecord(form())).rejects.toThrow("redirect:/admin/login");
     mocks.access.mockResolvedValueOnce({ state: "forbidden" });
     await expect(restoreDeletedRecord(form())).rejects.toThrow("error=forbidden");
-    expect(mocks.article).not.toHaveBeenCalled(); expect(mocks.invalidate).not.toHaveBeenCalled();
+    expect(mocks.article).not.toHaveBeenCalled(); expect(mocks.invalidate).not.toHaveBeenCalled(); expect(mocks.invalidateTag).not.toHaveBeenCalled();
   });
   it("preserves safe RPC failure reasons and performs no invalidation on failure", async () => {
     mocks.article.mockRejectedValueOnce(new ArticleServiceError("invalid_reference", "Invalid reference"));
     await expect(restoreDeletedRecord(form())).rejects.toThrow("kind=article&error=invalid_reference");
     mocks.article.mockRejectedValueOnce(new Error("private database error"));
     await expect(restoreDeletedRecord(form())).rejects.toThrow("error=action_failed");
-    expect(mocks.invalidate).not.toHaveBeenCalled();
+    expect(mocks.invalidate).not.toHaveBeenCalled(); expect(mocks.invalidateTag).not.toHaveBeenCalled();
   });
 });

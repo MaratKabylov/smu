@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
-const mocks = vi.hoisted(() => ({ access: vi.fn(), create: vi.fn(), restore: vi.fn(), invalidate: vi.fn() }));
-vi.mock("next/cache", () => ({ revalidatePath: mocks.invalidate }));
+const mocks = vi.hoisted(() => ({ access: vi.fn(), create: vi.fn(), restore: vi.fn(), invalidate: vi.fn(), invalidateTag: vi.fn() }));
+vi.mock("next/cache", () => ({ revalidatePath: mocks.invalidate, revalidateTag: mocks.invalidateTag }));
 vi.mock("next/navigation", () => ({ redirect: (path: string) => { throw new Error(`redirect:${path}`); } }));
 vi.mock("@/server/services/access.service", () => ({ getAdminAccess: mocks.access }));
 vi.mock("@/server/services/article-revision.service", () => ({ ArticleRevisionService: class { create = mocks.create; restore = mocks.restore; } }));
@@ -37,11 +37,12 @@ describe("revision actions", () => {
     await expect(restoreArticleRevision(id, revision, 3, confirmed())).rejects.toThrow(`redirect:/admin/content/articles/${id}?restored=1`);
     expect(mocks.restore).toHaveBeenCalledWith({ userId: id }, id, revision, 3);
     expect(mocks.invalidate).toHaveBeenCalledWith("/admin/content/articles", "layout");
+    expect(mocks.invalidateTag).toHaveBeenCalledWith("smu:public-content:v1", { expire: 0 });
     for (const locale of ["ru", "kk"]) expect(mocks.invalidate).toHaveBeenCalledWith(`/${locale}/journal`, "layout");
   });
   it("preserves revision selection and skips invalidation on a failed restore", async () => {
     mocks.restore.mockRejectedValue(new ArticleServiceError("stale_version", "Conflict"));
     await expect(restoreArticleRevision(id, revision, 3, confirmed())).rejects.toThrow(`redirect:${path}?revision=${revision}&error=stale_version`);
-    expect(mocks.invalidate).not.toHaveBeenCalled();
+    expect(mocks.invalidate).not.toHaveBeenCalled(); expect(mocks.invalidateTag).not.toHaveBeenCalled();
   });
 });

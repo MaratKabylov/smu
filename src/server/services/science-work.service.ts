@@ -1,3 +1,4 @@
+import { createPublicSupabaseClient } from "@/lib/supabase/public";
 import { SearchRepository } from "@/server/repositories/search.repository";
 import { emptySearchPage, orderBySearch } from "@/lib/search";
 import "server-only";
@@ -47,7 +48,7 @@ export class ScienceWorkService {
 export class PublicScienceWorkService {
   async listPage(kind: ScienceWorkKind, filters: PublicScienceWorkFilters, page = 1) {
     if (!isSupabaseConfigured()) return { works: [], taxonomy: { organizations: [], fields: [] }, pagination: emptySearchPage(page) };
-    const client = await createServerSupabaseClient();
+    const client = createPublicSupabaseClient();
     const { locale, query, ...attributes } = filters;
     const pagination = await new SearchRepository(client).publicPage(locale, query, kind === "project" ? "projects" : "research", attributes, page);
     const result = await new ScienceWorkRepository(client).listPublic(kind, { ...filters, query: "" }, pagination.items.map(item => item.id));
@@ -56,11 +57,11 @@ export class PublicScienceWorkService {
 
   async list(kind: ScienceWorkKind, filters: PublicScienceWorkFilters) {
     if (!isSupabaseConfigured()) return { works: [], taxonomy: { organizations: [], fields: [] } };
-    return new ScienceWorkRepository(await createServerSupabaseClient()).listPublic(kind, filters);
+    return new ScienceWorkRepository(createPublicSupabaseClient()).listPublic(kind, filters);
   }
   async getBySlug(kind: ScienceWorkKind, locale: ScientistLocale, slug: string) {
     if (!isSupabaseConfigured()) return null;
-    return new ScienceWorkRepository(await createServerSupabaseClient()).getPublicBySlug(kind, locale, slug);
+    return new ScienceWorkRepository(createPublicSupabaseClient()).getPublicBySlug(kind, locale, slug);
   }
 }
 export const getPublicScienceWork = cache((kind: ScienceWorkKind, locale: ScientistLocale, slug: string) => new PublicScienceWorkService().getBySlug(kind, locale, slug));
