@@ -5,7 +5,7 @@ import "server-only";
 
 import { cache } from "react";
 import { isSupabaseConfigured } from "@/lib/env";
-import { canAccessAdmin, canEditScientist, canVerifyScientist } from "@/lib/permissions/permissions";
+import { canAccessAdmin, canEditScientist, canVerifyScientist, canManageUsers, hasPermission } from "@/lib/permissions/permissions";
 import { deletionTimestampSchema } from "@/lib/validation/deleted-records";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { databaseErrorCode } from "@/lib/security/database-error";
@@ -17,6 +17,8 @@ import type {
 } from "@/lib/validation/scientist";
 import { PublicScientistRepository, ScientistRepository } from "@/server/repositories/scientist.repository";
 import { getPublicSlugRedirect } from "@/server/repositories/slug.repository";
+import { scientistAccountSchema, scientistMergeSchema, scientistVerificationSchema } from "@/lib/validation/scientist";
+import type { z } from "zod";
 import type { AccessContext } from "@/types/domain/auth";
 import type { ScientistLocale, ScientistStatus, ScientistTaxonomy } from "@/types/domain/scientist";
 
@@ -81,6 +83,29 @@ export class ScientistService {
       if (current.status === nextStatus) throw new ScientistServiceError("invalid_transition", "Статус уже установлен.");
       await repository.changeStatus(id, nextStatus);
     });
+  }
+
+  async changeVerification(access: AccessContext, id: string, input: z.infer<typeof scientistVerificationSchema>) {
+    assertAllowed(canVerifyScientist(access));
+    if (!scientistVerificationSchema.safeParse(input).success) throw new ScientistServiceError("invalid_input", "Проверьте решение и причину.");
+    return this.repository(repository => repository.changeVerification(id, input.status, input.expectedVersion, input.note));
+  }
+
+  async linkedAccount(access: AccessContext, id: string) {
+    assertAllowed(canEditScientist(access) && canManageUsers(access));
+    return this.repository(repository => repository.linkedAccount(id));
+  }
+
+  async linkAccount(access: AccessContext, id: string, input: z.infer<typeof scientistAccountSchema>) {
+    assertAllowed(canEditScientist(access) && canManageUsers(access));
+    if (!scientistAccountSchema.safeParse(input).success) throw new ScientistServiceError("invalid_input", "Проверьте email аккаунта.");
+    return this.repository(repository => repository.linkAccount(id, input.email, input.expectedVersion));
+  }
+
+  async merge(access: AccessContext, input: z.infer<typeof scientistMergeSchema>) {
+    assertAllowed(canEditScientist(access) && hasPermission(access, "scientists.merge"));
+    if (!scientistMergeSchema.safeParse(input).success) throw new ScientistServiceError("invalid_input", "Проверьте выбранные профили и причину.");
+    return this.repository(repository => repository.merge(input.sourceId, input.targetId, input.sourceVersion, input.targetVersion, input.reason));
   }
 
   async softDelete(access: AccessContext, id: string) {

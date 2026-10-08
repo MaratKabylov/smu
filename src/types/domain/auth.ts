@@ -28,6 +28,7 @@ export const permissionCodes = [
   "media.purge",
   "scientists.edit",
   "scientists.verify",
+  "scientists.merge",
   "projects.manage",
   "research.manage",
   "mentorship.manage",

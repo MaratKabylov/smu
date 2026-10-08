@@ -2,11 +2,11 @@ import { Plus, Search, Tags, UsersRound } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { canEditScientist } from "@/lib/permissions/permissions";
-import { scientistStatusLabels } from "@/lib/scientists/presentation";
+import { verificationLabels, verificationStatuses } from "@/lib/scientists/profile";
 import { scientistListFiltersSchema } from "@/lib/validation/scientist";
 import { getAdminAccess } from "@/server/services/access.service";
 import { ScientistService } from "@/server/services/scientist.service";
-import { scientistStatuses } from "@/types/domain/scientist";
+
 
 type Props = { searchParams: Promise<{ q?: string; status?: string; deleted?: string }> };
 const dateFormatter = new Intl.DateTimeFormat("ru-RU", { dateStyle: "medium" });
@@ -35,18 +35,18 @@ export default async function ScientistsAdminPage({ searchParams }: Props) {
       <section className="media-toolbar" aria-label="Фильтры профилей">
         <form className="media-filters" action="/admin/science/scientists">
           <label className="search-field"><Search aria-hidden="true" /><span className="visually-hidden">Поиск по имени</span><input type="search" name="q" defaultValue={filters.query} placeholder="Найти по имени" /></label>
-          <label><span className="visually-hidden">Статус</span><select name="status" defaultValue={filters.status}><option value="all">Все статусы</option>{scientistStatuses.map((status) => <option value={status} key={status}>{scientistStatusLabels[status]}</option>)}</select></label>
+          <label><span className="visually-hidden">Статус</span><select name="status" defaultValue={filters.status}><option value="all">Все статусы</option>{verificationStatuses.map((status) => <option value={status} key={status}>{verificationLabels[status]}</option>)}</select></label>
           <button className="secondary-button" type="submit">Применить</button>
         </form>
         <span className="real-count">{profiles.length} профилей</span>
       </section>
       <section className="data-panel" aria-labelledby="scientists-table-title">
-        <div className="data-panel-header"><div><h2 id="scientists-table-title">Каталог профилей</h2><p>Публично отображаются только верифицированные записи.</p></div></div>
+        <div className="data-panel-header"><div><h2 id="scientists-table-title">Каталог профилей</h2><p>Публично отображаются верифицированные записи с включённой публичностью.</p></div></div>
         {profiles.length ? (
           <div className="table-wrap"><table className="articles-table"><thead><tr><th>Учёный</th><th>Организация</th><th>Направления</th><th>Статус</th><th>Обновлено</th></tr></thead><tbody>
             {profiles.map((profile) => {
               const ru = profile.translations.find((item) => item.locale === "ru") ?? profile.translations[0];
-              return <tr key={profile.id}><td><Link href={`/admin/science/scientists/${profile.id}`}>{ru?.fullName ?? "Без имени"}</Link><small>{ru?.position ?? "—"}</small></td><td>{profile.organization?.nameRu ?? "—"}</td><td>{profile.fields.map((item) => item.nameRu).join(", ") || "—"}</td><td><span className={`status-badge status-${profile.status}`}>{scientistStatusLabels[profile.status]}</span></td><td>{dateFormatter.format(new Date(profile.updatedAt))}</td></tr>;
+              return <tr key={profile.id}><td><Link href={`/admin/science/scientists/${profile.id}`}>{ru?.fullName ?? "Без имени"}</Link><small>{ru?.position ?? "—"}</small></td><td>{profile.organization?.nameRu ?? "—"}</td><td>{profile.fields.map((item) => item.nameRu).join(", ") || "—"}</td><td><span className={`status-badge status-${profile.status}`}>{verificationLabels[profile.verificationStatus]}</span><small>{profile.isPublic ? "Публичный" : "Закрытый"}</small></td><td>{dateFormatter.format(new Date(profile.updatedAt))}</td></tr>;
             })}
           </tbody></table></div>
         ) : <div className="empty-state"><span className="empty-icon"><UsersRound aria-hidden="true" /></span><h3>{filters.query ? "Ничего не найдено" : "Профилей пока нет"}</h3><p>Добавьте первый двуязычный профиль учёного.</p></div>}

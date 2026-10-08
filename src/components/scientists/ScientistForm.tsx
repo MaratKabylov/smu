@@ -1,3 +1,4 @@
+import { collaborationKeys, collaborationLabels, scientistLinkLabels, scientistLinkTypes } from "@/lib/scientists/profile";
 import { Save } from "lucide-react";
 import Link from "next/link";
 import type { MediaAsset } from "@/types/domain/media";
@@ -19,6 +20,7 @@ export function ScientistForm({ action, profile, taxonomy, media, submitLabel = 
 
   return (
     <form action={action} className="article-form scientist-form">
+      {profile ? <input type="hidden" name="expectedContentVersion" value={profile.contentVersion} /> : null}
       <section className="article-editor-panel">
         <div className="panel-title">
           <div>
@@ -45,15 +47,17 @@ export function ScientistForm({ action, profile, taxonomy, media, submitLabel = 
             Публичный e-mail
             <input type="email" name="publicEmail" defaultValue={profile?.publicEmail ?? ""} maxLength={254} placeholder="name@example.kz" />
           </label>
-          <label>
-            ORCID
-            <input name="orcid" defaultValue={profile?.orcid ?? ""} pattern="\d{4}-\d{4}-\d{4}-\d{3}[\dX]" placeholder="0000-0000-0000-0000" />
-          </label>
-          <label>
-            Google Scholar / профиль
-            <input type="url" name="scholarUrl" defaultValue={profile?.scholarUrl ?? ""} maxLength={500} placeholder="https://…" />
-          </label>
+          {scientistLinkTypes.map(type => <label key={type}>{scientistLinkLabels[type]}<input type="url" name={"link_" + type} defaultValue={profile?.links.find(link => link.type === type)?.url ?? ""} maxLength={500} placeholder={type === "orcid" ? "https://orcid.org/0000-0000-0000-0000" : "https://…"} /></label>)}
         </div>
+        <fieldset className="tag-fieldset">
+          <legend>Публичность</legend>
+          <label className="confirm-check"><input type="checkbox" name="isPublic" value="yes" defaultChecked={profile?.isPublic ?? true} />Показывать в публичном каталоге после верификации</label>
+          <p className="field-hint">Закрытый профиль и его научные ссылки скрыты с публичных страниц, из поиска и SEO. Связанные программы и научные публикации также скрываются.</p>
+        </fieldset>
+        <fieldset className="tag-fieldset">
+          <legend>Открыт к взаимодействию</legend>
+          <div className="tag-options">{collaborationKeys.map((key, index) => <label key={key}><input type="checkbox" name={"collaboration_" + key} value="yes" defaultChecked={profile?.collaboration[key] ?? false} /><span>{collaborationLabels.ru[index]}</span></label>)}</div>
+        </fieldset>
         <fieldset className="tag-fieldset">
           <legend>Научные направления</legend>
           {taxonomy.fields.length ? (

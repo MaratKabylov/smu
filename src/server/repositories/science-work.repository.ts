@@ -16,7 +16,7 @@ export class ScienceWorkRepository {
   async options(): Promise<ScienceWorkOptions> {
     const [taxonomy, profiles] = await Promise.all([
       new ScientistRepository(this.client).listTaxonomy(),
-      this.client.from("scientist_profiles").select("id").eq("status", "verified").is("deleted_at", null).order("id"),
+      this.client.from("scientist_profiles").select("id").eq("status", "verified").eq("is_public", true).is("deleted_at", null).order("id"),
     ]);
     if (profiles.error) throw profiles.error;
     const ids = (profiles.data ?? []).map(item => item.id);
@@ -119,7 +119,7 @@ export class ScienceWorkRepository {
     let visibleScientistIds = new Set(scientistIds);
     if (scientistIds.length) {
       if (publicOnly) {
-        const scientists = await this.client.from("scientist_profiles").select("id").in("id", scientistIds).eq("status", "verified").is("deleted_at", null);
+        const scientists = await this.client.from("scientist_profiles").select("id").in("id", scientistIds).eq("status", "verified").eq("is_public", true).is("deleted_at", null);
         if (scientists.error) throw scientists.error;
         visibleScientistIds = new Set((scientists.data ?? []).map(item => item.id));
       }

@@ -126,7 +126,7 @@ describe("research program PostgreSQL permissions and workflow", () => {
     await db.query("update public.scientist_profiles set status = 'draft' where id = $1", [coordinator]);
     expect((await asRole("anon", "select * from public.research_program_translations where program_id = $1", [id])).rows).toHaveLength(0);
     await expect(submit(id, "hidden@example.kz")).rejects.toThrow("not_available");
-    await db.query("update public.scientist_profiles set status = 'verified' where id = $1", [coordinator]);
+    await db.query("update public.scientist_profiles set status = 'verified', verified_at = now() where id = $1", [coordinator]);
     await db.query("update public.scientific_fields set is_active = false where id = $1", [field]);
     expect((await asRole("anon", "select * from public.research_programs where id = $1", [id])).rows).toHaveLength(0);
     await expect(submit(id, "hidden@example.kz")).rejects.toThrow("not_available");

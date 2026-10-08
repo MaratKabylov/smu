@@ -29,7 +29,7 @@ export function personJsonLd(person: PublicScientistDetail) {
     name: person.translation.fullName, description: person.translation.shortBio, jobTitle: person.translation.position,
     ...(person.avatarUrl ? { image: person.avatarUrl } : {}),
     ...(person.organization ? { affiliation: { "@type": "Organization", name: scientistTaxonomyName(person.organization, locale), ...(person.organization.websiteUrl ? { url: person.organization.websiteUrl } : {}) } } : {}),
-    sameAs: [person.orcid ? "https://orcid.org/" + person.orcid : null, person.scholarUrl].filter(Boolean),
+    sameAs: person.links.map(link => link.url),
   };
 }
 

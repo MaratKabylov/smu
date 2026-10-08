@@ -68,12 +68,16 @@ async function publish(id: string) {
   await state(admin, id, "published");
 }
 async function saveScientist(value: unknown = scientistInput, id: string | null = null, user = scientistManager) {
+  if (id && !(value as { expectedContentVersion?: number }).expectedContentVersion) {
+    const current = (await db.query<{ content_version: number }>("select content_version from public.scientist_profiles where id=$1", [id])).rows[0];
+    value = { ...(value as object), expectedContentVersion: current?.content_version };
+  }
   return asUser(user, async () => (await db.query<{ id: string }>(
     "select public.save_scientist($1, $2::jsonb) as id", [id, JSON.stringify(value)],
   )).rows[0].id);
 }
-const verify = (id: string) => asUser(scientistManager, () => db.query("select public.change_scientist_state($1, 'verified', false)", [id]));
-const visible = (table: string, user: string | null = null) => asUser(user, () => db.query<Record<string, unknown>>("select * from public." + table), user ? "authenticated" : "anon");
+const verify = (id: string) => asUser(scientistManager, () => db.query("select public.change_scientist_verification($1, 'verified', (select content_version from public.scientist_profiles where id=$1), '')", [id]));
+const visible = (table: string, user: string | null = null) => asUser(user, () => db.query<Record<string, unknown>>("select " + (table === "scientist_profiles" ? "id" : "*") + " from public." + table), user ? "authenticated" : "anon");
 const createRevision = (user: string, id: string, version: number | null = 1) => asUser(user, async () =>
   (await db.query<{ id: string }>("select public.create_article_revision($1, $2) as id", [id, version])).rows[0].id);
 const restoreRevision = (user: string, id: string, revisionId: string, version: number | null) => asUser(user, () =>
@@ -327,7 +331,7 @@ describe("soft delete restoration", () => {
   it("rechecks the scientist parent of a publication and permits publicly cancelled events", async () => {
     const { publication, scientist, event } = await relationFixtures();
     const id = await save(author, { ...input, relations: [{ kind: "publication", entityId: publication, relationType: "subject" }] }); await state(admin, id, null, true);
-    await asUser(scientistManager, () => db.query("select public.change_scientist_state($1, 'draft', false)", [scientist]));
+    await asUser(scientistManager, () => db.query("select public.change_scientist_verification($1, 'unverified', (select content_version from public.scientist_profiles where id=$1), '')", [scientist]));
     await expect(restoreDeletedArticle(id, await deletionToken("articles", id))).rejects.toThrow("invalid_reference");
     await db.query("update public.events set status = 'cancelled' where id = $1", [event]);
     const eventId = await save(author, { ...input, ru: { ...translation, slug: "event-article-ru" }, kk: { ...translation, slug: "event-article-kk" }, relations: [{ kind: "event", entityId: event, relationType: "subject" }] });
@@ -607,7 +611,7 @@ describe("editorial relationships and scientific publications", () => {
     const id = await save(author, { ...input, relations: [link] }); await publish(id);
     const table = kind === "scientist" ? "scientist_profiles" : kind === "project" || kind === "research" ? "science_works" : kind === "event" ? "events" : "publications";
     for (const patch of ["status = 'draft'", "deleted_at = now()", ...(kind === "scientist" ? [] : ["published_at = now() + interval '1 day'"])]) {
-      await db.query(`update public.${table} set status = '${kind === "scientist" ? "verified" : "published"}', deleted_at = null${kind === "scientist" ? "" : ", published_at = now() - interval '1 day'"} where id = $1`, [link.entityId]);
+      await db.query(`update public.${table} set status = '${kind === "scientist" ? "verified" : "published"}', deleted_at = null${kind === "scientist" ? ", verified_at = now()" : ", published_at = now() - interval '1 day'"} where id = $1`, [link.entityId]);
       await db.query(`update public.${table} set ${patch} where id = $1`, [link.entityId]);
       expect((await publicLinks(id, "ru", admin)).rows).toEqual([]);
       expect((await reverseLinks(link, "kk", admin)).rows).toEqual([]);

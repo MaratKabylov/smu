@@ -1550,6 +1550,63 @@ export type Database = {
           { foreignKeyName: "scientist_field_links_scientist_profile_id_fkey"; columns: ["scientist_profile_id"]; isOneToOne: false; referencedRelation: "scientist_profiles"; referencedColumns: ["id"] },
         ];
       };
+      "scientist_links": {
+        Row: {
+          "scientist_id": string;
+          "type": "orcid" | "google_scholar" | "scopus" | "researchgate" | "linkedin" | "website";
+          "url": string;
+        };
+        Insert: {
+          "scientist_id": string;
+          "type": "orcid" | "google_scholar" | "scopus" | "researchgate" | "linkedin" | "website";
+          "url": string;
+        };
+        Update: {
+          "scientist_id"?: string;
+          "type"?: "orcid" | "google_scholar" | "scopus" | "researchgate" | "linkedin" | "website";
+          "url"?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "scientist_links_scientist_id_fkey"; columns: ["scientist_id"]; isOneToOne: false; referencedRelation: "scientist_profiles"; referencedColumns: ["id"] },
+        ];
+      };
+      "scientist_merges": {
+        Row: {
+          "id": string;
+          "source_id": string;
+          "target_id": string;
+          "merged_by": string;
+          "reason": string;
+          "source_snapshot": Json;
+          "target_snapshot": Json;
+          "created_at": string;
+        };
+        Insert: {
+          "id"?: string;
+          "source_id": string;
+          "target_id": string;
+          "merged_by": string;
+          "reason": string;
+          "source_snapshot": Json;
+          "target_snapshot": Json;
+          "created_at"?: string;
+        };
+        Update: {
+          "id"?: string;
+          "source_id"?: string;
+          "target_id"?: string;
+          "merged_by"?: string;
+          "reason"?: string;
+          "source_snapshot"?: Json;
+          "target_snapshot"?: Json;
+          "created_at"?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "scientist_merges_merged_by_fkey"; columns: ["merged_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+          { foreignKeyName: "scientist_merges_source_id_fkey"; columns: ["source_id"]; isOneToOne: true; referencedRelation: "scientist_profiles"; referencedColumns: ["id"] },
+          { foreignKeyName: "scientist_merges_target_id_fkey"; columns: ["target_id"]; isOneToOne: false; referencedRelation: "scientist_profiles"; referencedColumns: ["id"] },
+        ];
+      };
       "scientist_profile_translations": {
         Row: {
           "id": string;
@@ -1614,6 +1671,12 @@ export type Database = {
           "updated_at": string;
           "deleted_at": string | null;
           "first_verified_at": string | null;
+          "verification_status": "unverified" | "pending" | "verified" | "rejected";
+          "verification_note": string | null;
+          "is_public": boolean;
+          "collaboration": Json;
+          "content_version": number;
+          "merged_into_id": string | null;
         };
         Insert: {
           "id"?: string;
@@ -1631,6 +1694,12 @@ export type Database = {
           "updated_at"?: string;
           "deleted_at"?: string | null;
           "first_verified_at"?: string | null;
+          "verification_status"?: "unverified" | "pending" | "verified" | "rejected";
+          "verification_note"?: string | null;
+          "is_public"?: boolean;
+          "collaboration"?: Json;
+          "content_version"?: number;
+          "merged_into_id"?: string | null;
         };
         Update: {
           "id"?: string;
@@ -1648,10 +1717,17 @@ export type Database = {
           "updated_at"?: string;
           "deleted_at"?: string | null;
           "first_verified_at"?: string | null;
+          "verification_status"?: "unverified" | "pending" | "verified" | "rejected";
+          "verification_note"?: string | null;
+          "is_public"?: boolean;
+          "collaboration"?: Json;
+          "content_version"?: number;
+          "merged_into_id"?: string | null;
         };
         Relationships: [
           { foreignKeyName: "scientist_profiles_avatar_media_id_fkey"; columns: ["avatar_media_id"]; isOneToOne: false; referencedRelation: "media_assets"; referencedColumns: ["id"] },
           { foreignKeyName: "scientist_profiles_created_by_fkey"; columns: ["created_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+          { foreignKeyName: "scientist_profiles_merged_into_id_fkey"; columns: ["merged_into_id"]; isOneToOne: false; referencedRelation: "scientist_profiles"; referencedColumns: ["id"] },
           { foreignKeyName: "scientist_profiles_organization_id_fkey"; columns: ["organization_id"]; isOneToOne: false; referencedRelation: "scientific_organizations"; referencedColumns: ["id"] },
           { foreignKeyName: "scientist_profiles_user_id_fkey"; columns: ["user_id"]; isOneToOne: true; referencedRelation: "profiles"; referencedColumns: ["id"] },
           { foreignKeyName: "scientist_profiles_verified_by_fkey"; columns: ["verified_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
@@ -1838,6 +1914,23 @@ export type Database = {
         };
         Returns: undefined;
       };
+      "change_scientist_state_core": {
+        Args: {
+          "p_id": string | null;
+          "p_status": "draft" | "verified" | null;
+          "p_delete"?: boolean | null;
+        };
+        Returns: undefined;
+      };
+      "change_scientist_verification": {
+        Args: {
+          "p_id": string | null;
+          "p_status": string | null;
+          "p_expected_version": number | null;
+          "p_note"?: string | null;
+        };
+        Returns: undefined;
+      };
       "configure_article_review": {
         Args: {
           "p_id": string | null;
@@ -1877,6 +1970,14 @@ export type Database = {
         };
         Returns: boolean;
       };
+      "link_scientist_account": {
+        Args: {
+          "p_id": string | null;
+          "p_email": string | null;
+          "p_expected_version": number | null;
+        };
+        Returns: undefined;
+      };
       "list_article_author_profiles": {
         Args: Record<string, never>;
         Returns: ({ "id": string | null; "display_name": string | null })[];
@@ -1906,6 +2007,24 @@ export type Database = {
           "p_scientist"?: string | null;
         };
         Returns: ({ "id": string | null; "scientist_id": string | null; "title": string | null; "year": number | null; "journal": string | null; "doi": string | null; "url": string | null; "publication_type": string | null; "scientist_name": string | null; "scientist_href": string | null })[];
+      };
+      "list_scientist_profiles": {
+        Args: {
+          "p_ids"?: (string)[] | null;
+          "p_query"?: string | null;
+          "p_status"?: string | null;
+        };
+        Returns: (Database["public"]["Tables"]["scientist_profiles"]["Row"])[];
+      };
+      "merge_scientists": {
+        Args: {
+          "p_source": string | null;
+          "p_target": string | null;
+          "p_source_version": number | null;
+          "p_target_version": number | null;
+          "p_reason": string | null;
+        };
+        Returns: undefined;
       };
       "preserve_smu_slug": {
         Args: {
@@ -2101,6 +2220,13 @@ export type Database = {
         };
         Returns: string;
       };
+      "save_scientist_core": {
+        Args: {
+          "p_id": string | null;
+          "p_input": Json | null;
+        };
+        Returns: string;
+      };
       "save_scientist_required_locales": {
         Args: {
           "p_id": string | null;
@@ -2116,6 +2242,12 @@ export type Database = {
           "p_expected_scheduled_at"?: string | null;
         };
         Returns: undefined;
+      };
+      "scientist_linked_account": {
+        Args: {
+          "p_id": string | null;
+        };
+        Returns: ({ "display_name": string | null; "email": string | null })[];
       };
       "search_admin": {
         Args: {

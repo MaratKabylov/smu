@@ -1,3 +1,4 @@
+import { collaborationKeys, collaborationLabels, scientistLinkLabels } from "@/lib/scientists/profile";
 import { pageAlternates, openGraphLocale, noIndex } from "@/lib/seo/metadata";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { personJsonLd } from "@/lib/seo/structured-data";
@@ -86,8 +87,8 @@ export default async function ScientistProfilePage({ params, searchParams }: Pro
             <div className="profile-aside-heading"><Microscope aria-hidden="true" /><span><small>{copy.expertise}</small><strong>{scientist.fields.length}</strong></span></div>
             <div className="profile-expertise-list">{scientist.fields.map((field) => <span key={field.id}>{scientistTaxonomyName(field, locale)}</span>)}</div>
             {scientist.publicEmail ? <a href={`mailto:${scientist.publicEmail}`}><Mail aria-hidden="true" />{scientist.publicEmail}</a> : null}
-            {scientist.orcid ? <a href={`https://orcid.org/${scientist.orcid}`} target="_blank" rel="noreferrer">ORCID {scientist.orcid}<ArrowUpRight aria-hidden="true" /></a> : null}
-            {scientist.scholarUrl ? <a href={scientist.scholarUrl} target="_blank" rel="noreferrer">{copy.scientificProfile}<ArrowUpRight aria-hidden="true" /></a> : null}
+            {scientist.links.map(link => <a key={link.type} href={link.url} target="_blank" rel="noreferrer">{scientistLinkLabels[link.type]}<ArrowUpRight aria-hidden="true" /></a>)}
+            {collaborationKeys.some(key => scientist.collaboration[key]) ? <div className="profile-expertise-list"><h2>{locale === "ru" ? "Открыт к взаимодействию" : locale === "en" ? "Open to working together" : "Ынтымақтастыққа ашық"}</h2>{collaborationKeys.flatMap((key, index) => scientist.collaboration[key] ? [<span key={key}>{collaborationLabels[locale][index]}</span>] : [])}</div> : null}
             {scientist.organization?.websiteUrl ? <a href={scientist.organization.websiteUrl} target="_blank" rel="noreferrer">{copy.organizationSite}<ArrowUpRight aria-hidden="true" /></a> : null}
           </aside>
         </div>

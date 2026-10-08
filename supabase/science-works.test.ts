@@ -88,7 +88,7 @@ describe("science work PostgreSQL migration", () => {
     await db.query("update public.scientist_profiles set status = 'draft' where id = $1", [scientist]);
     expect((await asRole("anon", "select * from public.science_work_members")).rows).toHaveLength(0);
     expect((await asRole("authenticated", "select * from public.science_work_members")).rows).toHaveLength(1);
-    await db.query("update public.scientist_profiles set status = 'verified' where id = $1", [scientist]);
+    await db.query("update public.scientist_profiles set status = 'verified', verified_at = now() where id = $1", [scientist]);
   });
   it("does not mutate a research work through the project RPC", async () => {
     await expect(state(id, "draft", false, "project")).rejects.toThrow("not_found");

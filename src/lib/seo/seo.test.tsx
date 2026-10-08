@@ -14,7 +14,7 @@ const article: PublicArticleDetail = {
   authors: [{ id: "author", nameRu: "Автор", nameKk: "Автор", nameEn: "Author", role: "author", isActive: true, bioRu: null, bioKk: null, organization: null, position: null, websiteUrl: null }, { id: "editor", nameRu: "Редактор", nameKk: "Редактор", role: "editor", isActive: true, bioRu: null, bioKk: null, organization: null, position: null, websiteUrl: null }],
   translation: { locale: "en", title: "Water </script><script>alert(1)</script>", slug: "water", excerpt: "A & B < C", body: "Body", seoTitle: null, seoDescription: null }, alternateTranslations: [{ locale: "ru", title: "Вода", slug: "voda", excerpt: "Вода" }],
 };
-const person: PublicScientistDetail = { id: "scientist", avatarUrl: null, organization: null, fields: [], publicEmail: "public@example.com", orcid: "0000-0001-2345-6789", scholarUrl: null, translation: { id: "t", locale: "en", fullName: "Scientist", slug: "scientist", position: "Professor", academicDegree: null, shortBio: "Biography", biography: "Long biography" }, alternateTranslations: [] };
+const person: PublicScientistDetail = { links: [{ type: "orcid", url: "https://orcid.org/0000-0001-2345-6789" }], collaboration: {}, id: "scientist", avatarUrl: null, organization: null, fields: [], publicEmail: "public@example.com", orcid: "0000-0001-2345-6789", scholarUrl: null, translation: { id: "t", locale: "en", fullName: "Scientist", slug: "scientist", position: "Professor", academicDegree: null, shortBio: "Biography", biography: "Long biography" }, alternateTranslations: [] };
 beforeEach(() => vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://smu.example"));
 afterEach(() => vi.unstubAllEnvs());
 

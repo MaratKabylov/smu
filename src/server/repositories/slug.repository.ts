@@ -16,11 +16,9 @@ export async function getPublicSlugRedirect(
   if (!history) return null;
 
   // Explicit public filters apply even to an administrator's session.
-  let query = client.from(entityType === "article" ? "articles" : "scientist_profiles")
-    .select("id").eq("id", history.entity_id)
-    .eq("status", entityType === "article" ? "published" : "verified")
-    .is("deleted_at", null);
-  if (entityType === "article") query = query.lte("published_at", "now");
+  const query = entityType === "article"
+    ? client.from("articles").select("id").eq("id", history.entity_id).eq("status", "published").is("deleted_at", null).lte("published_at", "now")
+    : client.from("scientist_profiles").select("id").eq("id", history.entity_id).eq("status", "verified").eq("is_public", true).is("deleted_at", null);
   const { data: entity, error: entityError } = await query.maybeSingle();
   if (entityError) throw entityError;
   if (!entity) return null;

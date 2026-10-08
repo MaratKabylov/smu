@@ -93,7 +93,7 @@ export class ResearchProgramRepository {
     if (!rows.length) return [];
     let visibleRows = rows;
     if (publicOnly) {
-      const scientists = await this.client.from("scientist_profiles").select("id").in("id", [...new Set(rows.map(row => row.coordinator_id))]).eq("status", "verified").is("deleted_at", null);
+      const scientists = await this.client.from("scientist_profiles").select("id").in("id", [...new Set(rows.map(row => row.coordinator_id))]).eq("status", "verified").eq("is_public", true).is("deleted_at", null);
       if (scientists.error) throw scientists.error;
       const ids = new Set((scientists.data ?? []).map(item => item.id));
       visibleRows = rows.filter(row => ids.has(row.coordinator_id));

@@ -1,3 +1,5 @@
+import { collaborationSchema } from "@/lib/validation/scientist";
+import type { ScientistLink, VerificationStatus } from "@/lib/scientists/profile";
 import type { Tables } from "@/types/database.types";
 import "server-only";
 
@@ -20,7 +22,7 @@ import type {
   ScientistTranslation,
 } from "@/types/domain/scientist";
 
-type ProfileRow = Pick<Tables<"scientist_profiles">, "id" | "user_id" | "organization_id" | "avatar_media_id" | "status" | "public_email" | "orcid" | "scholar_url" | "verified_at" | "created_at" | "updated_at" | "deleted_at">;
+type ProfileRow = Pick<Tables<"scientist_profiles">, "id" | "organization_id" | "avatar_media_id" | "status" | "public_email" | "orcid" | "scholar_url" | "verified_at" | "created_at" | "updated_at" | "deleted_at" | "verification_status" | "is_public" | "collaboration" | "content_version"> & Partial<Pick<Tables<"scientist_profiles">, "user_id" | "verification_note" | "merged_into_id">>;
 
 type TranslationRow = Pick<Tables<"scientist_profile_translations">, "id" | "scientist_profile_id" | "locale" | "full_name" | "slug" | "position" | "academic_degree" | "short_bio" | "biography">;
 
@@ -62,35 +64,14 @@ export class ScientistRepository {
   constructor(private readonly client: DatabaseClient) {}
 
   async list(filters: ScientistListFilters): Promise<ScientistProfile[]> {
-    let matchingIds: string[] | null = null;
-    if (filters.query) {
-      const { data, error } = await this.client
-        .from("scientist_profile_translations")
-        .select("scientist_profile_id")
-        .ilike("full_name", `%${filters.query}%`);
-      if (error) throw error;
-      matchingIds = [...new Set(((data ?? [])).map((row) => row.scientist_profile_id))];
-      if (matchingIds.length === 0) return [];
-    }
-
-    let query = this.client
-      .from("scientist_profiles")
-      .select("*")
-      .is("deleted_at", null)
-      .order("updated_at", { ascending: false })
-      .limit(100);
-    if (filters.status !== "all") query = query.eq("status", filters.status);
-    if (matchingIds) query = query.in("id", matchingIds);
-    const { data, error } = await query;
-    if (error) throw error;
-    return this.hydrateProfiles((data ?? []));
+    const data = await callDatabaseRpc(this.client, "list_scientist_profiles", { p_query: filters.query, p_status: filters.status });
+    return this.hydrateProfiles(data);
   }
 
   async getById(id: string): Promise<ScientistProfile | null> {
-    const { data, error } = await this.client.from("scientist_profiles").select("*").eq("id", id).maybeSingle();
-    if (error) throw error;
-    if (!data) return null;
-    const [profile] = await this.hydrateProfiles([data]);
+    const data = await callDatabaseRpc(this.client, "list_scientist_profiles", { p_ids: [id] });
+    if (!data.length) return null;
+    const [profile] = await this.hydrateProfiles(data);
     return profile ?? null;
   }
 
@@ -133,7 +114,26 @@ export class ScientistRepository {
   }
 
   async changeStatus(id: string, status: ScientistStatus) {
-    await callDatabaseRpc(this.client, "change_scientist_state", { p_id: id, p_status: status, p_delete: false });
+    const current = await this.getById(id);
+    if (!current) throw new Error("not_found");
+    await this.changeVerification(id, status === "verified" ? "verified" : "unverified", current.contentVersion, "");
+  }
+
+  async changeVerification(id: string, status: VerificationStatus, expectedVersion: number, note: string) {
+    await callDatabaseRpc(this.client, "change_scientist_verification", { p_id: id, p_status: status, p_expected_version: expectedVersion, p_note: note });
+  }
+
+  async linkedAccount(id: string) {
+    const rows = await callDatabaseRpc(this.client, "scientist_linked_account", { p_id: id });
+    return rows[0] ?? null;
+  }
+
+  async linkAccount(id: string, email: string, expectedVersion: number) {
+    await callDatabaseRpc(this.client, "link_scientist_account", { p_id: id, p_email: email, p_expected_version: expectedVersion });
+  }
+
+  async merge(sourceId: string, targetId: string, sourceVersion: number, targetVersion: number, reason: string) {
+    await callDatabaseRpc(this.client, "merge_scientists", { p_source: sourceId, p_target: targetId, p_source_version: sourceVersion, p_target_version: targetVersion, p_reason: reason });
   }
 
   async softDelete(id: string) {
@@ -153,7 +153,7 @@ export class ScientistRepository {
     const ids = rows.map((row) => row.id);
     const organizationIds = [...new Set(rows.flatMap((row) => row.organization_id ? [row.organization_id] : []))];
     const avatarIds = [...new Set(rows.flatMap((row) => row.avatar_media_id ? [row.avatar_media_id] : []))];
-    const [translationsResult, linksResult, organizationsResult, avatarsResult, organizationTranslationsResult] = await Promise.all([
+    const [translationsResult, linksResult, organizationsResult, avatarsResult, organizationTranslationsResult, scientificLinksResult] = await Promise.all([
       this.client.from("scientist_profile_translations").select("*").in("scientist_profile_id", ids),
       this.client.from("scientist_field_links").select("scientist_profile_id, scientific_field_id").in("scientist_profile_id", ids),
       organizationIds.length > 0
@@ -165,7 +165,9 @@ export class ScientistRepository {
       organizationIds.length > 0
         ? this.client.from("scientific_organization_translations").select("organization_id, locale, name, city").in("organization_id", organizationIds)
         : Promise.resolve({ data: [], error: null }),
+      this.client.from("scientist_links").select("scientist_id, type, url").in("scientist_id", ids),
     ]);
+    if (scientificLinksResult.error) throw scientificLinksResult.error;
     if (translationsResult.error) throw translationsResult.error;
     if (linksResult.error) throw linksResult.error;
     if (organizationsResult.error) throw organizationsResult.error;
@@ -194,12 +196,19 @@ export class ScientistRepository {
       const organization = organizations.find((item) => item.id === row.organization_id);
       return {
         id: row.id,
-        userId: row.user_id,
+        userId: row.user_id ?? null,
         organizationId: row.organization_id,
         organization: organization ? mapOrganization(organization, organizationTranslations.filter(item => item.organization_id === organization.id)) : null,
         avatarMediaId: row.avatar_media_id,
         avatarUrl,
         status: row.status,
+        verificationStatus: row.verification_status,
+        verificationNote: row.verification_note ?? null,
+        isPublic: row.is_public,
+        collaboration: collaborationSchema.parse(row.collaboration),
+        links: (scientificLinksResult.data ?? []).filter(link => link.scientist_id === row.id).map(link => ({ type: link.type, url: link.url } satisfies ScientistLink)),
+        contentVersion: row.content_version,
+        mergedIntoId: row.merged_into_id ?? null,
         publicEmail: row.public_email,
         orcid: row.orcid,
         scholarUrl: row.scholar_url,
@@ -254,8 +263,9 @@ export class PublicScientistRepository {
 
     let profileQuery = this.client
       .from("scientist_profiles")
-      .select("*")
+      .select("id, organization_id, avatar_media_id, status, public_email, orcid, scholar_url, verified_at, created_at, updated_at, deleted_at, verification_status, is_public, collaboration, content_version")
       .eq("status", "verified")
+      .eq("is_public", true)
       .is("deleted_at", null)
       .in("id", translations.map((item) => item.scientist_profile_id))
       .order("verified_at", { ascending: false })
@@ -288,9 +298,10 @@ export class PublicScientistRepository {
     const translation = data;
     const { data: profileData, error: profileError } = await this.client
       .from("scientist_profiles")
-      .select("*")
+      .select("id, organization_id, avatar_media_id, status, public_email, orcid, scholar_url, verified_at, created_at, updated_at, deleted_at, verification_status, is_public, collaboration, content_version")
       .eq("id", translation.scientist_profile_id)
       .eq("status", "verified")
+      .eq("is_public", true)
       .is("deleted_at", null)
       .maybeSingle();
     if (profileError) throw profileError;
@@ -313,6 +324,8 @@ export class PublicScientistRepository {
       orcid: profile.orcid,
       scholarUrl: profile.scholarUrl,
       alternateTranslations: ((alternateData ?? [])).map(mapTranslation),
+      links: profile.links,
+      collaboration: profile.collaboration,
     };
   }
 }

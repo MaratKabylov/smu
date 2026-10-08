@@ -85,7 +85,7 @@ describe("mentorship PostgreSQL permissions and workflow", () => {
     await db.query("update public.scientist_profiles set status = 'draft' where id = $1", [scientist]);
     expect((await asRole("anon", "select * from public.mentorship_offer_translations")).rows).toHaveLength(0);
     await expect(submit(offer, "applicant@example.kz")).rejects.toThrow("not_available");
-    await db.query("update public.scientist_profiles set status = 'verified' where id = $1", [scientist]);
+    await db.query("update public.scientist_profiles set status = 'verified', verified_at = now() where id = $1", [scientist]);
     await db.query("update public.scientific_fields set is_active = false where id = $1", [field]);
     expect((await asRole("anon", "select * from public.mentorship_offers")).rows).toHaveLength(0);
     await expect(submit(offer, "applicant@example.kz")).rejects.toThrow("not_available");

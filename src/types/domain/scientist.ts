@@ -1,3 +1,4 @@
+import type { Collaboration, ScientistLink, VerificationStatus } from "@/lib/scientists/profile";
 import type { Locale } from "@/lib/i18n/locales";
 export const scientistStatuses = ["draft", "verified"] as const;
 export type ScientistStatus = (typeof scientistStatuses)[number];
@@ -39,6 +40,13 @@ export type ScientistProfile = {
   avatarMediaId: string | null;
   avatarUrl: string | null;
   status: ScientistStatus;
+  verificationStatus: VerificationStatus;
+  verificationNote: string | null;
+  isPublic: boolean;
+  collaboration: Collaboration;
+  links: ScientistLink[];
+  contentVersion: number;
+  mergedIntoId: string | null;
   publicEmail: string | null;
   orcid: string | null;
   scholarUrl: string | null;
@@ -68,4 +76,6 @@ export type PublicScientistDetail = PublicScientistCard & {
   orcid: string | null;
   scholarUrl: string | null;
   alternateTranslations: ScientistTranslation[];
+  links: ScientistLink[];
+  collaboration: Collaboration;
 };

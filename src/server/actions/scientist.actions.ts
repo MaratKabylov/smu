@@ -5,11 +5,15 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import {
   scientistInputSchema,
-  scientistStatusSchema,
+  scientistVerificationSchema,
+  scientistMergeSchema,
+  scientistAccountSchema,
   scientistTaxonomyInputSchema,
 } from "@/lib/validation/scientist";
 import { getAdminAccess } from "@/server/services/access.service";
 import { ScientistService, ScientistServiceError } from "@/server/services/scientist.service";
+
+import { collaborationKeys, scientistLinkTypes } from "@/lib/scientists/profile";
 
 const idSchema = z.uuid();
 
@@ -26,8 +30,12 @@ function inputFromFormData(formData: FormData) {
     avatarMediaId: formData.get("avatarMediaId"),
     fieldIds: formData.getAll("fieldIds"),
     publicEmail: formData.get("publicEmail"),
-    orcid: formData.get("orcid"),
-    scholarUrl: formData.get("scholarUrl"),
+    orcid: "",
+    scholarUrl: "",
+    ...(formData.has("expectedContentVersion") ? { expectedContentVersion: Number(formData.get("expectedContentVersion")) } : {}),
+    isPublic: formData.get("isPublic") === "yes",
+    collaboration: Object.fromEntries(collaborationKeys.map(key => [key, formData.get("collaboration_" + key) === "yes"])),
+    links: scientistLinkTypes.flatMap(type => { const url = String(formData.get("link_" + type) ?? "").trim(); return url ? [{ type, url }] : []; }),
     ru: {
       fullName: formData.get("fullNameRu"),
       slug: formData.get("slugRu"),
@@ -78,7 +86,7 @@ export async function createScientist(formData: FormData) {
 export async function updateScientist(id: string, formData: FormData) {
   const parsedId = idSchema.safeParse(id);
   const input = inputFromFormData(formData);
-  if (!parsedId.success || !input.success) redirect(`/admin/science/scientists/${id}?error=validation`);
+  if (!parsedId.success || !input.success || !input.data.expectedContentVersion) redirect(`/admin/science/scientists/${id}?error=validation`);
   const access = await requireAccess(`/admin/science/scientists/${id}`);
   try {
     await new ScientistService().update(access, parsedId.data, input.data);
@@ -90,19 +98,44 @@ export async function updateScientist(id: string, formData: FormData) {
   redirect(`/admin/science/scientists/${parsedId.data}?saved=1`);
 }
 
-export async function changeScientistStatus(id: string, status: string) {
+export async function changeScientistVerification(id: string, formData: FormData) {
   const parsedId = idSchema.safeParse(id);
-  const parsedStatus = scientistStatusSchema.safeParse(status);
-  if (!parsedId.success || !parsedStatus.success) redirect(`/admin/science/scientists/${id}?error=invalid_transition`);
-  const access = await requireAccess(`/admin/science/scientists/${id}`);
-  try {
-    await new ScientistService().changeStatus(access, parsedId.data, parsedStatus.data);
-  } catch (error) {
-    redirect(`/admin/science/scientists/${parsedId.data}?error=${errorReason(error)}`);
-  }
+  const input = scientistVerificationSchema.safeParse({ status: formData.get("status"), expectedVersion: formData.get("expectedVersion"), note: formData.get("note") ?? "" });
+  const path = "/admin/science/scientists/" + id;
+  if (!parsedId.success || !input.success) redirect(path + "?error=validation");
+  const access = await requireAccess(path);
+  try { await new ScientistService().changeVerification(access, parsedId.data, input.data); }
+  catch (error) { redirect(path + "?error=" + errorReason(error)); }
   revalidatePath("/admin/science/scientists");
   revalidatePath("/scientists");
-  redirect(`/admin/science/scientists/${parsedId.data}?status_changed=1`);
+  redirect(path + "?status_changed=1");
+}
+
+export async function linkScientistAccount(id: string, formData: FormData) {
+  const parsedId = idSchema.safeParse(id);
+  const input = scientistAccountSchema.safeParse({ email: String(formData.get("email") ?? "").trim(), expectedVersion: formData.get("expectedVersion") });
+  const path = "/admin/science/scientists/" + id;
+  if (!parsedId.success || !input.success || formData.get("confirm") !== "yes") redirect(path + "?error=validation");
+  const access = await requireAccess(path);
+  try { await new ScientistService().linkAccount(access, parsedId.data, input.data); }
+  catch (error) { redirect(path + "?error=" + errorReason(error)); }
+  revalidatePath("/admin/science/scientists");
+  revalidatePath("/scientists");
+  redirect(path + "?account_linked=1");
+}
+
+export async function mergeScientistProfiles(sourceId: string, formData: FormData) {
+  const input = scientistMergeSchema.safeParse({ sourceId, targetId: formData.get("targetId"), sourceVersion: formData.get("sourceVersion"), targetVersion: formData.get("targetVersion"), reason: formData.get("reason") });
+  const path = "/admin/science/scientists/" + sourceId + "/merge";
+  if (!input.success || formData.get("confirm") !== "yes") redirect(path + "?error=validation");
+  const access = await requireAccess(path);
+  try { await new ScientistService().merge(access, input.data); }
+  catch (error) { redirect(path + "?target=" + input.data.targetId + "&error=" + errorReason(error)); }
+  revalidatePath("/admin/science/scientists");
+  revalidatePath("/admin/content/articles");
+  revalidatePath("/admin/science");
+  revalidatePath("/scientists");
+  redirect("/admin/science/scientists/" + input.data.targetId + "?merged=1");
 }
 
 export async function softDeleteScientist(id: string, formData: FormData) {

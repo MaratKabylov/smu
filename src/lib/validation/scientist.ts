@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { collaborationKeys, scientistLinkTypes, verificationStatuses } from "../scientists/profile";
 import { scientistStatuses } from "../../types/domain/scientist";
 
 const slugSchema = z
@@ -28,7 +29,32 @@ const translationSchema = z.object({
   biography: z.string().trim().min(40).max(20_000),
 });
 
+const safeLinkUrl = z.url().max(500).refine(value => {
+  try {
+    const url = new URL(value);
+    return ["http:", "https:"].includes(url.protocol) && !url.username && !url.password && !/[\s\u0000-\u001f]/.test(value);
+  } catch { return false; }
+}, "Нужна безопасная HTTP(S)-ссылка.");
+export const scientistLinkSchema = z.object({ type: z.enum(scientistLinkTypes), url: safeLinkUrl }).superRefine((value, context) => {
+  if (!URL.canParse(value.url)) return;
+  const url = new URL(value.url);
+  const hosts = { orcid: ["orcid.org"], google_scholar: ["scholar.google.com"], scopus: ["scopus.com", "www.scopus.com"], researchgate: ["researchgate.net", "www.researchgate.net"], linkedin: ["linkedin.com", "www.linkedin.com"], website: [] };
+  if (value.type !== "website" && (url.protocol !== "https:" || !hosts[value.type].includes(url.hostname))) context.addIssue({ code: "custom", message: "Ссылка не соответствует выбранному типу." });
+  if (value.type === "orcid" && !/^https:\/\/orcid\.org\/\d{4}-\d{4}-\d{4}-\d{3}[\dX]$/.test(value.url)) context.addIssue({ code: "custom", message: "Некорректный ORCID." });
+});
+export const collaborationSchema = z.partialRecord(z.enum(collaborationKeys), z.boolean());
+export const scientistVerificationSchema = z.object({
+  status: z.enum(verificationStatuses), expectedVersion: z.coerce.number().int().positive(), note: z.string().trim().max(2000).default(""),
+}).refine(value => value.status !== "rejected" || value.note.length >= 10, { message: "Укажите причину отклонения." });
+export const scientistMergeSchema = z.object({
+  sourceId: z.uuid(), targetId: z.uuid(), sourceVersion: z.coerce.number().int().positive(), targetVersion: z.coerce.number().int().positive(), reason: z.string().trim().min(10).max(2000),
+}).refine(value => value.sourceId !== value.targetId);
+export const scientistAccountSchema = z.object({ email: z.union([z.literal(""), z.email().max(254)]), expectedVersion: z.coerce.number().int().positive() });
 export const scientistInputSchema = z.object({
+  expectedContentVersion: z.number().int().positive().optional(),
+  isPublic: z.boolean().default(true),
+  collaboration: collaborationSchema.default({}),
+  links: z.array(scientistLinkSchema).max(6).refine(items => new Set(items.map(item => item.type)).size === items.length).default([]),
   organizationId: nullableUuid,
   avatarMediaId: nullableUuid,
   fieldIds: z.array(z.uuid()).max(20).refine((items) => new Set(items).size === items.length),
@@ -42,7 +68,7 @@ export const scientistInputSchema = z.object({
 
 export const scientistListFiltersSchema = z.object({
   query: z.string().trim().max(120).default(""),
-  status: z.union([z.literal("all"), z.enum(scientistStatuses)]).default("all"),
+  status: z.union([z.literal("all"), z.enum([...scientistStatuses, "unverified", "pending", "rejected"])]).default("all"),
 });
 
 export const publicScientistFiltersSchema = z.object({
