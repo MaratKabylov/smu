@@ -22,7 +22,7 @@ class Repository {
 class ScienceRepository extends Repository { async listPublic() { return { works: [], taxonomy: {} }; } }
 class MentorshipRepository extends Repository { async listPublic() { return { offers: [], taxonomy: {} }; } }
 class ProgramRepository extends Repository { async listPublic() { return { programs: [], taxonomy: {} }; } }
-class ListRepository extends Repository { async listPublic() { return []; } }
+class ListRepository extends Repository { async listPublic() { return []; } async listPublicByWork() { return []; } }
 return { Repository, ScienceRepository, MentorshipRepository, ProgramRepository, ListRepository };
 });
 vi.mock("@/server/repositories/public-article.repository", () => ({ PublicArticleRepository: Repository }));
@@ -65,7 +65,7 @@ const reads = [
   { name: "events", run: async () => { const service = new PublicEventService(); const filters = publicEventFiltersSchema.parse({ locale: "en" }); await service.listPage(filters); await service.list(filters); await service.getBySlug("en", "water"); } },
   { name: "mentorship", run: async () => { const service = new PublicMentorshipService(); const filters = mentorshipFiltersSchema.parse({ locale: "kk" }); await service.listPage(filters); await service.list(filters); await service.getBySlug("kk", "water"); } },
   { name: "research programme", run: async () => { const service = new PublicResearchProgramService(); const filters = researchProgramFiltersSchema.parse({ locale: "ru" }); await service.listPage(filters); await service.list(filters); await service.getBySlug("ru", "water"); } },
-  { name: "publications", run: async () => { const service = new PublicationService(); await service.listPublicPage("en", "water", 2); await service.listPublic("en"); } },
+  { name: "publications", run: async () => { const service = new PublicationService(); await service.listPublicPage("en", "water", 2); await service.listPublic("en"); await service.listPublicByWork("kk", "work"); } },
   { name: "relations", run: async () => { const service = new ArticleRelationsService(); await service.publicRelations("article", "kk"); await service.relatedArticles("scientist", "scientist", "kk"); } },
   { name: "global search", run: () => new SearchService().publicPage("en", "water", "", 2) },
 ];

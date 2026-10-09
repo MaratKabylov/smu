@@ -1047,6 +1047,51 @@ export type Database = {
         Relationships: [
         ];
       };
+      "publication_coauthors": {
+        Row: {
+          "publication_id": string;
+          "sort_order": number;
+          "scientist_id": string | null;
+          "name": string | null;
+          "affiliation": string;
+        };
+        Insert: {
+          "publication_id": string;
+          "sort_order": number;
+          "scientist_id"?: string | null;
+          "name"?: string | null;
+          "affiliation"?: string;
+        };
+        Update: {
+          "publication_id"?: string;
+          "sort_order"?: number;
+          "scientist_id"?: string | null;
+          "name"?: string | null;
+          "affiliation"?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "publication_coauthors_publication_id_fkey"; columns: ["publication_id"]; isOneToOne: false; referencedRelation: "publications"; referencedColumns: ["id"] },
+          { foreignKeyName: "publication_coauthors_scientist_id_fkey"; columns: ["scientist_id"]; isOneToOne: false; referencedRelation: "scientist_profiles"; referencedColumns: ["id"] },
+        ];
+      };
+      "publication_works": {
+        Row: {
+          "publication_id": string;
+          "work_id": string;
+        };
+        Insert: {
+          "publication_id": string;
+          "work_id": string;
+        };
+        Update: {
+          "publication_id"?: string;
+          "work_id"?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "publication_works_publication_id_fkey"; columns: ["publication_id"]; isOneToOne: false; referencedRelation: "publications"; referencedColumns: ["id"] },
+          { foreignKeyName: "publication_works_work_id_fkey"; columns: ["work_id"]; isOneToOne: false; referencedRelation: "science_works"; referencedColumns: ["id"] },
+        ];
+      };
       "publications": {
         Row: {
           "id": string;
@@ -2013,7 +2058,14 @@ export type Database = {
           "p_id"?: string | null;
           "p_scientist"?: string | null;
         };
-        Returns: ({ "id": string | null; "scientist_id": string | null; "title": string | null; "year": number | null; "journal": string | null; "doi": string | null; "url": string | null; "publication_type": string | null; "scientist_name": string | null; "scientist_href": string | null })[];
+        Returns: ({ "id": string | null; "scientist_id": string | null; "title": string | null; "year": number | null; "journal": string | null; "doi": string | null; "url": string | null; "publication_type": string | null; "scientist_name": string | null; "scientist_href": string | null; "authors": Json | null; "works": Json | null })[];
+      };
+      "list_public_work_publications": {
+        Args: {
+          "p_locale": string | null;
+          "p_work": string | null;
+        };
+        Returns: ({ "id": string | null; "scientist_id": string | null; "title": string | null; "year": number | null; "journal": string | null; "doi": string | null; "url": string | null; "publication_type": string | null; "scientist_name": string | null; "scientist_href": string | null; "authors": Json | null; "works": Json | null })[];
       };
       "list_scientist_profiles": {
         Args: {

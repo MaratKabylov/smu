@@ -5,7 +5,7 @@ export const publicCacheSeconds = 60;
 
 const publicReadRpcs = new Set([
   "search_public", "seo_public_page", "seo_public_feed",
-  "public_article_relations", "public_related_articles", "list_public_publications",
+  "public_article_relations", "public_related_articles", "list_public_publications", "list_public_work_publications",
 ]);
 
 export function createPublicFetch(origin: string, publicKey: string): typeof fetch {

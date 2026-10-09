@@ -8,6 +8,7 @@ import { getDictionary } from "@/lib/i18n/dictionaries";
 /* eslint-disable @next/next/no-img-element -- Supabase public URLs are configured at runtime. */
 import type { Metadata } from "next";
 import { ArrowLeft, ArrowUpRight, FlaskConical, Search } from "lucide-react";
+import { WorkPublications } from "./PublicPublications";
 import Link from "next/link";
 import { RelatedArticles } from "@/components/articles/PublicArticleRelations";
 import { notFound } from "next/navigation";
@@ -95,7 +96,7 @@ export async function PublicScienceWorkDetail({ kind, params }: { kind: ScienceW
           {work.doi ? <a href={"https://doi.org/" + work.doi} target="_blank" rel="noreferrer">DOI: {work.doi}<ArrowUpRight aria-hidden="true" /></a> : null}
           {work.externalUrl ? <a href={work.externalUrl} target="_blank" rel="noreferrer">{text.external}<ArrowUpRight aria-hidden="true" /></a> : null}
         </aside>
-      </div><RelatedArticles kind={kind} id={work.id} locale={locale} /><div className="science-return"><Link href={base}>{text.catalog}</Link></div>
+      </div><WorkPublications id={work.id} locale={locale} /><RelatedArticles kind={kind} id={work.id} locale={locale} /><div className="science-return"><Link href={base}>{text.catalog}</Link></div>
     </div></main><footer className="journal-footer"><span>© {new Date().getFullYear()} {text.footer}</span><Link href={base}>{scienceWorkTitles[locale][kind]}</Link></footer>
   </>;
 }

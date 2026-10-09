@@ -2,6 +2,7 @@ import { cache } from "react";
 import { SeoService } from "@/server/services/seo.service";
 import { absoluteUrl } from "@/lib/seo/site";
 import { openGraphLocale } from "@/lib/seo/metadata";
+import { PublicationAuthors } from "@/components/science/PublicPublications";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
@@ -32,9 +33,10 @@ export async function generateMetadata({ params }: Props) {
 export default async function Page({ params }: Props) {
   const { publication: item, locale, paths } = await detail(params);
   return <><PublicHeader locale={locale} section="publications" paths={paths} /><main className="public-article-page"><div className="public-article-shell">
-    <nav className="public-breadcrumbs"><Link href={`/${locale}/publications`}>{locale === "ru" ? "Научные публикации" : "Ғылыми жарияланымдар"}</Link></nav>
-    <header className="public-article-header"><small>{publicationTypeLabels[locale][item.publicationType]}</small><h1>{item.title}</h1><p>{item.journal} · {item.year}</p><Link href={item.scientistHref}>{item.scientistName}</Link></header>
-    <div className="preview-links">{item.doi ? <a href={`https://doi.org/${item.doi}`} target="_blank" rel="noreferrer">DOI: {item.doi}</a> : null}{item.url ? <a href={item.url} target="_blank" rel="noreferrer">{locale === "ru" ? "Открыть публикацию" : "Жарияланымды ашу"}</a> : null}</div>
+    <nav className="public-breadcrumbs"><Link href={`/${locale}/publications`}>{locale === "ru" ? "Научные публикации" : locale === "en" ? "Scientific publications" : "Ғылыми жарияланымдар"}</Link></nav>
+    <header className="public-article-header"><small>{publicationTypeLabels[locale][item.publicationType]}</small><h1>{item.title}</h1><p>{item.journal} · {item.year}</p><PublicationAuthors item={item} /></header>
+    <div className="preview-links">{item.doi ? <a href={`https://doi.org/${item.doi}`} target="_blank" rel="noreferrer">DOI: {item.doi}</a> : null}{item.url ? <a href={item.url} target="_blank" rel="noreferrer">{locale === "ru" ? "Открыть публикацию" : locale === "en" ? "Open publication" : "Жарияланымды ашу"}</a> : null}</div>
+    {item.works?.length ? <section className="public-relations"><h2>{locale === "ru" ? "Связанные исследования и проекты" : locale === "en" ? "Related research and projects" : "Байланысты зерттеулер мен жобалар"}</h2><ul>{item.works.map(work => <li key={work.id}><Link href={work.href}>{work.title}</Link></li>)}</ul></section> : null}
     <RelatedArticles kind="publication" id={item.id} locale={locale} />
   </div></main></>;
 }

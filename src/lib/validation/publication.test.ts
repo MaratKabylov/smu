@@ -23,3 +23,14 @@ describe("scientific bibliographic input", () => {
     }
   });
 });
+
+const coauthor = "00000000-0000-4000-a000-000000000002";
+const work = "00000000-0000-4000-a000-000000000003";
+describe("publication graph validation", () => {
+  it("accepts ordered profile and external authors, trimming bibliography without overriding profile names", () => {
+    expect(publicationInputSchema.parse({ ...input, coauthors: [{ scientistId: coauthor }, { scientistId: null, name: " External Author ", affiliation: " Institute " }], workIds: [work] })).toMatchObject({ coauthors: [{ scientistId: coauthor, name: "", affiliation: "" }, { scientistId: null, name: "External Author", affiliation: "Institute" }], workIds: [work] });
+  });
+  it("rejects repeated authors/works, mismatched author types, excessive lists and unknown author data", () => {
+    for (const patch of [{ coauthors: [{ scientistId: input.scientistId }] }, { coauthors: [{ scientistId: coauthor }, { scientistId: coauthor }] }, { coauthors: [{ scientistId: coauthor, name: "Override" }] }, { coauthors: [{ scientistId: null, name: " " }] }, { coauthors: [{ scientistId: null, name: "Author", email: "private@example.kz" }] }, { coauthors: Array.from({ length: 31 }, () => ({ scientistId: null, name: "Author" })) }, { workIds: [work, work] }, { workIds: Array.from({ length: 21 }, () => work) }, { coauthors: "[]" }]) expect(publicationInputSchema.safeParse({ ...input, ...patch }).success).toBe(false);
+  });
+});

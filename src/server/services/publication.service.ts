@@ -42,6 +42,10 @@ export class PublicationService {
       throw error;
     }
   }
+  async listPublicByWork(locale: ArticleLocale, workId: string) {
+    if (!isSupabaseConfigured()) return [];
+    return new PublicationRepository(createPublicSupabaseClient()).listPublicByWork(locale, workId);
+  }
   async listPublic(locale: ArticleLocale, id: string | null = null, scientistId: string | null = null) {
     if (!isSupabaseConfigured()) return [];
     return new PublicationRepository(createPublicSupabaseClient()).listPublic(locale, id, scientistId);
