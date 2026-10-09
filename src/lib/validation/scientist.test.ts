@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { publicScientistFiltersSchema, scientistInputSchema, scientistVerificationSchema, scientistMergeSchema } from "./scientist";
+import { publicScientistFiltersSchema, scientistInputSchema, scientistVerificationSchema, scientistMergeSchema, scientistTaxonomyInputSchema } from "./scientist";
 
 const validInput = {
   organizationId: "",
@@ -62,5 +62,19 @@ describe("scientist extended input", () => {
     expect(scientistVerificationSchema.safeParse({status:"pending",expectedVersion:1,note:""}).success).toBe(true);
     const id="00000000-0000-4000-a000-000000000010";
     expect(scientistMergeSchema.safeParse({sourceId:id,targetId:id,sourceVersion:1,targetVersion:1,reason:"Confirmed duplicate."}).success).toBe(false);
+  });
+});
+
+describe("scientist directory input", () => {
+  it("parses hierarchical fields and typed organizations with safe defaults", () => {
+    expect(scientistTaxonomyInputSchema.parse({ kind: "field", slug: "earth-sciences", nameRu: "Науки о Земле", nameKk: "Жер туралы ғылымдар", nameEn: "", parentId: "" }))
+      .toMatchObject({ parentId: null, isActive: true, expectedUpdatedAt: null });
+    expect(scientistTaxonomyInputSchema.safeParse({ kind: "organization", slug: "regional-university", nameRu: "Региональный университет", nameKk: "Өңірлік университет", nameEn: "Regional University", cityRu: "Актобе", cityKk: "Ақтөбе", cityEn: "Aktobe", websiteUrl: "https://example.kz", organizationType: "university", isActive: false }).success).toBe(true);
+  });
+
+  it("rejects invalid parents, organization types and English city without a name", () => {
+    expect(scientistTaxonomyInputSchema.safeParse({ kind: "field", slug: "field", nameRu: "Поле", nameKk: "Бағыт", parentId: "bad" }).success).toBe(false);
+    expect(scientistTaxonomyInputSchema.safeParse({ kind: "organization", slug: "org", nameRu: "Организация", nameKk: "Ұйым", cityEn: "Aktobe", organizationType: "other", websiteUrl: "" }).success).toBe(false);
+    expect(scientistTaxonomyInputSchema.safeParse({ kind: "organization", slug: "org", nameRu: "Организация", nameKk: "Ұйым", organizationType: "laboratory", websiteUrl: "" }).success).toBe(false);
   });
 });

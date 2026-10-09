@@ -26,24 +26,34 @@ type ProfileRow = Pick<Tables<"scientist_profiles">, "id" | "organization_id" | 
 
 type TranslationRow = Pick<Tables<"scientist_profile_translations">, "id" | "scientist_profile_id" | "locale" | "full_name" | "slug" | "position" | "academic_degree" | "short_bio" | "biography">;
 
-type FieldRow = Pick<Tables<"scientific_fields">, "id" | "slug" | "name_ru" | "name_kk" | "is_active">;
+type FieldRow = Pick<Tables<"scientific_fields">, "id" | "slug" | "name_ru" | "name_kk" | "is_active" | "parent_id" | "updated_at">;
 
-type OrganizationRow = FieldRow & Pick<Tables<"scientific_organizations">, "city_ru" | "city_kk" | "website_url" | "logo_media_id">;
+type OrganizationRow = Omit<FieldRow, "parent_id"> & Pick<Tables<"scientific_organizations">, "city_ru" | "city_kk" | "website_url" | "logo_media_id" | "type">;
 
 type DirectoryTranslationRow = Pick<Tables<"scientific_organization_translations">, "locale" | "name"> & Partial<Pick<Tables<"scientific_organization_translations">, "city">>;
 
 function mapField(row: FieldRow, translations: DirectoryTranslationRow[] = []): ScientistTaxonomyItem {
-  return { id: row.id, slug: row.slug, nameRu: row.name_ru, nameKk: row.name_kk, nameEn: translations.find(item => item.locale === "en")?.name ?? null, isActive: row.is_active };
+  return {
+    id: row.id,
+    slug: row.slug,
+    nameRu: translations.find(item => item.locale === "ru")?.name ?? row.name_ru,
+    nameKk: translations.find(item => item.locale === "kk")?.name ?? row.name_kk,
+    nameEn: translations.find(item => item.locale === "en")?.name ?? null,
+    isActive: row.is_active,
+    parentId: row.parent_id,
+    updatedAt: row.updated_at,
+  };
 }
 
 function mapOrganization(row: OrganizationRow, translations: DirectoryTranslationRow[] = []): ScientistOrganization {
   return {
-    ...mapField(row, translations),
-    cityRu: row.city_ru,
-    cityKk: row.city_kk,
+    ...mapField({ ...row, parent_id: null }, translations),
+    cityRu: translations.find(item => item.locale === "ru")?.city ?? row.city_ru,
+    cityKk: translations.find(item => item.locale === "kk")?.city ?? row.city_kk,
     cityEn: translations.find(item => item.locale === "en")?.city ?? null,
     websiteUrl: row.website_url,
     logoMediaId: row.logo_media_id,
+    organizationType: row.type,
   };
 }
 
@@ -78,11 +88,11 @@ export class ScientistRepository {
   async listTaxonomy(includeInactive = false): Promise<ScientistTaxonomy> {
     let organizationsQuery = this.client
       .from("scientific_organizations")
-      .select("id, slug, name_ru, name_kk, city_ru, city_kk, website_url, logo_media_id, is_active")
+      .select("id, slug, name_ru, name_kk, city_ru, city_kk, website_url, logo_media_id, type, is_active, updated_at")
       .order("name_ru");
     let fieldsQuery = this.client
       .from("scientific_fields")
-      .select("id, slug, name_ru, name_kk, is_active")
+      .select("id, slug, name_ru, name_kk, is_active, parent_id, updated_at")
       .order("name_ru");
     if (!includeInactive) {
       organizationsQuery = organizationsQuery.eq("is_active", true);
@@ -145,7 +155,16 @@ export class ScientistRepository {
   }
 
   async createTaxonomyItem(input: ScientistTaxonomyInput) {
-    return callDatabaseRpc(this.client, "create_scientist_taxonomy", { p_input: databaseJson(input) });
+    return this.saveTaxonomyItem(null, input);
+  }
+
+  async saveTaxonomyItem(id: string | null, input: ScientistTaxonomyInput) {
+    return callDatabaseRpc(this.client, "save_scientist_taxonomy", {
+      p_kind: input.kind,
+      p_id: id,
+      p_expected_updated_at: input.expectedUpdatedAt,
+      p_input: databaseJson(input),
+    });
   }
 
   async hydrateProfiles(rows: ProfileRow[]): Promise<ScientistProfile[]> {
@@ -157,7 +176,7 @@ export class ScientistRepository {
       this.client.from("scientist_profile_translations").select("*").in("scientist_profile_id", ids),
       this.client.from("scientist_field_links").select("scientist_profile_id, scientific_field_id").in("scientist_profile_id", ids),
       organizationIds.length > 0
-        ? this.client.from("scientific_organizations").select("id, slug, name_ru, name_kk, city_ru, city_kk, website_url, logo_media_id, is_active").in("id", organizationIds)
+        ? this.client.from("scientific_organizations").select("id, slug, name_ru, name_kk, city_ru, city_kk, website_url, logo_media_id, type, is_active, updated_at").in("id", organizationIds)
         : Promise.resolve({ data: [], error: null }),
       avatarIds.length > 0
         ? this.client.from("media_assets").select("id, storage_bucket, storage_path").in("id", avatarIds).eq("status", "ready").is("deleted_at", null)
@@ -176,7 +195,7 @@ export class ScientistRepository {
     const links = (linksResult.data ?? []);
     const fieldIds = [...new Set(links.map((link) => link.scientific_field_id))];
     const [fieldsResult, fieldTranslationsResult] = await Promise.all([
-      fieldIds.length > 0 ? this.client.from("scientific_fields").select("id, slug, name_ru, name_kk, is_active").in("id", fieldIds) : Promise.resolve({ data: [], error: null }),
+      fieldIds.length > 0 ? this.client.from("scientific_fields").select("id, slug, name_ru, name_kk, is_active, parent_id, updated_at").in("id", fieldIds) : Promise.resolve({ data: [], error: null }),
       fieldIds.length > 0 ? this.client.from("scientific_field_translations").select("field_id, locale, name").in("field_id", fieldIds) : Promise.resolve({ data: [], error: null }),
     ]);
     if (fieldsResult.error) throw fieldsResult.error;

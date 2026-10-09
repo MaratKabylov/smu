@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
-const mocks = vi.hoisted(() => ({ client: vi.fn(), create: vi.fn(), update: vi.fn(), get: vi.fn(), status: vi.fn(), remove: vi.fn(), restore: vi.fn(), verification: vi.fn(), link: vi.fn(), merge: vi.fn() }));
+const mocks = vi.hoisted(() => ({ client: vi.fn(), create: vi.fn(), update: vi.fn(), get: vi.fn(), status: vi.fn(), remove: vi.fn(), restore: vi.fn(), verification: vi.fn(), link: vi.fn(), merge: vi.fn(), saveTaxonomy: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createServerSupabaseClient: mocks.client }));
 vi.mock("@/server/repositories/scientist.repository", () => ({ ScientistRepository: class {
   create = mocks.create; update = mocks.update; getById = mocks.get; changeStatus = mocks.status; softDelete = mocks.remove;
   restoreDeleted = mocks.restore; changeVerification = mocks.verification; linkAccount = mocks.link; merge = mocks.merge;
+  saveTaxonomyItem = mocks.saveTaxonomy;
 }, PublicScientistRepository: class {} }));
 import { ScientistService } from "./scientist.service";
 import type { AccessContext } from "@/types/domain/auth";
@@ -78,5 +79,19 @@ describe("scientist extended lifecycle permissions", () => {
     await expect(new ScientistService().changeVerification(manager,id,{...verification,note:""})).rejects.toMatchObject({code:"invalid_input"});
     await expect(new ScientistService().merge({...manager,permissions:new Set(["scientists.edit","scientists.merge"])},{...merge,targetId:id})).rejects.toMatchObject({code:"invalid_input"});
     expect(mocks.client).not.toHaveBeenCalled();
+  });
+});
+
+describe("scientist directory management", () => {
+  const id = "00000000-0000-4000-a000-000000000020";
+  const input = { kind: "field" as const, slug: "earth-sciences", nameRu: "Науки о Земле", nameKk: "Жер туралы ғылымдар", nameEn: null, parentId: null, isActive: true, expectedUpdatedAt: "2026-10-09T12:00:00.000Z" };
+  it("requires scientist edit permission before updating a directory", async () => {
+    await expect(new ScientistService().updateTaxonomyItem(denied, id, input)).rejects.toMatchObject({ code: "forbidden" });
+    expect(mocks.client).not.toHaveBeenCalled();
+  });
+  it("requires an optimistic version and forwards the canonical payload", async () => {
+    await expect(new ScientistService().updateTaxonomyItem(manager, id, { ...input, expectedUpdatedAt: null })).rejects.toMatchObject({ code: "invalid_input" });
+    await new ScientistService().updateTaxonomyItem(manager, id, input);
+    expect(mocks.saveTaxonomy).toHaveBeenCalledWith(id, input);
   });
 });

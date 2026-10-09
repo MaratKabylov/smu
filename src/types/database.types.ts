@@ -1437,6 +1437,7 @@ export type Database = {
           "is_active": boolean;
           "created_at": string;
           "updated_at": string;
+          "parent_id": string | null;
         };
         Insert: {
           "id"?: string;
@@ -1446,6 +1447,7 @@ export type Database = {
           "is_active"?: boolean;
           "created_at"?: string;
           "updated_at"?: string;
+          "parent_id"?: string | null;
         };
         Update: {
           "id"?: string;
@@ -1455,8 +1457,10 @@ export type Database = {
           "is_active"?: boolean;
           "created_at"?: string;
           "updated_at"?: string;
+          "parent_id"?: string | null;
         };
         Relationships: [
+          { foreignKeyName: "scientific_fields_parent_id_fkey"; columns: ["parent_id"]; isOneToOne: false; referencedRelation: "scientific_fields"; referencedColumns: ["id"] },
         ];
       };
       "scientific_organization_translations": {
@@ -1498,6 +1502,7 @@ export type Database = {
           "is_active": boolean;
           "created_at": string;
           "updated_at": string;
+          "type": "university" | "research_center" | "hospital" | "company" | "government" | "ngo" | "school" | "other";
         };
         Insert: {
           "id"?: string;
@@ -1511,6 +1516,7 @@ export type Database = {
           "is_active"?: boolean;
           "created_at"?: string;
           "updated_at"?: string;
+          "type"?: "university" | "research_center" | "hospital" | "company" | "government" | "ngo" | "school" | "other";
         };
         Update: {
           "id"?: string;
@@ -1524,6 +1530,7 @@ export type Database = {
           "is_active"?: boolean;
           "created_at"?: string;
           "updated_at"?: string;
+          "type"?: "university" | "research_center" | "hospital" | "company" | "government" | "ngo" | "school" | "other";
         };
         Relationships: [
           { foreignKeyName: "scientific_organizations_logo_media_id_fkey"; columns: ["logo_media_id"]; isOneToOne: false; referencedRelation: "media_assets"; referencedColumns: ["id"] },
@@ -2234,6 +2241,15 @@ export type Database = {
         };
         Returns: string;
       };
+      "save_scientist_taxonomy": {
+        Args: {
+          "p_kind": string | null;
+          "p_id": string | null;
+          "p_expected_updated_at": string | null;
+          "p_input": Json | null;
+        };
+        Returns: string;
+      };
       "schedule_article": {
         Args: {
           "p_id": string | null;
@@ -2371,6 +2387,7 @@ export type Database = {
       "science_work_kind": "research" | "project";
       "science_work_stage": "planned" | "active" | "completed";
       "science_work_status": "draft" | "published" | "archived";
+      "scientific_organization_type": "university" | "research_center" | "hospital" | "company" | "government" | "ngo" | "school" | "other";
       "scientist_profile_status": "draft" | "verified";
     };
     CompositeTypes: { [_ in never]: never };

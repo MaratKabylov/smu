@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-const mocks = vi.hoisted(() => ({ access:vi.fn(), update:vi.fn(), verification:vi.fn(), link:vi.fn(), merge:vi.fn(), path:vi.fn(), tag:vi.fn() }));
+const mocks = vi.hoisted(() => ({ access:vi.fn(), update:vi.fn(), verification:vi.fn(), link:vi.fn(), merge:vi.fn(), taxonomy:vi.fn(), path:vi.fn(), tag:vi.fn() }));
 vi.mock("next/cache", () => ({revalidatePath:mocks.path,revalidateTag:mocks.tag}));
 vi.mock("next/navigation", () => ({redirect:(path:string) => {throw new Error("redirect:" + path);}}));
 vi.mock("@/server/services/access.service", () => ({getAdminAccess:mocks.access}));
 vi.mock("@/server/services/scientist.service", () => ({
-  ScientistService:class {update=mocks.update;changeVerification=mocks.verification;linkAccount=mocks.link;merge=mocks.merge;},
+  ScientistService:class {update=mocks.update;changeVerification=mocks.verification;linkAccount=mocks.link;merge=mocks.merge;updateTaxonomyItem=mocks.taxonomy;},
   ScientistServiceError:class extends Error {constructor(public code:string,message:string){super(message);}},
 }));
-import { changeScientistVerification, linkScientistAccount, mergeScientistProfiles, updateScientist } from "./scientist.actions";
+import { changeScientistVerification, linkScientistAccount, mergeScientistProfiles, updateScientist, updateScientistTaxonomy } from "./scientist.actions";
 import { ScientistServiceError } from "@/server/services/scientist.service";
 const source="00000000-0000-4000-a000-000000000010";
 const target="00000000-0000-4000-a000-000000000011";
@@ -47,5 +47,21 @@ describe("extended scientist server actions", () => {
     await expect(updateScientist(source,data)).rejects.toThrow("saved=1");
     expect(mocks.update).toHaveBeenCalledWith({userId:source},source,expect.objectContaining({expectedContentVersion:4,isPublic:false,links:[{type:"website",url:"https://example.kz"}],collaboration:expect.objectContaining({mentoring:true})}));
     vi.clearAllMocks();data.delete("expectedContentVersion");await expect(updateScientist(source,data)).rejects.toThrow("error=validation");expect(mocks.update).not.toHaveBeenCalled();expect(mocks.tag).not.toHaveBeenCalled();
+  });
+});
+
+describe("scientist directory actions", () => {
+  it("parses hierarchy, active state and exact version before updating", async () => {
+    const data=form({kind:"field",slug:"earth-sciences",nameRu:"Науки о Земле",nameKk:"Жер туралы ғылымдар",nameEn:"Earth sciences",parentId:target,isActive:"yes",expectedUpdatedAt:"2026-10-09T12:00:00.000Z"});
+    await expect(updateScientistTaxonomy(source,data)).rejects.toThrow("saved=1");
+    expect(mocks.taxonomy).toHaveBeenCalledWith({userId:source},source,expect.objectContaining({kind:"field",parentId:target,isActive:true,expectedUpdatedAt:"2026-10-09T12:00:00.000Z"}));
+    expect(mocks.tag).toHaveBeenCalledWith("smu:public-content:v1",{expire:0});
+  });
+  it("rejects a missing version or unknown organization type before authentication", async () => {
+    const missing=form({kind:"field",slug:"earth-sciences",nameRu:"Науки о Земле",nameKk:"Жер туралы ғылымдар",parentId:"",isActive:"yes"});
+    await expect(updateScientistTaxonomy(source,missing)).rejects.toThrow("error=validation");
+    const bad=form({kind:"organization",slug:"lab",nameRu:"Лаборатория",nameKk:"Зертхана",organizationType:"unknown",websiteUrl:"",expectedUpdatedAt:"2026-10-09T12:00:00.000Z",isActive:"yes"});
+    await expect(updateScientistTaxonomy(source,bad)).rejects.toThrow("error=validation");
+    expect(mocks.taxonomy).not.toHaveBeenCalled();
   });
 });

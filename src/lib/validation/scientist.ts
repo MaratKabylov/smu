@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { collaborationKeys, scientistLinkTypes, verificationStatuses } from "../scientists/profile";
-import { scientistStatuses } from "../../types/domain/scientist";
+import { deletionTimestampSchema } from "./deleted-records";
+import { scientificOrganizationTypes, scientistStatuses } from "../../types/domain/scientist";
 
 const slugSchema = z
   .string()
@@ -87,6 +88,9 @@ export const scientistTaxonomyInputSchema = z.discriminatedUnion("kind", [
     nameRu: z.string().trim().min(2).max(140),
     nameKk: z.string().trim().min(2).max(140),
     nameEn: optionalText(140).optional().default(null),
+    parentId: nullableUuid.optional().default(""),
+    isActive: z.boolean().optional().default(true),
+    expectedUpdatedAt: z.union([z.null(), deletionTimestampSchema]).optional().default(null),
   }),
   z.object({
     kind: z.literal("organization"),
@@ -98,6 +102,9 @@ export const scientistTaxonomyInputSchema = z.discriminatedUnion("kind", [
     cityKk: optionalText(120),
     cityEn: optionalText(120).optional().default(null),
     websiteUrl: optionalUrl,
+    organizationType: z.enum(scientificOrganizationTypes).optional().default("other"),
+    isActive: z.boolean().optional().default(true),
+    expectedUpdatedAt: z.union([z.null(), deletionTimestampSchema]).optional().default(null),
   }).refine(value => value.nameEn !== null || value.cityEn === null, { message: "Для английского города нужно английское название." }),
 ]);
 

@@ -3,6 +3,17 @@ import type { Locale } from "@/lib/i18n/locales";
 export const scientistStatuses = ["draft", "verified"] as const;
 export type ScientistStatus = (typeof scientistStatuses)[number];
 export type ScientistLocale = Locale;
+export const scientificOrganizationTypes = [
+  "university",
+  "research_center",
+  "hospital",
+  "company",
+  "government",
+  "ngo",
+  "school",
+  "other",
+] as const;
+export type ScientificOrganizationType = (typeof scientificOrganizationTypes)[number];
 
 export type ScientistTaxonomyItem = {
   id: string;
@@ -11,6 +22,8 @@ export type ScientistTaxonomyItem = {
   nameKk: string;
   nameEn?: string | null;
   isActive: boolean;
+  parentId: string | null;
+  updatedAt: string;
 };
 
 export type ScientistOrganization = ScientistTaxonomyItem & {
@@ -19,6 +32,7 @@ export type ScientistOrganization = ScientistTaxonomyItem & {
   cityEn?: string | null;
   websiteUrl: string | null;
   logoMediaId: string | null;
+  organizationType: ScientificOrganizationType;
 };
 
 export type ScientistTranslation = {

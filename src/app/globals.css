@@ -1255,6 +1255,60 @@ th {
   align-self: end;
 }
 
+.directory-list {
+  max-height: 620px;
+}
+
+.directory-list details {
+  border-bottom: 1px solid #edf0ed;
+}
+
+.directory-list details.is-inactive {
+  background: #f6f7f5;
+  opacity: 0.78;
+}
+
+.directory-list summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 10px;
+  cursor: pointer;
+}
+
+.directory-list summary > span {
+  display: grid;
+  flex: 1;
+  gap: 3px;
+}
+
+.directory-list summary small {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.directory-form {
+  margin: 0 10px 14px;
+  border-top: 1px dashed var(--line);
+  padding-top: 14px !important;
+}
+
+.directory-form .directory-active {
+  align-self: center;
+}
+
+.directory-panel .taxonomy-create-panel {
+  margin: 0;
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+}
+
+.directory-panel .taxonomy-create-panel h3 {
+  margin: 0 0 12px;
+  font-size: 14px;
+}
+
 .scientists-site {
   background: #f3f5f1;
 }

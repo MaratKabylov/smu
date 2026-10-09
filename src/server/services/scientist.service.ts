@@ -126,6 +126,14 @@ export class ScientistService {
     return this.repository((repository) => repository.createTaxonomyItem(input));
   }
 
+  async updateTaxonomyItem(access: AccessContext, id: string, input: ScientistTaxonomyInput) {
+    assertAllowed(canEditScientist(access));
+    if (!input.expectedUpdatedAt) {
+      throw new ScientistServiceError("invalid_input", "Проверьте запись и версию справочника.");
+    }
+    return this.repository((repository) => repository.saveTaxonomyItem(id, input));
+  }
+
 }
 
 const emptyTaxonomy: ScientistTaxonomy = { organizations: [], fields: [] };

@@ -152,21 +152,35 @@ export async function softDeleteScientist(id: string, formData: FormData) {
   redirect("/admin/science/scientists?deleted=1");
 }
 
-export async function createScientistTaxonomy(formData: FormData) {
+function taxonomyInputFromFormData(formData: FormData) {
   const kind = formData.get("kind");
-  const input = scientistTaxonomyInputSchema.safeParse({
+  return scientistTaxonomyInputSchema.safeParse({
     kind,
     slug: formData.get("slug"),
     nameRu: formData.get("nameRu"),
     nameKk: formData.get("nameKk"),
     nameEn: formData.get("nameEn"),
+    isActive: formData.get("isActive") === "yes",
+    expectedUpdatedAt: formData.has("expectedUpdatedAt") ? formData.get("expectedUpdatedAt") : null,
+    ...(kind === "field" ? { parentId: formData.get("parentId") ?? "" } : {}),
     ...(kind === "organization" ? {
       cityRu: formData.get("cityRu"),
       cityKk: formData.get("cityKk"),
       cityEn: formData.get("cityEn"),
       websiteUrl: formData.get("websiteUrl"),
+      organizationType: formData.get("organizationType"),
     } : {}),
   });
+}
+
+function revalidateScientistTaxonomy() {
+  revalidatePath("/admin/science/scientists/taxonomy");
+  revalidatePath("/admin/science/scientists/new");
+  revalidatePath("/scientists");
+}
+
+export async function createScientistTaxonomy(formData: FormData) {
+  const input = taxonomyInputFromFormData(formData);
   if (!input.success) redirect("/admin/science/scientists/taxonomy?error=validation");
   const access = await requireAccess("/admin/science/scientists/taxonomy");
   try {
@@ -174,8 +188,21 @@ export async function createScientistTaxonomy(formData: FormData) {
   } catch (error) {
     redirect(`/admin/science/scientists/taxonomy?error=${errorReason(error)}`);
   }
-  revalidatePath("/admin/science/scientists/taxonomy");
-  revalidatePath("/admin/science/scientists/new");
-  revalidatePath("/scientists");
+  revalidateScientistTaxonomy();
   redirect("/admin/science/scientists/taxonomy?created=1");
+}
+
+export async function updateScientistTaxonomy(id: string, formData: FormData) {
+  const parsedId = idSchema.safeParse(id);
+  const input = taxonomyInputFromFormData(formData);
+  const path = "/admin/science/scientists/taxonomy";
+  if (!parsedId.success || !input.success || !input.data.expectedUpdatedAt) redirect(path + "?error=validation");
+  const access = await requireAccess(path);
+  try {
+    await new ScientistService().updateTaxonomyItem(access, parsedId.data, input.data);
+  } catch (error) {
+    redirect(path + "?error=" + errorReason(error));
+  }
+  revalidateScientistTaxonomy();
+  redirect(path + "?saved=1");
 }
