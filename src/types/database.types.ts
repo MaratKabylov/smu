@@ -1335,6 +1335,49 @@ export type Database = {
           { foreignKeyName: "research_program_applications_program_id_fkey"; columns: ["program_id"]; isOneToOne: false; referencedRelation: "research_programs"; referencedColumns: ["id"] },
         ];
       };
+      "research_program_project_participants": {
+        Row: {
+          "program_id": string;
+          "work_id": string;
+          "application_id": string;
+          "scientist_id": string;
+        };
+        Insert: {
+          "program_id": string;
+          "work_id": string;
+          "application_id": string;
+          "scientist_id": string;
+        };
+        Update: {
+          "program_id"?: string;
+          "work_id"?: string;
+          "application_id"?: string;
+          "scientist_id"?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "research_program_project_participants_application_id_fkey"; columns: ["application_id"]; isOneToOne: false; referencedRelation: "research_program_applications"; referencedColumns: ["id"] },
+          { foreignKeyName: "research_program_project_participants_program_id_work_id_fkey"; columns: ["program_id","work_id"]; isOneToOne: false; referencedRelation: "research_program_projects"; referencedColumns: ["program_id","work_id"] },
+          { foreignKeyName: "research_program_project_participants_scientist_id_fkey"; columns: ["scientist_id"]; isOneToOne: false; referencedRelation: "scientist_profiles"; referencedColumns: ["id"] },
+        ];
+      };
+      "research_program_projects": {
+        Row: {
+          "program_id": string;
+          "work_id": string;
+        };
+        Insert: {
+          "program_id": string;
+          "work_id": string;
+        };
+        Update: {
+          "program_id"?: string;
+          "work_id"?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "research_program_projects_program_id_fkey"; columns: ["program_id"]; isOneToOne: false; referencedRelation: "research_programs"; referencedColumns: ["id"] },
+          { foreignKeyName: "research_program_projects_work_id_fkey"; columns: ["work_id"]; isOneToOne: false; referencedRelation: "science_works"; referencedColumns: ["id"] },
+        ];
+      };
       "research_program_translations": {
         Row: {
           "program_id": string;
@@ -1392,6 +1435,7 @@ export type Database = {
           "created_at": string;
           "updated_at": string;
           "deleted_at": string | null;
+          "projects_version": number;
         };
         Insert: {
           "id"?: string;
@@ -1408,6 +1452,7 @@ export type Database = {
           "created_at"?: string;
           "updated_at"?: string;
           "deleted_at"?: string | null;
+          "projects_version"?: number;
         };
         Update: {
           "id"?: string;
@@ -1424,6 +1469,7 @@ export type Database = {
           "created_at"?: string;
           "updated_at"?: string;
           "deleted_at"?: string | null;
+          "projects_version"?: number;
         };
         Relationships: [
           { foreignKeyName: "research_programs_coordinator_id_fkey"; columns: ["coordinator_id"]; isOneToOne: false; referencedRelation: "scientist_profiles"; referencedColumns: ["id"] },
@@ -2152,6 +2198,12 @@ export type Database = {
         };
         Returns: string;
       };
+      "get_research_program_projects": {
+        Args: {
+          "p_id": string | null;
+        };
+        Returns: Json;
+      };
       "has_permission": {
         Args: {
           "permission_code": string | null;
@@ -2188,6 +2240,13 @@ export type Database = {
         };
         Returns: ({ "id": string | null; "entity_type": string | null; "title_ru": string | null; "title_kk": string | null; "status": string | null; "deleted_at": string | null })[];
       };
+      "list_public_programs_by_project": {
+        Args: {
+          "p_work_id": string | null;
+          "p_locale": string | null;
+        };
+        Returns: Json;
+      };
       "list_public_publications": {
         Args: {
           "p_locale": string | null;
@@ -2200,6 +2259,13 @@ export type Database = {
         Args: {
           "p_locale": string | null;
           "p_work_id": string | null;
+        };
+        Returns: Json;
+      };
+      "list_public_research_program_projects": {
+        Args: {
+          "p_id": string | null;
+          "p_locale": string | null;
         };
         Returns: Json;
       };
@@ -2265,6 +2331,13 @@ export type Database = {
         Returns: string;
       };
       "research_output_work_options": {
+        Args: {
+          "p_query"?: string | null;
+          "p_ids"?: (string)[] | null;
+        };
+        Returns: Json;
+      };
+      "research_program_project_options": {
         Args: {
           "p_query"?: string | null;
           "p_ids"?: (string)[] | null;
@@ -2410,6 +2483,13 @@ export type Database = {
           "p_input": Json | null;
         };
         Returns: string;
+      };
+      "save_research_program_projects": {
+        Args: {
+          "p_id": string | null;
+          "p_input": Json | null;
+        };
+        Returns: number;
       };
       "save_research_program_required_locales": {
         Args: {

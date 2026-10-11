@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { z } from "zod";
 import { SubmitButton } from "@/components/science/SubmitButton";
 import { ResearchProgramForm } from "./ResearchProgramForm";
+import { ResearchProgramProjectsEditor } from "./ResearchProgramProjectsEditor";
+import { ResearchProgramProjectsService } from "@/server/services/research-program-projects.service";
 import { canManageResearchProgram } from "@/lib/permissions/permissions";
 import { applicationStatusLabels, canChangeApplicationStatus, canChangeResearchProgramStatus, researchProgramAdminPath as base, researchProgramFormatLabels, researchProgramStatusLabels } from "@/lib/research-program";
 import { applicationStatusSchema, researchProgramStatusSchema } from "@/lib/validation/research-program";
@@ -13,6 +15,7 @@ import { applicationStatuses, researchProgramStatuses, type ResearchProgramAppli
 
 export type ResearchProgramAdminSearch = Promise<{ application?: string; status?: string; error?: string; saved?: string; deleted?: string; application_saved?: string }>;
 const errors: Record<string, string> = {
+  stale_version: "Связи изменены другим пользователем. Обновите страницу и повторите изменения.",
   validation: "Проверьте поля RU/KK, количество мест и последовательность дат набора и проведения.", forbidden: "Недостаточно прав.",
   invalid_reference: "Координатор должен иметь верифицированный профиль с обеими языковыми версиями, направление должно быть активно.",
   invalid_transition: "Этот переход статуса недоступен.", not_found: "Запись недоступна.", not_available: "Для принятия заявки опубликуйте программу и проверьте доступность координатора и срок завершения программы.",
@@ -58,10 +61,12 @@ export async function ResearchProgramAdminEditor({ id, searchParams }: { id?: st
   const service = new ResearchProgramService();
   const program = id ? await service.getById(access, id) : undefined;
   if (id && !program) notFound();
+  const projects = id ? await new ResearchProgramProjectsService().get(access, id) : null;
   const [state, options, applications] = await Promise.all([searchParams, service.options(access), id ? service.applications(access, id) : Promise.resolve([])]);
   return <div className="content-page"><Link className="back-link" href={base}>← Research Program</Link><div className="media-detail-heading"><div><p className="page-kicker">Программы</p><h1>{program?.translations.find(t => t.locale === "ru")?.title ?? "Новая программа"}</h1><p>Сохраните обе языковые версии и опубликуйте программу для приёма заявок.</p></div></div><Notice state={state} />
     {program ? <section className="workflow-panel"><div><h2>{researchProgramStatusLabels[program.status]}</h2><p>Набор открыт только в указанные даты. В архиве новые заявки не принимаются. Принятые и завершившие участие учитываются в лимите набора.</p>{program.status === "published" ? <div className="heading-actions">{program.translations.map(t => <Link key={t.locale} href={"/" + t.locale + "/research-program/" + t.slug} target="_blank">Открыть {t.locale.toUpperCase()}</Link>)}</div> : null}</div><div className="workflow-actions">{researchProgramStatuses.filter(value => canChangeResearchProgramStatus(program.status, value)).map(value => <form key={value} action={changeResearchProgram.bind(null, program.id, value)}><button className={value === "published" ? "primary-button" : "secondary-button"}>{value === "published" ? "Опубликовать" : value === "draft" ? "В черновики" : "В архив"}</button></form>)}</div></section> : null}
     <ResearchProgramForm action={saveResearchProgram.bind(null, program?.id ?? null)} program={program ?? undefined} options={options} />
+    {program && projects ? <ResearchProgramProjectsEditor key={projects.graph.version} programId={program.id} {...projects} /> : null}
     {program ? <><section className="mentorship-applications" id="applications"><div className="media-detail-heading"><div><h2>Заявки на участие</h2><p>До 100 последних заявок. Связывайтесь с заявителем по email; заметки видны только менеджерам.</p></div><Link href={base + "/applications"}>Все заявки и фильтры</Link></div>{applications.length ? applications.map(item => <ApplicationCard key={item.id} application={item} />) : <div className="empty-state"><p>Заявок пока нет.</p></div>}</section>
       <section className="danger-zone"><div><h2>Удалить программу</h2><p>Доступно после рассмотрения заявок и завершения участия принятых заявителей.</p></div><form action={changeResearchProgram.bind(null, program.id, "delete")}><label className="confirm-check"><input type="checkbox" name="confirm" value="yes" required />Подтверждаю действие</label><button className="danger-button">Удалить</button></form></section></> : null}
   </div>;

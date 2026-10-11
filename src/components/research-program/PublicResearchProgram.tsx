@@ -8,6 +8,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ApplicationForm } from "./ApplicationForm";
+import { PublicProgramProjects } from "./PublicProgramProjects";
 import { programApplicationsOpen, programDate, researchProgramFormatLabels } from "@/lib/research-program";
 import { researchProgramFiltersSchema } from "@/lib/validation/research-program";
 import { getPublicResearchProgram, PublicResearchProgramService } from "@/server/services/research-program.service";
@@ -76,6 +77,7 @@ export async function PublicResearchProgramDetail({ params }: { params: Research
       <h2>{locale === "ru" ? "Кто может участвовать" : "Кім қатыса алады"}</h2><p>{translation.eligibility}</p>
       <h2>{locale === "ru" ? "Ожидаемые результаты" : "Күтілетін нәтижелер"}</h2><p>{translation.outcomes}</p>
       {programApplicationsOpen(program) ? <ApplicationForm programId={program.id} locale={locale} /> : <div className="notice" role="status">{locale === "ru" ? "Приём заявок доступен с " : "Өтінім қабылдау мерзімі: "}{programDate(program.applicationsOpenOn, locale)} — {programDate(program.applicationDeadline, locale)}.</div>}
+      <PublicProgramProjects programId={program.id} locale={locale} />
     </div>
       <aside className="public-article-aside science-work-aside">
         <section><h2>{locale === "ru" ? "Координатор" : "Үйлестіруші"}</h2><Link href={"/" + locale + "/scientists/" + coordinator.slug}>{coordinator.fullName}</Link></section>
