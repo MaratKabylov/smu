@@ -1149,6 +1149,142 @@ export type Database = {
           { foreignKeyName: "publications_scientist_id_fkey"; columns: ["scientist_id"]; isOneToOne: false; referencedRelation: "scientist_profiles"; referencedColumns: ["id"] },
         ];
       };
+      "research_output_files": {
+        Row: {
+          "output_id": string;
+          "version": number;
+          "upload_id": string;
+          "is_public": boolean;
+        };
+        Insert: {
+          "output_id": string;
+          "version": number;
+          "upload_id": string;
+          "is_public"?: boolean;
+        };
+        Update: {
+          "output_id"?: string;
+          "version"?: number;
+          "upload_id"?: string;
+          "is_public"?: boolean;
+        };
+        Relationships: [
+          { foreignKeyName: "research_output_files_output_id_version_fkey"; columns: ["output_id","version"]; isOneToOne: false; referencedRelation: "research_output_versions"; referencedColumns: ["output_id","version"] },
+          { foreignKeyName: "research_output_files_upload_id_fkey"; columns: ["upload_id"]; isOneToOne: false; referencedRelation: "research_output_uploads"; referencedColumns: ["id"] },
+        ];
+      };
+      "research_output_uploads": {
+        Row: {
+          "id": string;
+          "uploaded_by": string;
+          "storage_path": string;
+          "file_name": string;
+          "mime_type": "application/pdf" | "text/csv" | "application/zip";
+          "file_size": number;
+          "ready": boolean;
+          "created_at": string;
+        };
+        Insert: {
+          "id"?: string;
+          "uploaded_by": string;
+          "storage_path": string;
+          "file_name": string;
+          "mime_type": "application/pdf" | "text/csv" | "application/zip";
+          "file_size": number;
+          "ready"?: boolean;
+          "created_at"?: string;
+        };
+        Update: {
+          "id"?: string;
+          "uploaded_by"?: string;
+          "storage_path"?: string;
+          "file_name"?: string;
+          "mime_type"?: "application/pdf" | "text/csv" | "application/zip";
+          "file_size"?: number;
+          "ready"?: boolean;
+          "created_at"?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "research_output_uploads_uploaded_by_fkey"; columns: ["uploaded_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+        ];
+      };
+      "research_output_versions": {
+        Row: {
+          "output_id": string;
+          "version": number;
+          "snapshot": Json;
+          "created_by": string;
+          "created_at": string;
+        };
+        Insert: {
+          "output_id": string;
+          "version": number;
+          "snapshot": Json;
+          "created_by": string;
+          "created_at"?: string;
+        };
+        Update: {
+          "output_id"?: string;
+          "version"?: number;
+          "snapshot"?: Json;
+          "created_by"?: string;
+          "created_at"?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "research_output_versions_created_by_fkey"; columns: ["created_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+          { foreignKeyName: "research_output_versions_output_id_fkey"; columns: ["output_id"]; isOneToOne: false; referencedRelation: "research_outputs"; referencedColumns: ["id"] },
+        ];
+      };
+      "research_output_works": {
+        Row: {
+          "output_id": string;
+          "work_id": string;
+        };
+        Insert: {
+          "output_id": string;
+          "work_id": string;
+        };
+        Update: {
+          "output_id"?: string;
+          "work_id"?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "research_output_works_output_id_fkey"; columns: ["output_id"]; isOneToOne: false; referencedRelation: "research_outputs"; referencedColumns: ["id"] },
+          { foreignKeyName: "research_output_works_work_id_fkey"; columns: ["work_id"]; isOneToOne: false; referencedRelation: "science_works"; referencedColumns: ["id"] },
+        ];
+      };
+      "research_outputs": {
+        Row: {
+          "id": string;
+          "owner_id": string;
+          "kind": "dataset" | "report" | "map" | "atlas" | "methodology" | "recommendation" | "dashboard" | "software" | "archive";
+          "status": "draft" | "published" | "archived";
+          "version": number;
+          "published_at": string | null;
+          "updated_at": string;
+        };
+        Insert: {
+          "id"?: string;
+          "owner_id": string;
+          "kind": "dataset" | "report" | "map" | "atlas" | "methodology" | "recommendation" | "dashboard" | "software" | "archive";
+          "status"?: "draft" | "published" | "archived";
+          "version"?: number;
+          "published_at"?: string | null;
+          "updated_at"?: string;
+        };
+        Update: {
+          "id"?: string;
+          "owner_id"?: string;
+          "kind"?: "dataset" | "report" | "map" | "atlas" | "methodology" | "recommendation" | "dashboard" | "software" | "archive";
+          "status"?: "draft" | "published" | "archived";
+          "version"?: number;
+          "published_at"?: string | null;
+          "updated_at"?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "research_outputs_owner_id_fkey"; columns: ["owner_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+        ];
+      };
       "research_program_applications": {
         Row: {
           "id": string;
@@ -2060,6 +2196,13 @@ export type Database = {
         };
         Returns: ({ "id": string | null; "scientist_id": string | null; "title": string | null; "year": number | null; "journal": string | null; "doi": string | null; "url": string | null; "publication_type": string | null; "scientist_name": string | null; "scientist_href": string | null; "authors": Json | null; "works": Json | null })[];
       };
+      "list_public_research_outputs": {
+        Args: {
+          "p_locale": string | null;
+          "p_work_id": string | null;
+        };
+        Returns: Json;
+      };
       "list_public_work_publications": {
         Args: {
           "p_locale": string | null;
@@ -2120,6 +2263,21 @@ export type Database = {
       "require_smu_session": {
         Args: Record<string, never>;
         Returns: string;
+      };
+      "research_output_work_options": {
+        Args: {
+          "p_query"?: string | null;
+          "p_ids"?: (string)[] | null;
+        };
+        Returns: Json;
+      };
+      "resolve_research_output_file": {
+        Args: {
+          "p_output_id": string | null;
+          "p_version": number | null;
+          "p_upload_id": string | null;
+        };
+        Returns: Json;
       };
       "restore_article_revision": {
         Args: {
@@ -2232,6 +2390,13 @@ export type Database = {
         Returns: string;
       };
       "save_publication": {
+        Args: {
+          "p_id": string | null;
+          "p_input": Json | null;
+        };
+        Returns: string;
+      };
+      "save_research_output": {
         Args: {
           "p_id": string | null;
           "p_input": Json | null;
@@ -2434,6 +2599,7 @@ export type Database = {
       "media_asset_status": "uploading" | "ready" | "failed";
       "mentorship_application_status": "new" | "in_review" | "accepted" | "rejected" | "completed";
       "mentorship_offer_status": "draft" | "published" | "archived";
+      "research_output_kind": "dataset" | "report" | "map" | "atlas" | "methodology" | "recommendation" | "dashboard" | "software" | "archive";
       "research_program_application_status": "new" | "in_review" | "accepted" | "rejected" | "completed";
       "research_program_status": "draft" | "published" | "archived";
       "science_work_kind": "research" | "project";

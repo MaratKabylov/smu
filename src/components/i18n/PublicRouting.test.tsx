@@ -1,4 +1,5 @@
 vi.mock("next/server", () => ({ connection: vi.fn().mockResolvedValue(undefined) }));
+vi.mock("@/components/science/PublicResearchOutputs", () => ({ PublicResearchOutputs: () => null }));
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 const mocks = vi.hoisted(() => ({ articles: vi.fn(), scientists: vi.fn(), works: vi.fn(), events: vi.fn(), mentorship: vi.fn(), programs: vi.fn(), publications: vi.fn(), articleDetail: vi.fn(), scientistDetail: vi.fn(), articleRedirect: vi.fn(), scientistRedirect: vi.fn() }));
