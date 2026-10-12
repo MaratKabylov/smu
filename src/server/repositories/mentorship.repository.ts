@@ -4,7 +4,8 @@ import type { DatabaseClient } from "@/lib/supabase/database";
 import type { MentorshipApplicationInput, MentorshipFilters, MentorshipInput } from "@/lib/validation/mentorship";
 import { ScientistRepository } from "./scientist.repository";
 import { ScienceWorkRepository } from "./science-work.repository";
-import type { ApplicationStatus, MentorshipApplication, MentorshipOffer, MentorshipStatus } from "@/types/domain/mentorship";
+import type { ApplicationStatus, MentorshipApplication, MentorshipOffer, MentorshipStatus, MentorshipKind, MentorshipRelationStatus } from "@/types/domain/mentorship";
+import { mentorshipProgressSchema } from "@/lib/validation/mentorship";
 import type { ScientistLocale } from "@/types/domain/scientist";
 
 type OfferRow = Pick<Tables<"mentorship_offers">, "id" | "scientist_id" | "field_id" | "format" | "capacity" | "status" | "updated_at">;
@@ -85,8 +86,21 @@ export class MentorshipRepository {
       p_input: { locale: input.locale, fullName: input.fullName, email: input.email, motivation: input.motivation, consent: input.consent } });
     if (error) throw error;
   }
-  async updateApplication(actor: string, id: string, status: ApplicationStatus, note: string) {
-    const { error } = await this.client.rpc("update_mentorship_application", { p_id: id, p_actor: actor, p_status: status, p_note: note });
+  async updateApplication(id: string, status: ApplicationStatus, note: string, kind: MentorshipKind = "mentor") {
+    const { error } = await this.client.rpc("decide_mentorship_application", { p_id: id, p_status: status, p_note: note, p_kind: kind });
+    if (error) throw error;
+  }
+  async progress(id: string) {
+    const { data, error } = await this.client.rpc("get_mentorship_progress", { p_application: id });
+    if (error) throw error;
+    return data === null ? null : mentorshipProgressSchema.parse(data);
+  }
+  async changeRelation(id: string, status: MentorshipRelationStatus) {
+    const { error } = await this.client.rpc("change_mentorship_relation", { p_application: id, p_status: status });
+    if (error) throw error;
+  }
+  async withdraw(id: string) {
+    const { error } = await this.client.rpc("withdraw_mentorship_application", { p_id: id });
     if (error) throw error;
   }
   private async hydrate(rows: OfferRow[], publicOnly = false): Promise<MentorshipOffer[]> {

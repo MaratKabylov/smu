@@ -3,6 +3,7 @@ import { revalidateLocalizedPath as revalidatePath } from "@/lib/i18n/revalidati
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { mentorshipAdminPath as base } from "@/lib/mentorship";
+import { mentorshipRelationStatusSchema } from "@/lib/validation/mentorship";
 import { applicationUpdateSchema, mentorshipApplicationSchema, mentorshipInputSchema, mentorshipStatusSchema } from "@/lib/validation/mentorship";
 import { getAdminAccess } from "@/server/services/access.service";
 import { MentorshipService, MentorshipServiceError, PublicMentorshipService } from "@/server/services/mentorship.service";
@@ -15,9 +16,9 @@ async function access() {
 function errorCode(error: unknown) {
   if (error instanceof MentorshipServiceError) return "forbidden";
   const message = error && typeof error === "object" && "message" in error ? String(error.message) : "";
-  return ["not_found", "not_available", "invalid_reference", "invalid_transition", "capacity_exceeded", "mentor_has_applications", "rate_limited", "duplicate_application"].find(code => message.includes(code)) ?? "action_failed";
+  return ["forbidden", "not_found", "not_available", "invalid_reference", "invalid_transition", "capacity_exceeded", "mentor_has_applications", "rate_limited", "duplicate_application"].find(code => message.includes(code)) ?? "action_failed";
 }
-function invalidate() { revalidatePath(base, "layout"); revalidatePath("/mentorship", "layout"); }
+function invalidate() { revalidatePath(base, "layout"); revalidatePath("/mentorship", "layout"); for (const locale of ["ru", "kk", "en"]) revalidatePath(`/${locale}/account/applications`, "layout"); }
 export async function saveMentorshipOffer(id: string | null, form: FormData) {
   if (id !== null && !z.uuid().safeParse(id).success) redirect(base + "?error=validation");
   const target = base + (id ? "/" + id : "/new");
@@ -48,11 +49,21 @@ export async function updateMentorshipApplication(id: string, offerId: string, f
   const queue = form.get("returnTo") === "queue";
   const target = queue ? base + "/applications" : base + "/" + offerId;
   const user = await access();
-  const input = applicationUpdateSchema.safeParse({ status: form.get("status"), note: form.get("note") });
+  const input = applicationUpdateSchema.safeParse({ status: form.get("status"), note: form.get("note"), kind: form.get("kind") ?? "mentor" });
   if (!input.success) redirect(target + "?error=validation");
-  try { await new MentorshipService().updateApplication(user, id, input.data.status, input.data.note); }
+  try { await new MentorshipService().updateApplication(user, id, input.data.status, input.data.note, input.data.kind); }
   catch (error) { redirect(target + "?error=" + errorCode(error)); }
   invalidate(); redirect(target + "?application_saved=1" + (queue ? "" : "#applications"));
+}
+export async function changeMentorshipRelation(id: string, form: FormData) {
+  const target = base + "/applications";
+  if (!z.uuid().safeParse(id).success) redirect(target + "?error=validation");
+  const user = await access();
+  const status = mentorshipRelationStatusSchema.safeParse(form.get("relationStatus"));
+  if (!status.success) redirect(target + "?error=validation");
+  try { await new MentorshipService().changeRelation(user, id, status.data); }
+  catch (error) { redirect(target + "?error=" + errorCode(error)); }
+  invalidate(); redirect(target + "?application_saved=1&application=" + id);
 }
 export async function submitMentorshipApplication(_state: { code: string }, form: FormData): Promise<{ code: string }> {
   const input = mentorshipApplicationSchema.safeParse({ offerId: form.get("offerId"), locale: form.get("locale"), fullName: form.get("fullName"), email: form.get("email"), motivation: form.get("motivation"), consent: form.get("consent") === "yes", website: form.get("website") ?? "" });

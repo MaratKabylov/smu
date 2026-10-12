@@ -3,7 +3,7 @@ import { PGlite } from "@electric-sql/pglite";
 
 // Minimal platform objects used by the application migrations. Public types
 // come from executed migrations, never from these Auth/Storage stand-ins.
-export async function createMigrationDatabase() {
+export async function createMigrationDatabase({ through = Infinity } = {}) {
   const db = new PGlite();
   try {
     await db.exec(`
@@ -19,7 +19,7 @@ export async function createMigrationDatabase() {
       grant usage on schema public, auth, storage to anon, authenticated, service_role;
     `);
     const directory = new URL("../supabase/migrations/", import.meta.url);
-    const files = (await readdir(directory)).filter(name => /^\d+.*\.sql$/.test(name)).sort();
+    const files = (await readdir(directory)).filter(name => /^\d+.*\.sql$/.test(name) && Number(name.split("_")[0]) <= through).sort();
     for (const name of files) {
       const sql = await readFile(new URL(name, directory), "utf8");
       // PGlite provides gen_random_uuid() but does not bundle pgcrypto.

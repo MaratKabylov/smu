@@ -3,13 +3,18 @@ import { notFound } from "next/navigation";
 import { z } from "zod";
 import { SubmitButton } from "@/components/science/SubmitButton";
 import { MentorshipForm } from "./MentorshipForm";
+import { MentorshipProgress } from "./MentorshipProgress";
+import { mentorshipProgressCopy } from "@/lib/i18n/mentorship-progress";
+import { canChangeMentorshipRelationStatus } from "@/lib/mentorship";
+import { changeMentorshipRelation } from "@/server/actions/mentorship.actions";
+import type { AccessContext } from "@/types/domain/auth";
 import { canManageMentorship } from "@/lib/permissions/permissions";
 import { applicationStatusLabels, canChangeApplicationStatus, canChangeMentorshipStatus, mentorshipAdminPath as base, mentorshipFormatLabels, mentorshipStatusLabels } from "@/lib/mentorship";
 import { applicationStatusSchema, mentorshipStatusSchema } from "@/lib/validation/mentorship";
 import { changeMentorshipOffer, saveMentorshipOffer, updateMentorshipApplication } from "@/server/actions/mentorship.actions";
 import { getAdminAccess } from "@/server/services/access.service";
 import { MentorshipService } from "@/server/services/mentorship.service";
-import { applicationStatuses, mentorshipStatuses, type MentorshipApplication } from "@/types/domain/mentorship";
+import { applicationStatuses, mentorshipStatuses, mentorshipKinds, mentorshipRelationStatuses, type MentorshipApplication } from "@/types/domain/mentorship";
 
 export type MentorshipAdminSearch = Promise<{ application?: string; status?: string; error?: string; saved?: string; deleted?: string; application_saved?: string }>;
 const errors: Record<string, string> = {
@@ -42,14 +47,23 @@ export async function MentorshipAdminList({ searchParams }: { searchParams: Ment
     <section className="data-panel">{offers.length ? <div className="table-wrap"><table className="articles-table"><thead><tr><th>Предложение</th><th>Наставник</th><th>Формат</th><th>Мест</th><th>Статус</th></tr></thead><tbody>{offers.map(offer => <tr key={offer.id}><td><Link href={base + "/" + offer.id}>{offer.translations.find(t => t.locale === "ru")?.title ?? "Без названия"}</Link><small>{offer.field?.nameRu ?? "—"}</small></td><td>{offer.mentor.find(t => t.locale === "ru")?.fullName ?? "Профиль недоступен"}</td><td>{mentorshipFormatLabels.ru[offer.format]}</td><td>{offer.capacity}</td><td><span className={"status-badge status-" + offer.status}>{mentorshipStatusLabels[offer.status]}</span></td></tr>)}</tbody></table></div> : <div className="empty-state"><h3>Предложения не найдены</h3><p>Добавьте наставника или измените фильтр.</p></div>}</section>
   </div>;
 }
-function ApplicationCard({ application, queue = false }: { application: MentorshipApplication; queue?: boolean }) {
+async function ApplicationCard({ application, access, queue = false }: { application: MentorshipApplication; access: AccessContext; queue?: boolean }) {
+  const progress = await new MentorshipService().progress(access, application.id);
+  const copy = mentorshipProgressCopy.ru;
   return <article className="article-editor-panel mentorship-application"><div className="panel-title"><div><h3>{application.fullName}</h3><p>{new Intl.DateTimeFormat("ru-RU", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Almaty" }).format(new Date(application.createdAt))} · {application.locale.toUpperCase()}</p></div><span className="status-badge">{applicationStatusLabels[application.status]}</span></div>
     <a href={"mailto:" + application.email}>{application.email}</a><p className="mentorship-motivation">{application.motivation}</p><p className="field-hint">Согласие на обработку заявки получено {new Intl.DateTimeFormat("ru-RU", { dateStyle: "medium" }).format(new Date(application.consentAt))}.</p>
     <form className="translation-fields" action={updateMentorshipApplication.bind(null, application.id, application.offerId)}>
       <input type="hidden" name="returnTo" value={queue ? "queue" : "offer"} />
       <label>Статус<select name="status" defaultValue={application.status}>{applicationStatuses.filter(value => canChangeApplicationStatus(application.status, value)).map(value => <option key={value} value={value}>{applicationStatusLabels[value]}</option>)}</select></label>
+      {!progress?.relation && ["new", "in_review"].includes(application.status) && <label>Вид наставничества при принятии<select name="kind" defaultValue="mentor">{mentorshipKinds.map(kind => <option key={kind} value={kind}>{copy.kinds[kind]}</option>)}</select></label>}
       <label>Внутренняя заметка<textarea name="note" defaultValue={application.managerNote} rows={3} maxLength={5000} /></label><div><SubmitButton label="Сохранить заявку" /></div>
     </form>
+    {progress && <MentorshipProgress locale="ru" progress={progress} />}
+    {progress?.relation && ["active", "paused"].includes(progress.relation.status) && <form className="translation-fields" action={changeMentorshipRelation.bind(null, application.id)}>
+      <label>Статус наставничества<select name="relationStatus" defaultValue={progress.relation.status}>{mentorshipRelationStatuses.filter(status => status === progress.relation?.status || canChangeMentorshipRelationStatus(progress.relation!.status, status)).map(status => <option key={status} value={status}>{copy.statuses[status]}</option>)}</select></label>
+      <p className="field-hint">Приостановленное наставничество занимает место. Прекращение отзывает заявку; завершение и прекращение окончательны.</p>
+      <div><SubmitButton label="Сохранить наставничество" /></div>
+    </form>}
   </article>;
 }
 export async function MentorshipAdminEditor({ id, searchParams }: { id?: string; searchParams: MentorshipAdminSearch }) {
@@ -62,7 +76,7 @@ export async function MentorshipAdminEditor({ id, searchParams }: { id?: string;
   return <div className="content-page"><Link className="back-link" href={base}>← Наставничество</Link><div className="media-detail-heading"><div><p className="page-kicker">Программы</p><h1>{offer?.translations.find(t => t.locale === "ru")?.title ?? "Новое предложение"}</h1><p>Сохраните обе языковые версии и опубликуйте предложение для приёма заявок.</p></div></div><Notice state={state} />
     {offer ? <section className="workflow-panel"><div><h2>{mentorshipStatusLabels[offer.status]}</h2><p>В архиве новые заявки не принимаются. Существующие заявки сохраняются.</p>{offer.status === "published" ? <div className="heading-actions">{offer.translations.map(t => <Link key={t.locale} href={"/" + t.locale + "/mentorship/" + t.slug} target="_blank">Открыть {t.locale.toUpperCase()}</Link>)}</div> : null}</div><div className="workflow-actions">{mentorshipStatuses.filter(value => canChangeMentorshipStatus(offer.status, value)).map(value => <form key={value} action={changeMentorshipOffer.bind(null, offer.id, value)}><button className={value === "published" ? "primary-button" : "secondary-button"}>{value === "published" ? "Опубликовать" : value === "draft" ? "В черновики" : "В архив"}</button></form>)}</div></section> : null}
     <MentorshipForm action={saveMentorshipOffer.bind(null, offer?.id ?? null)} offer={offer ?? undefined} options={options} />
-    {offer ? <><section className="mentorship-applications" id="applications"><div className="media-detail-heading"><div><h2>Заявки на участие</h2><p>До 100 последних заявок. Связывайтесь с заявителем по email; заметки видны только менеджерам.</p></div><Link href={base + "/applications"}>Все заявки и фильтры</Link></div>{applications.length ? applications.map(item => <ApplicationCard key={item.id} application={item} />) : <div className="empty-state"><p>Заявок пока нет.</p></div>}</section>
+    {offer ? <><section className="mentorship-applications" id="applications"><div className="media-detail-heading"><div><h2>Заявки на участие</h2><p>До 100 последних заявок. Связывайтесь с заявителем по email; заметки видны только менеджерам.</p></div><Link href={base + "/applications"}>Все заявки и фильтры</Link></div>{applications.length ? applications.map(item => <ApplicationCard key={item.id} application={item} access={access} />) : <div className="empty-state"><p>Заявок пока нет.</p></div>}</section>
       <section className="danger-zone"><div><h2>Удалить предложение</h2><p>Доступно после рассмотрения заявок и завершения активного наставничества.</p></div><form action={changeMentorshipOffer.bind(null, offer.id, "delete")}><label className="confirm-check"><input type="checkbox" name="confirm" value="yes" required />Подтверждаю действие</label><button className="danger-button">Удалить</button></form></section></> : null}
   </div>;
 }
@@ -75,6 +89,6 @@ export async function MentorshipApplicationQueue({ searchParams }: { searchParam
   const applications = await new MentorshipService().applications(access, undefined, status, state.application);
   return <div className="content-page"><Link className="back-link" href={base}>← Наставничество</Link><div className="page-heading"><div><p className="page-kicker">Наставничество</p><h1>Заявки на участие</h1><p>До 100 последних заявок по выбранному статусу.</p></div></div><Notice state={state} />
     <section className="media-toolbar"><form className="media-filters"><select name="status" defaultValue={status} aria-label="Статус заявки"><option value="all">Все статусы</option>{applicationStatuses.map(value => <option key={value} value={value}>{applicationStatusLabels[value]}</option>)}</select><button className="secondary-button">Применить</button></form></section>
-    {applications.length ? <div className="mentorship-applications">{applications.map(application => <div key={application.id}><Link className="back-link" href={base + "/" + application.offerId + "#applications"}>Открыть предложение →</Link><ApplicationCard application={application} queue /></div>)}</div> : <div className="empty-state"><h2>Заявки не найдены</h2><p>Измените фильтр или дождитесь новых заявок.</p></div>}
+    {applications.length ? <div className="mentorship-applications">{applications.map(application => <div key={application.id}><Link className="back-link" href={base + "/" + application.offerId + "#applications"}>Открыть предложение →</Link><ApplicationCard application={application} access={access} queue /></div>)}</div> : <div className="empty-state"><h2>Заявки не найдены</h2><p>Измените фильтр или дождитесь новых заявок.</p></div>}
   </div>;
 }

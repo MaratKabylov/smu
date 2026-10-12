@@ -1,7 +1,7 @@
-import type { ApplicationStatus, MentorshipFormat, MentorshipStatus } from "../types/domain/mentorship";
+import type { ApplicationStatus, MentorshipFormat, MentorshipStatus, MentorshipRelationStatus } from "../types/domain/mentorship";
 export const mentorshipAdminPath = "/admin/programs/mentorship";
 export const mentorshipStatusLabels: Record<MentorshipStatus, string> = { draft: "Черновик", published: "Опубликовано", archived: "В архиве" };
-export const applicationStatusLabels: Record<ApplicationStatus, string> = { new: "Новая", in_review: "На рассмотрении", accepted: "Принята", rejected: "Отклонена", completed: "Наставничество завершено" };
+export const applicationStatusLabels: Record<ApplicationStatus, string> = { new: "Новая", in_review: "На рассмотрении", accepted: "Принята", rejected: "Отклонена", completed: "Наставничество завершено", withdrawn: "Отозвана" };
 export const mentorshipFormatLabels: Record<"ru" | "kk" | "en", Record<MentorshipFormat, string>> = {
   ru: { online: "Онлайн", offline: "Очно", hybrid: "Смешанный формат" },
   kk: { online: "Онлайн", offline: "Офлайн", hybrid: "Аралас формат" },
@@ -13,4 +13,7 @@ export function canChangeApplicationStatus(from: ApplicationStatus, to: Applicat
 }
 export function canChangeMentorshipStatus(from: MentorshipStatus, to: MentorshipStatus) {
   return from !== to && (from !== "archived" || to === "draft");
+}
+export function canChangeMentorshipRelationStatus(from: MentorshipRelationStatus, to: MentorshipRelationStatus) {
+  return from !== to && (from === "active" || from === "paused");
 }

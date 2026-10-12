@@ -2,7 +2,11 @@ import type { ScientistLocale, ScientistTaxonomyItem } from "./scientist";
 
 export const mentorshipStatuses = ["draft", "published", "archived"] as const;
 export const mentorshipFormats = ["online", "offline", "hybrid"] as const;
-export const applicationStatuses = ["new", "in_review", "accepted", "rejected", "completed"] as const;
+export const applicationStatuses = ["new", "in_review", "accepted", "rejected", "completed", "withdrawn"] as const;
+export const mentorshipKinds = ["mentor", "consultant", "project_supervisor", "coauthor", "reviewer", "research_program_mentor"] as const;
+export const mentorshipRelationStatuses = ["active", "paused", "completed", "cancelled"] as const;
+export type MentorshipKind = (typeof mentorshipKinds)[number];
+export type MentorshipRelationStatus = (typeof mentorshipRelationStatuses)[number];
 export type MentorshipStatus = (typeof mentorshipStatuses)[number];
 export type MentorshipFormat = (typeof mentorshipFormats)[number];
 export type ApplicationStatus = (typeof applicationStatuses)[number];

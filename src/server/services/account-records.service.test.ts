@@ -34,6 +34,8 @@ describe("session-scoped account records", () => {
       await expect(service.list("ru", "projects")).rejects.toThrow("session");
       await expect(service.get("ru", "scientist", id)).rejects.toThrow("session");
       await expect(service.claimApplications()).rejects.toThrow("session");
+      await expect(service.mentorshipProgress(id)).rejects.toThrow("session");
+      await expect(service.withdrawMentorship(id)).rejects.toThrow("session");
     }
     expect(mocks.rpc).not.toHaveBeenCalled();
   });
@@ -76,5 +78,21 @@ describe("session-scoped account records", () => {
     mocks.rpc.mockResolvedValueOnce({ error: new Error("forbidden"), data: null }); await expect(service.list("ru", "articles")).rejects.toThrow("forbidden");
     mocks.rpc.mockResolvedValueOnce({ data: { items: [{ id: "not-a-UUID" }] }, error: null }); await expect(service.list("ru", "articles")).rejects.toThrow();
     for (const value of [null, -1, 1.5, "2"]) { mocks.rpc.mockResolvedValueOnce({ data: value, error: null }); await expect(service.claimApplications()).rejects.toThrow("Invalid claim result"); }
+  });
+  it("constrains mentorship progress to account ownership even for a manager", async () => {
+    mocks.rpc.mockResolvedValueOnce({ data: page([]), error: null });
+    expect(await service.mentorshipProgress(id)).toBeNull();
+    expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith("list_account_records", { p_locale: "ru", p_section: "applications", p_page: 1, p_id: id });
+    mocks.rpc.mockResolvedValueOnce({ data: page([{ ...record, kind: "mentorship_application" }]), error: null })
+      .mockResolvedValueOnce({ data: { applicationStatus: "accepted", relation: null, historyTotal: 0, history: [], managerNote: "SECRET" }, error: null });
+    expect(await service.mentorshipProgress(id)).toEqual({ applicationStatus: "accepted", relation: null, historyTotal: 0, history: [] });
+    expect(mocks.rpc).toHaveBeenLastCalledWith("get_mentorship_progress", { p_application: id });
+  });
+  it("withdraws using only the record ID and rejects invalid IDs before Auth", async () => {
+    await expect(service.withdrawMentorship("invalid")).rejects.toThrow("invalid");
+    await expect(service.mentorshipProgress("invalid")).rejects.toThrow("invalid");
+    expect(mocks.client).not.toHaveBeenCalled();
+    mocks.rpc.mockResolvedValueOnce({ data: null, error: null }); await service.withdrawMentorship(id);
+    expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith("withdraw_mentorship_application", { p_id: id });
   });
 });

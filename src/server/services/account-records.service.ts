@@ -6,6 +6,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { accountPageSchema, accountRecordIdSchema, accountSectionSchema, type AccountSection } from "@/lib/validation/account-records";
 import { AccountRecordsRepository } from "@/server/repositories/account-records.repository";
 import { AccessRepository } from "@/server/repositories/access.repository";
+import { MentorshipRepository } from "@/server/repositories/mentorship.repository";
 
 export class AccountRecordsError extends Error {
   constructor(public readonly code: "session" | "invalid" | "setup") { super(code); }
@@ -47,5 +48,18 @@ export class AccountRecordsService {
   async claimApplications() {
     const { client } = await this.session();
     return new AccountRecordsRepository(client).claimApplications();
+  }
+  async mentorshipProgress(id: string) {
+    if (!accountRecordIdSchema.safeParse(id).success) throw new AccountRecordsError("invalid");
+    const { client } = await this.session();
+    // Enforce account ownership even when this account has management permissions.
+    const own = (await new AccountRecordsRepository(client).list("ru", "applications", 1, id)).items
+      .some(record => record.kind === "mentorship_application");
+    return own ? new MentorshipRepository(client).progress(id) : null;
+  }
+  async withdrawMentorship(id: string) {
+    if (!accountRecordIdSchema.safeParse(id).success) throw new AccountRecordsError("invalid");
+    const { client } = await this.session();
+    return new MentorshipRepository(client).withdraw(id);
   }
 }

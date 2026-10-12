@@ -1,4 +1,5 @@
 import type { Locale } from "./locales";
+import { mentorshipProgressCopy } from "./mentorship-progress";
 
 export const accountRecordsCopy = {
   ru: {
@@ -31,6 +32,7 @@ export const accountRecordsCopy = {
 } satisfies Record<Locale, unknown>;
 
 export function accountStatus(locale: Locale, status: string) {
+  if (status === "withdrawn") return mentorshipProgressCopy[locale].withdrawn;
   const statuses: Record<string, string> = accountRecordsCopy[locale].statuses;
   return statuses[status] ?? status;
 }

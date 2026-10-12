@@ -6,6 +6,10 @@ import { accountRecordIdSchema, accountSectionSchema } from "@/lib/validation/ac
 import { getAccountAccess } from "@/server/services/account.service";
 import { AccountRecordsError, AccountRecordsService } from "@/server/services/account-records.service";
 import { AccountRecordDetail } from "@/components/account/AccountRecords";
+import { MentorshipProgress } from "@/components/mentorship/MentorshipProgress";
+import { WithdrawMentorshipForm } from "@/components/account/WithdrawMentorshipForm";
+import { mentorshipProgressCopy } from "@/lib/i18n/mentorship-progress";
+import type { MentorshipProgress as Progress } from "@/lib/validation/mentorship";
 
 export default async function AccountRecordPage({ params }: { params: Promise<{ locale: string; section: string; id: string }> }) {
   const route = await params;
@@ -26,8 +30,20 @@ export default async function AccountRecordPage({ params }: { params: Promise<{ 
     }
   }
   if (!failed && !result) notFound();
+  let progress: Progress | null = null;
+  let progressFailed = false;
+  if (result?.record.kind === "mentorship_application") {
+    try { progress = await new AccountRecordsService().mentorshipProgress(route.id); }
+    catch (error) {
+      if (error instanceof AccountRecordsError && error.code === "session") redirect(`/${locale}/account/login`);
+      progressFailed = true;
+    }
+  }
   return <section className="login-card account-card account-records-card">
     <Link href={`/${locale}/account/${section}`}>{copy.backToList}</Link>
     {result ? <AccountRecordDetail locale={locale} {...result} /> : <p role="alert">{copy.unavailable}</p>}
+    {progress && <MentorshipProgress locale={locale} progress={progress} />}
+    {progressFailed && <p role="alert">{mentorshipProgressCopy[locale].unavailable}</p>}
+    {progress && ["new", "in_review", "accepted"].includes(progress.applicationStatus) && <WithdrawMentorshipForm locale={locale} id={route.id} />}
   </section>;
 }

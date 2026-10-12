@@ -884,7 +884,7 @@ export type Database = {
           "email": string;
           "motivation": string;
           "consent_at": string;
-          "status": "new" | "in_review" | "accepted" | "rejected" | "completed";
+          "status": "new" | "in_review" | "accepted" | "rejected" | "completed" | "withdrawn";
           "manager_note": string;
           "created_at": string;
           "updated_at": string;
@@ -900,7 +900,7 @@ export type Database = {
           "email": string;
           "motivation": string;
           "consent_at"?: string;
-          "status"?: "new" | "in_review" | "accepted" | "rejected" | "completed";
+          "status"?: "new" | "in_review" | "accepted" | "rejected" | "completed" | "withdrawn";
           "manager_note"?: string;
           "created_at"?: string;
           "updated_at"?: string;
@@ -916,7 +916,7 @@ export type Database = {
           "email"?: string;
           "motivation"?: string;
           "consent_at"?: string;
-          "status"?: "new" | "in_review" | "accepted" | "rejected" | "completed";
+          "status"?: "new" | "in_review" | "accepted" | "rejected" | "completed" | "withdrawn";
           "manager_note"?: string;
           "created_at"?: string;
           "updated_at"?: string;
@@ -927,6 +927,42 @@ export type Database = {
         Relationships: [
           { foreignKeyName: "mentorship_applications_offer_id_fkey"; columns: ["offer_id"]; isOneToOne: false; referencedRelation: "mentorship_offers"; referencedColumns: ["id"] },
           { foreignKeyName: "mentorship_applications_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+        ];
+      };
+      "mentorship_decisions": {
+        Row: {
+          "id": string;
+          "application_id": string;
+          "actor_id": string | null;
+          "scope": "application" | "relation";
+          "from_status": string | null;
+          "to_status": string;
+          "baseline": boolean;
+          "created_at": string;
+        };
+        Insert: {
+          "id"?: string;
+          "application_id": string;
+          "actor_id"?: string | null;
+          "scope": "application" | "relation";
+          "from_status"?: string | null;
+          "to_status": string;
+          "baseline"?: boolean;
+          "created_at"?: string;
+        };
+        Update: {
+          "id"?: string;
+          "application_id"?: string;
+          "actor_id"?: string | null;
+          "scope"?: "application" | "relation";
+          "from_status"?: string | null;
+          "to_status"?: string;
+          "baseline"?: boolean;
+          "created_at"?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "mentorship_decisions_actor_id_fkey"; columns: ["actor_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+          { foreignKeyName: "mentorship_decisions_application_id_fkey"; columns: ["application_id"]; isOneToOne: false; referencedRelation: "mentorship_applications"; referencedColumns: ["id"] },
         ];
       };
       "mentorship_offer_translations": {
@@ -1002,6 +1038,39 @@ export type Database = {
           { foreignKeyName: "mentorship_offers_created_by_fkey"; columns: ["created_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
           { foreignKeyName: "mentorship_offers_field_id_fkey"; columns: ["field_id"]; isOneToOne: false; referencedRelation: "scientific_fields"; referencedColumns: ["id"] },
           { foreignKeyName: "mentorship_offers_scientist_id_fkey"; columns: ["scientist_id"]; isOneToOne: false; referencedRelation: "scientist_profiles"; referencedColumns: ["id"] },
+        ];
+      };
+      "mentorship_relations": {
+        Row: {
+          "id": string;
+          "application_id": string;
+          "mentor_id": string;
+          "kind": "mentor" | "consultant" | "project_supervisor" | "coauthor" | "reviewer" | "research_program_mentor";
+          "status": "active" | "paused" | "completed" | "cancelled";
+          "created_at": string;
+          "updated_at": string;
+        };
+        Insert: {
+          "id"?: string;
+          "application_id": string;
+          "mentor_id": string;
+          "kind"?: "mentor" | "consultant" | "project_supervisor" | "coauthor" | "reviewer" | "research_program_mentor";
+          "status"?: "active" | "paused" | "completed" | "cancelled";
+          "created_at"?: string;
+          "updated_at"?: string;
+        };
+        Update: {
+          "id"?: string;
+          "application_id"?: string;
+          "mentor_id"?: string;
+          "kind"?: "mentor" | "consultant" | "project_supervisor" | "coauthor" | "reviewer" | "research_program_mentor";
+          "status"?: "active" | "paused" | "completed" | "cancelled";
+          "created_at"?: string;
+          "updated_at"?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "mentorship_relations_application_id_fkey"; columns: ["application_id"]; isOneToOne: true; referencedRelation: "mentorship_applications"; referencedColumns: ["id"] },
+          { foreignKeyName: "mentorship_relations_mentor_id_fkey"; columns: ["mentor_id"]; isOneToOne: false; referencedRelation: "scientist_profiles"; referencedColumns: ["id"] },
         ];
       };
       "permissions": {
@@ -2129,6 +2198,13 @@ export type Database = {
         };
         Returns: undefined;
       };
+      "change_mentorship_relation": {
+        Args: {
+          "p_application": string | null;
+          "p_status": string | null;
+        };
+        Returns: undefined;
+      };
       "change_research_program_state": {
         Args: {
           "p_id": string | null;
@@ -2210,6 +2286,15 @@ export type Database = {
         };
         Returns: string;
       };
+      "decide_mentorship_application": {
+        Args: {
+          "p_id": string | null;
+          "p_status": "new" | "in_review" | "accepted" | "rejected" | "completed" | "withdrawn" | null;
+          "p_note": string | null;
+          "p_kind"?: string | null;
+        };
+        Returns: undefined;
+      };
       "finalize_media_upload": {
         Args: {
           "p_id": string | null;
@@ -2220,6 +2305,12 @@ export type Database = {
           "p_height": number | null;
         };
         Returns: undefined;
+      };
+      "get_mentorship_progress": {
+        Args: {
+          "p_application": string | null;
+        };
+        Returns: Json;
       };
       "get_research_program_projects": {
         Args: {
@@ -2650,6 +2741,16 @@ export type Database = {
         Args: Record<string, never>;
         Returns: string;
       };
+      "smu_decide_mentorship": {
+        Args: {
+          "p_id": string | null;
+          "p_actor": string | null;
+          "p_status": "new" | "in_review" | "accepted" | "rejected" | "completed" | "withdrawn" | null;
+          "p_note": string | null;
+          "p_kind": string | null;
+        };
+        Returns: undefined;
+      };
       "smu_plain_text_document": {
         Args: {
           "p_text": string | null;
@@ -2683,7 +2784,16 @@ export type Database = {
         Args: {
           "p_id": string | null;
           "p_actor": string | null;
-          "p_status": "new" | "in_review" | "accepted" | "rejected" | "completed" | null;
+          "p_status": "new" | "in_review" | "accepted" | "rejected" | "completed" | "withdrawn" | null;
+          "p_note": string | null;
+        };
+        Returns: undefined;
+      };
+      "update_mentorship_application_core": {
+        Args: {
+          "p_id": string | null;
+          "p_actor": string | null;
+          "p_status": "new" | "in_review" | "accepted" | "rejected" | "completed" | "withdrawn" | null;
           "p_note": string | null;
         };
         Returns: undefined;
@@ -2705,6 +2815,12 @@ export type Database = {
         };
         Returns: string;
       };
+      "withdraw_mentorship_application": {
+        Args: {
+          "p_id": string | null;
+        };
+        Returns: undefined;
+      };
     };
     Enums: {
       "article_content_type": "article" | "news" | "interview" | "announcement";
@@ -2713,7 +2829,7 @@ export type Database = {
       "event_kind": "conference" | "seminar" | "workshop" | "meetup";
       "event_status": "draft" | "published" | "cancelled" | "archived";
       "media_asset_status": "uploading" | "ready" | "failed";
-      "mentorship_application_status": "new" | "in_review" | "accepted" | "rejected" | "completed";
+      "mentorship_application_status": "new" | "in_review" | "accepted" | "rejected" | "completed" | "withdrawn";
       "mentorship_offer_status": "draft" | "published" | "archived";
       "research_output_kind": "dataset" | "report" | "map" | "atlas" | "methodology" | "recommendation" | "dashboard" | "software" | "archive";
       "research_program_application_status": "new" | "in_review" | "accepted" | "rejected" | "completed";
