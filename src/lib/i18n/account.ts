@@ -1,0 +1,25 @@
+import type { Locale } from "./locales";
+
+export const accountCopy = {
+  ru: {
+    account: "Личный кабинет", home: "На сайт", login: "Войти", register: "Регистрация", recover: "Восстановить доступ", "update-password": "Новый пароль",
+    displayName: "Имя и фамилия", email: "Email", password: "Пароль", confirmPassword: "Повторите пароль", passwordHint: "От 8 до 256 символов. Не используйте пароль от других сервисов.",
+    loginIntro: "Войдите с подтверждённым email и паролем.", registerIntro: "Создайте аккаунт и подтвердите email по ссылке в письме.", recoverIntro: "Укажите email аккаунта. Мы отправим ссылку для восстановления доступа.", updateIntro: "Установите новый пароль для вашего аккаунта.",
+    submit: "Продолжить", pending: "Подождите…", logout: "Выйти", verified: "Email подтверждён", profile: "Профиль аккаунта", admin: "Панель управления", languages: "Язык", setup: "Личный кабинет временно недоступен. Попробуйте позже.",
+    messages: { invalid: "Проверьте поля формы и совпадение паролей.", setup: "Личный кабинет временно недоступен.", credentials: "Не удалось войти. Проверьте email, пароль и подтверждение email.", failed: "Не удалось выполнить действие. Попробуйте позже.", sent: "Если запрос доступен для этого адреса, письмо со ссылкой отправлено. Проверьте входящие и спам.", saved: "Пароль обновлён.", session: "Сессия истекла. Войдите или запросите новую ссылку восстановления.", rate: "Слишком много попыток. Подождите и попробуйте снова.", confirm: "Ссылка недействительна или истекла. Попробуйте войти или запросите новую ссылку восстановления.", unconfirmed: "Подтвердите email по ссылке в письме, затем войдите в аккаунт.", logout: "Не удалось завершить сессию. Попробуйте выйти ещё раз." },
+  },
+  kk: {
+    account: "Жеке кабинет", home: "Сайтқа өту", login: "Кіру", register: "Тіркелу", recover: "Қолжетімділікті қалпына келтіру", "update-password": "Жаңа құпиясөз",
+    displayName: "Аты-жөні", email: "Email", password: "Құпиясөз", confirmPassword: "Құпиясөзді қайталаңыз", passwordHint: "8–256 таңба. Басқа сервистің құпиясөзін қолданбаңыз.",
+    loginIntro: "Расталған email және құпиясөз арқылы кіріңіз.", registerIntro: "Аккаунт ашып, хаттағы сілтеме арқылы email мекенжайын растаңыз.", recoverIntro: "Аккаунттың email мекенжайын енгізіңіз. Қалпына келтіру сілтемесін жібереміз.", updateIntro: "Аккаунтыңызға жаңа құпиясөз орнатыңыз.",
+    submit: "Жалғастыру", pending: "Күте тұрыңыз…", logout: "Шығу", verified: "Email расталды", profile: "Аккаунт профилі", admin: "Басқару панелі", languages: "Тіл", setup: "Жеке кабинет уақытша қолжетімсіз. Кейінірек қайталап көріңіз.",
+    messages: { invalid: "Форма өрістерін және құпиясөздердің сәйкестігін тексеріңіз.", setup: "Жеке кабинет уақытша қолжетімсіз.", credentials: "Кіру мүмкін болмады. Email, құпиясөз және email расталуын тексеріңіз.", failed: "Әрекетті орындау мүмкін болмады. Кейінірек қайталап көріңіз.", sent: "Бұл мекенжай үшін сұрау қолжетімді болса, сілтемесі бар хат жіберілді. Кіріс хаттар мен спамды тексеріңіз.", saved: "Құпиясөз жаңартылды.", session: "Сессия аяқталды. Кіріңіз немесе жаңа қалпына келтіру сілтемесін сұраңыз.", rate: "Әрекет саны тым көп. Күтіп, қайталап көріңіз.", confirm: "Сілтеме жарамсыз немесе мерзімі өткен. Кіріңіз немесе жаңа қалпына келтіру сілтемесін сұраңыз.", unconfirmed: "Хаттағы сілтеме арқылы email мекенжайын растап, аккаунтқа кіріңіз.", logout: "Сессияны аяқтау мүмкін болмады. Қайта шығып көріңіз." },
+  },
+  en: {
+    account: "My account", home: "Back to site", login: "Sign in", register: "Register", recover: "Recover access", "update-password": "New password",
+    displayName: "Full name", email: "Email", password: "Password", confirmPassword: "Repeat password", passwordHint: "8–256 characters. Use a password unique to this service.",
+    loginIntro: "Sign in with your verified email and password.", registerIntro: "Create an account and verify your email using the link we send you.", recoverIntro: "Enter your account email. We will send a link to recover access.", updateIntro: "Set a new password for your account.",
+    submit: "Continue", pending: "Please wait…", logout: "Sign out", verified: "Email verified", profile: "Account profile", admin: "Admin panel", languages: "Language", setup: "Accounts are temporarily unavailable. Please try again later.",
+    messages: { invalid: "Check the form fields and matching passwords.", setup: "Accounts are temporarily unavailable.", credentials: "Unable to sign in. Check your email, password and email verification.", failed: "Unable to complete the request. Please try again later.", sent: "If this request is available for the address, a link has been sent. Check your inbox and spam folder.", saved: "Password updated.", session: "Your session has expired. Sign in or request a new recovery link.", rate: "Too many attempts. Wait and try again.", confirm: "This link is invalid or has expired. Sign in or request a new recovery link.", unconfirmed: "Verify your email using the link in your inbox, then sign in.", logout: "Unable to end the session. Please try signing out again." },
+  },
+} satisfies Record<Locale, unknown>;

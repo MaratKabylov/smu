@@ -13,7 +13,7 @@ describe("public redirects and session proxy", () => {
     expect(result.headers.get("location")).toBe("https://example.org/kk/journal/story?q=test");
     expect(mocks.client).not.toHaveBeenCalled();
   });
-  it.each(["/admin/login", "/admin", "/api/admin/media/uploads"])("continues session refresh on %s", async path => {
+  it.each(["/admin/login", "/admin", "/api/admin/media/uploads", "/ru/account", "/kk/account/login", "/en/account/update-password", "/ru/account/confirm"])("continues session refresh on %s", async path => {
     const result = await proxy(new NextRequest(`https://example.org${path}`));
     expect(result.headers.get("location")).toBeNull(); expect(mocks.user).toHaveBeenCalledOnce();
   });
@@ -25,7 +25,7 @@ describe("public redirects and session proxy", () => {
     const result = await proxy(new NextRequest("https://example.org/admin/content/articles"));
     expect(result.cookies.get("session")?.value).toBe("refreshed");
   });
-  it.each(["/ru/journal", "/kk/mentorship/offer", "/en/search?q=water", "/sitemap.xml", "/ru/feed.xml", "/administrator"])("ignores session cookies and auth refresh on %s", async path => {
+  it.each(["/ru/journal", "/kk/mentorship/offer", "/en/search?q=water", "/sitemap.xml", "/ru/feed.xml", "/administrator", "/de/account", "/ru/accounting"])("ignores session cookies and auth refresh on %s", async path => {
     const request = new NextRequest(`https://example.org${path}`, { headers: { Cookie: "session=admin" } });
     const result = await proxy(request);
     expect(result.status).toBe(200);

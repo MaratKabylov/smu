@@ -499,6 +499,16 @@ th {
   background: var(--forest);
 }
 
+.account-page { min-height: 100vh; background: var(--forest); padding: 24px clamp(16px, 5vw, 64px) 48px; }
+.account-header { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; color: #fff; margin-bottom: 40px; }
+.account-header nav { display: flex; gap: 16px; }
+.account-header [aria-current="page"] { text-decoration: underline; text-underline-offset: 5px; }
+.account-card { margin: 0 auto; overflow-wrap: anywhere; }
+.account-links { display: flex; flex-wrap: wrap; gap: 12px 20px; margin-top: 24px; font-size: 13px; }
+.account-links a { color: var(--forest); text-decoration: underline; text-underline-offset: 3px; }
+.account-notice { border-radius: 9px; background: #edf6ef; color: #1c583d; padding: 12px; font-size: 13px; }
+.account-card button:disabled { opacity: .6; cursor: default; }
+
 .login-card {
   width: min(430px, 100%);
   border-radius: 22px 7px 22px 7px;

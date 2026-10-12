@@ -58,7 +58,7 @@ describe("public indexing routes", () => {
     expect(mocks.feed).not.toHaveBeenCalled();
   });
   it("blocks admin/API crawling and marks admin/preview as noindex", () => {
-    expect(robots()).toMatchObject({ rules: { disallow: ["/admin", "/api/"] }, sitemap: "https://smu.example/sitemap.xml" });
+    expect(robots()).toMatchObject({ rules: { disallow: ["/admin", "/api/", "/ru/account", "/kk/account", "/en/account"] }, sitemap: "https://smu.example/sitemap.xml" });
     expect(adminMetadata.robots).toEqual({ index: false, follow: false });
     expect(previewMetadata.robots).toEqual({ index: false, follow: false });
   });
