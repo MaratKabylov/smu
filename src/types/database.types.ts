@@ -890,6 +890,7 @@ export type Database = {
           "updated_at": string;
           "deleted_at": string | null;
           "search_document": string | null;
+          "user_id": string | null;
         };
         Insert: {
           "id"?: string;
@@ -905,6 +906,7 @@ export type Database = {
           "updated_at"?: string;
           "deleted_at"?: string | null;
           "search_document"?: never;
+          "user_id"?: string | null;
         };
         Update: {
           "id"?: string;
@@ -920,9 +922,11 @@ export type Database = {
           "updated_at"?: string;
           "deleted_at"?: string | null;
           "search_document"?: never;
+          "user_id"?: string | null;
         };
         Relationships: [
           { foreignKeyName: "mentorship_applications_offer_id_fkey"; columns: ["offer_id"]; isOneToOne: false; referencedRelation: "mentorship_offers"; referencedColumns: ["id"] },
+          { foreignKeyName: "mentorship_applications_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
         ];
       };
       "mentorship_offer_translations": {
@@ -1300,6 +1304,7 @@ export type Database = {
           "updated_at": string;
           "deleted_at": string | null;
           "search_document": string | null;
+          "user_id": string | null;
         };
         Insert: {
           "id"?: string;
@@ -1315,6 +1320,7 @@ export type Database = {
           "updated_at"?: string;
           "deleted_at"?: string | null;
           "search_document"?: never;
+          "user_id"?: string | null;
         };
         Update: {
           "id"?: string;
@@ -1330,9 +1336,11 @@ export type Database = {
           "updated_at"?: string;
           "deleted_at"?: string | null;
           "search_document"?: never;
+          "user_id"?: string | null;
         };
         Relationships: [
           { foreignKeyName: "research_program_applications_program_id_fkey"; columns: ["program_id"]; isOneToOne: false; referencedRelation: "research_programs"; referencedColumns: ["id"] },
+          { foreignKeyName: "research_program_applications_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
         ];
       };
       "research_program_project_participants": {
@@ -2165,6 +2173,10 @@ export type Database = {
         };
         Returns: undefined;
       };
+      "claim_account_applications": {
+        Args: Record<string, never>;
+        Returns: number;
+      };
       "configure_article_review": {
         Args: {
           "p_id": string | null;
@@ -2228,6 +2240,15 @@ export type Database = {
           "p_expected_version": number | null;
         };
         Returns: undefined;
+      };
+      "list_account_records": {
+        Args: {
+          "p_locale": string | null;
+          "p_section": string | null;
+          "p_page"?: number | null;
+          "p_id"?: string | null;
+        };
+        Returns: Json;
       };
       "list_article_author_profiles": {
         Args: Record<string, never>;
@@ -2624,6 +2645,10 @@ export type Database = {
           "p_id"?: string | null;
         };
         Returns: Json;
+      };
+      "smu_account_user_id": {
+        Args: Record<string, never>;
+        Returns: string;
       };
       "smu_plain_text_document": {
         Args: {

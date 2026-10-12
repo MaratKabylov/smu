@@ -14,6 +14,12 @@ it("escapes account metadata and hides administrative links without permission",
   const html = renderToStaticMarkup(await AccountPage(props())); expect(html).toContain("own@example.org"); expect(html).toContain("&lt;script&gt;"); expect(html).not.toContain('<script>private'); expect(html).not.toContain('href="/admin"');
   mocks.access.mockResolvedValueOnce({ state: "allowed", email: "own@example.org", admin: true }); expect(renderToStaticMarkup(await AccountPage(props()))).toContain('href="/admin"');
 });
+it("links all four localized ownership sections from the account", async () => {
+  for (const locale of ["ru", "kk", "en"]) {
+    const html = renderToStaticMarkup(await AccountPage(props(locale)));
+    for (const section of ["scientist", "articles", "projects", "applications"]) expect(html).toContain(`href="/${locale}/account/${section}"`);
+  }
+});
 it("protects account and password routes independently of layouts", async () => {
   mocks.access.mockResolvedValue({ state: "unauthenticated" }); await expect(AccountPage(props("kk"))).rejects.toThrow("redirect:/kk/account/login"); await expect(AccountAuthPage({ ...props("en"), mode: "update-password" })).rejects.toThrow("redirect:/en/account/login?error=session");
   mocks.access.mockResolvedValue({ state: "unconfirmed" }); await expect(AccountPage(props())).rejects.toThrow("redirect:/ru/account/login?error=unconfirmed");

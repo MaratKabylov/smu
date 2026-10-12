@@ -504,6 +504,19 @@ th {
 .account-header nav { display: flex; gap: 16px; }
 .account-header [aria-current="page"] { text-decoration: underline; text-underline-offset: 5px; }
 .account-card { margin: 0 auto; overflow-wrap: anywhere; }
+.account-sections { display: grid; gap: 10px; margin: 24px 0; }
+.account-sections a { display: block; border: 1px solid var(--forest); border-radius: 8px; padding: 12px 16px; color: var(--forest); text-decoration: none; }
+.account-sections a:hover { background: #edf2ee; }
+.account-sections a:focus-visible { outline: 2px solid var(--forest); outline-offset: 3px; }
+.account-records-card { width: min(100%, 860px); max-width: 860px; }
+.account-records-card > a, .account-records-list a { color: var(--forest); text-underline-offset: 3px; }
+.account-records-list { list-style: none; padding: 0; margin: 24px 0; }
+.account-records-list li { border-top: 1px solid #dce5de; padding: 18px 0; }
+.account-records-list h2 { font-size: 20px; margin: 8px 0; }
+.account-record-meta { font-size: 13px; color: #4a6155; }
+.account-record-body { margin: 24px 0; }
+.account-claim { border: 1px solid #dce5de; border-radius: 8px; padding: 16px; margin: 24px 0; }
+.account-claim button { display: block; width: 100%; }
 .account-links { display: flex; flex-wrap: wrap; gap: 12px 20px; margin-top: 24px; font-size: 13px; }
 .account-links a { color: var(--forest); text-decoration: underline; text-underline-offset: 3px; }
 .account-notice { border-radius: 9px; background: #edf6ef; color: #1c583d; padding: 12px; font-size: 13px; }
