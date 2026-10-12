@@ -9,11 +9,14 @@ import { MediaPreview } from "@/components/media/MediaPreview";
 import { MediaUploader } from "@/components/media/MediaUploader";
 import { getAdminAccess } from "@/server/services/access.service";
 import { MediaService } from "@/server/services/media.service";
+import { mediaBucketRules } from "@/lib/validation/media";
+import { mediaBuckets } from "@/types/domain/media";
 
 type MediaPageProps = {
   searchParams: Promise<{
     q?: string;
     type?: string;
+    bucket?: string;
     deleted?: string;
   }>;
 };
@@ -40,10 +43,11 @@ export default async function MediaPage({ searchParams }: MediaPageProps) {
   const parsedFilters = mediaListFiltersSchema.safeParse({
     query: params.q ?? "",
     type: params.type ?? "all",
+    bucket: params.bucket ?? "all",
   });
   const filters = parsedFilters.success
     ? parsedFilters.data
-    : { query: "", type: "all" as const };
+    : mediaListFiltersSchema.parse({});
   const assets = await new MediaService().list(accessResult.access, filters);
   const mayUpload = canCreateMedia(accessResult.access);
 
@@ -92,6 +96,13 @@ export default async function MediaPage({ searchParams }: MediaPageProps) {
           <button className="secondary-button" type="submit">
             Применить
           </button>
+          <label>
+            <span className="visually-hidden">Назначение файла</span>
+            <select name="bucket" defaultValue={filters.bucket}>
+              <option value="all">Все назначения</option>
+              {mediaBuckets.map(bucket => <option key={bucket} value={bucket}>{mediaBucketRules[bucket].label}</option>)}
+            </select>
+          </label>
         </form>
         <span className="real-count">{assets.length} файлов</span>
       </section>
@@ -129,7 +140,7 @@ export default async function MediaPage({ searchParams }: MediaPageProps) {
             <p>
               {filters.query
                 ? "Измените запрос или сбросьте фильтр типа файла."
-                : "Загрузите первое изображение для будущих статей Журнала СМУ."}
+                : "Загрузите изображение, документ или данные для материалов платформы."}
             </p>
           </div>
         </section>

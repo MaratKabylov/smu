@@ -1,5 +1,6 @@
 import "server-only";
 import { invalidatePublicContent } from "@/lib/i18n/revalidation";
+import { inspectMediaFile } from "@/lib/media/inspect-file";
 
 import {
   canCreateMedia,
@@ -10,8 +11,9 @@ import {
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/service-role";
 import {
-  ARTICLE_MEDIA_MAX_BYTES,
-  ARTICLE_MEDIA_MIME_TYPES,
+  createMediaUploadSchema,
+  mediaBucketRules,
+  mediaExtensionByMime,
   type CompleteMediaUploadInput,
   type CreateMediaUploadInput,
   type MediaListFilters,
@@ -45,12 +47,7 @@ const publicBuckets = new Set([
   "event-media",
 ]);
 
-const extensionByMimeType: Record<string, string> = {
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/webp": "webp",
-  "image/gif": "gif",
-};
+export const MEDIA_STAGING_BUCKET = "media-staging";
 
 function assertPermission(allowed: boolean) {
   if (!allowed) {
@@ -62,20 +59,9 @@ function createStoragePath(input: CreateMediaUploadInput) {
   const now = new Date();
   const year = String(now.getUTCFullYear());
   const month = String(now.getUTCMonth() + 1).padStart(2, "0");
-  const extension = extensionByMimeType[input.mimeType];
+  const extension = mediaExtensionByMime[input.mimeType][0];
 
   return `${year}/${month}/${crypto.randomUUID()}.${extension}`;
-}
-
-function splitStoragePath(path: string) {
-  const parts = path.split("/");
-  const fileName = parts.pop();
-
-  if (!fileName) {
-    throw new MediaServiceError("storage_error", "Некорректный путь файла.");
-  }
-
-  return { folder: parts.join("/"), fileName };
 }
 
 export class MediaService {
@@ -105,6 +91,7 @@ export class MediaService {
 
   async createUpload(access: AccessContext, input: CreateMediaUploadInput) {
     assertPermission(canCreateMedia(access));
+    input = createMediaUploadSchema.parse(input);
 
     const serviceClient = createServiceRoleSupabaseClient();
     const repository = new MediaRepository(serviceClient);
@@ -116,8 +103,8 @@ export class MediaService {
     );
 
     const { data, error } = await serviceClient.storage
-      .from(input.bucket)
-      .createSignedUploadUrl(storagePath);
+      .from(MEDIA_STAGING_BUCKET)
+      .createSignedUploadUrl(`${access.userId}/${asset.id}`, { upsert: false });
 
     if (error || !data) {
       await repository.markFailed(asset.id);
@@ -129,8 +116,8 @@ export class MediaService {
 
     return {
       mediaAssetId: asset.id,
-      bucket: input.bucket,
-      path: storagePath,
+      bucket: MEDIA_STAGING_BUCKET,
+      path: `${access.userId}/${asset.id}`,
       token: data.token,
     };
   }
@@ -145,7 +132,7 @@ export class MediaService {
     const repository = new MediaRepository(serviceClient);
     const asset = await repository.getById(input.mediaAssetId);
 
-    if (!asset || asset.status !== "uploading") {
+    if (!asset || asset.status !== "uploading" || asset.deletedAt) {
       throw new MediaServiceError("not_found", "Загрузка не найдена.");
     }
 
@@ -153,16 +140,16 @@ export class MediaService {
       throw new MediaServiceError("forbidden", "Загрузка принадлежит другому пользователю.");
     }
 
-    const { folder, fileName } = splitStoragePath(asset.storagePath);
-    const { data: objects, error: listError } = await serviceClient.storage
-      .from(asset.storageBucket)
-      .list(folder, { limit: 10, search: fileName });
+    const stagingPath = `${access.userId}/${asset.id}`;
+    const staging = serviceClient.storage.from(MEDIA_STAGING_BUCKET);
+    const { data: objects, error: listError } = await staging
+      .list(access.userId, { limit: 10, search: asset.id });
 
     if (listError) {
       throw new MediaServiceError("storage_error", "Не удалось проверить файл.");
     }
 
-    const object = objects?.find((item) => item.name === fileName);
+    const object = objects?.find((item) => item.name === asset.id);
     const metadata = object?.metadata as
       | { size?: number | string; mimetype?: string }
       | undefined;
@@ -173,42 +160,58 @@ export class MediaService {
       !object ||
       !Number.isFinite(actualSize) ||
       actualSize <= 0 ||
-      actualSize > ARTICLE_MEDIA_MAX_BYTES ||
-      !actualMimeType ||
-      !ARTICLE_MEDIA_MIME_TYPES.includes(
-        actualMimeType as (typeof ARTICLE_MEDIA_MIME_TYPES)[number],
-      )
+      actualSize !== asset.fileSize ||
+      actualSize > mediaBucketRules[asset.storageBucket].maxBytes ||
+      actualMimeType !== asset.mimeType
     ) {
       await repository.markFailed(asset.id);
+      await staging.remove([stagingPath]);
       throw new MediaServiceError(
         "invalid_upload",
         "Файл не прошел проверку типа или размера.",
       );
     }
 
-    await repository.markReady(asset.id, {
-      mimeType: actualMimeType,
-      fileSize: actualSize,
-      width: input.width ?? null,
-      height: input.height ?? null,
-    });
+    const downloaded = await staging.download(stagingPath);
+    if (downloaded.error || !downloaded.data) {
+      throw new MediaServiceError("storage_error", "Не удалось прочитать файл для проверки.");
+    }
+    let dimensions: { width: number | null; height: number | null };
+    let bytes: Uint8Array;
+    try {
+      if (downloaded.data.size !== actualSize) throw new Error("invalid_file");
+      bytes = new Uint8Array(await downloaded.data.arrayBuffer());
+      dimensions = await inspectMediaFile(asset.storageBucket, asset.fileName, asset.mimeType, bytes);
+    } catch {
+      await repository.markFailed(asset.id);
+      await staging.remove([stagingPath]);
+      throw new MediaServiceError("invalid_upload", "Содержимое файла не соответствует формату или размеру.");
+    }
+    const target = serviceClient.storage.from(asset.storageBucket);
+    const stored = await target.upload(asset.storagePath, bytes, { contentType: asset.mimeType, upsert: false, cacheControl: "3600" });
+    if (stored.error) throw new MediaServiceError("storage_error", "Не удалось сохранить проверенный файл.");
+    try {
+      // Metadata, readiness and audit commit atomically. The RPC is restricted
+      // to service_role and repeats current actor/permission/state checks.
+      await repository.finalizeUpload(asset.id, access.userId, { mimeType: asset.mimeType, fileSize: bytes.length, ...dimensions });
+    } catch (error) {
+      await target.remove([asset.storagePath]);
+      throw error;
+    }
     invalidatePublicContent();
-
-    await new AuditRepository(serviceClient).create({
-      userId: access.userId,
-      entityType: "media_asset",
-      entityId: asset.id,
-      action: "media.upload",
-      newData: {
-        storageBucket: asset.storageBucket,
-        storagePath: asset.storagePath,
-        fileName: asset.fileName,
-        mimeType: actualMimeType,
-        fileSize: actualSize,
-      },
-    });
+    await staging.remove([stagingPath]);
 
     return { mediaAssetId: asset.id };
+  }
+
+  async download(access: AccessContext, id: string) {
+    assertPermission(canViewMedia(access));
+    const asset = await new MediaRepository(await createServerSupabaseClient()).getById(id);
+    if (!asset || asset.status !== "ready" || asset.deletedAt) return null;
+    const { data, error } = await createServiceRoleSupabaseClient().storage.from(asset.storageBucket)
+      .createSignedUrl(asset.storagePath, 60, { download: asset.fileName });
+    if (error) throw error;
+    return data?.signedUrl ?? null;
   }
 
   async updateMetadata(
@@ -285,6 +288,7 @@ export class MediaService {
 
     return Promise.all(
       assets.map(async (asset) => {
+        if (asset.status !== "ready" || asset.deletedAt) return { ...asset, previewUrl: null };
         if (publicBuckets.has(asset.storageBucket)) {
           const { data } = serviceClient.storage
             .from(asset.storageBucket)
@@ -292,11 +296,7 @@ export class MediaService {
           return { ...asset, previewUrl: data.publicUrl };
         }
 
-        const { data } = await serviceClient.storage
-          .from(asset.storageBucket)
-          .createSignedUrl(asset.storagePath, 15 * 60);
-
-        return { ...asset, previewUrl: data?.signedUrl ?? null };
+        return { ...asset, previewUrl: `/api/admin/media/${asset.id}/download` };
       }),
     );
   }

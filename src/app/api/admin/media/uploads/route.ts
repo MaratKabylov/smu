@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { isSameOriginRequest } from "@/lib/security/same-origin";
+import { readBoundedJson } from "@/lib/security/read-json";
 import { createMediaUploadSchema } from "@/lib/validation/media";
 import { getAdminAccess } from "@/server/services/access.service";
 import {
@@ -21,7 +22,7 @@ export async function POST(request: NextRequest) {
   }
 
   const payload = createMediaUploadSchema.safeParse(
-    await request.json().catch(() => null),
+    await readBoundedJson(request),
   );
   if (!payload.success) {
     return Response.json({ error: "invalid_file" }, { status: 400 });

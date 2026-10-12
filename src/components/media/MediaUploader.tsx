@@ -4,58 +4,36 @@ import { useRef, useState } from "react";
 import { CheckCircle2, ImagePlus, LoaderCircle, UploadCloud } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
-import {
-  ARTICLE_MEDIA_MAX_BYTES,
-  ARTICLE_MEDIA_MIME_TYPES,
-} from "@/lib/validation/media";
+import { isMediaFileAllowed, mediaBucketRules } from "@/lib/validation/media";
+import { mediaBuckets, type MediaBucket } from "@/types/domain/media";
 
 type UploadState = "idle" | "preparing" | "uploading" | "complete" | "error";
 
 type UploadTicket = {
   mediaAssetId: string;
-  bucket: "article-media";
+  bucket: "media-staging";
   path: string;
   token: string;
 };
-
-async function getImageDimensions(file: File) {
-  try {
-    const bitmap = await createImageBitmap(file);
-    const dimensions = { width: bitmap.width, height: bitmap.height };
-    bitmap.close();
-    return dimensions;
-  } catch {
-    return { width: null, height: null };
-  }
-}
 
 export function MediaUploader() {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [state, setState] = useState<UploadState>("idle");
   const [message, setMessage] = useState("");
+  const [bucket, setBucket] = useState<MediaBucket>("article-media");
+  const rule = mediaBucketRules[bucket];
 
   async function upload(file: File) {
-    if (
-      !ARTICLE_MEDIA_MIME_TYPES.includes(
-        file.type as (typeof ARTICLE_MEDIA_MIME_TYPES)[number],
-      )
-    ) {
+    if (!isMediaFileAllowed(bucket, file.name, file.type, file.size)) {
       setState("error");
-      setMessage("Поддерживаются JPG, PNG, WebP и GIF.");
-      return;
-    }
-
-    if (file.size > ARTICLE_MEDIA_MAX_BYTES) {
-      setState("error");
-      setMessage("Размер файла не должен превышать 15 МБ.");
+      setMessage(`Проверьте формат файла. Максимальный размер: ${rule.maxBytes / 1024 / 1024} МБ.`);
       return;
     }
 
     try {
       setState("preparing");
       setMessage("Проверяем файл…");
-      const dimensions = await getImageDimensions(file);
       const ticketResponse = await fetch("/api/admin/media/uploads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -63,7 +41,7 @@ export function MediaUploader() {
           fileName: file.name,
           fileSize: file.size,
           mimeType: file.type,
-          bucket: "article-media",
+          bucket,
         }),
       });
 
@@ -87,7 +65,6 @@ export function MediaUploader() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           mediaAssetId: ticket.mediaAssetId,
-          ...dimensions,
         }),
       });
 
@@ -107,11 +84,23 @@ export function MediaUploader() {
 
   return (
     <div className="media-uploader">
+      <label>
+        Назначение файла
+        <select value={bucket} disabled={busy} onChange={event => {
+          setBucket(event.target.value as MediaBucket);
+          setMessage(""); setState("idle");
+          if (inputRef.current) inputRef.current.value = "";
+        }}>
+          {mediaBuckets.map(value => <option key={value} value={value}>{mediaBucketRules[value].label}</option>)}
+        </select>
+      </label>
+      <small>До {rule.maxBytes / 1024 / 1024} МБ · {rule.mimeTypes.map(mime => mime.split("/").at(-1) === "vnd.openxmlformats-officedocument.wordprocessingml.document" ? "DOCX" : mime.split("/").at(-1)?.toUpperCase()).join(", ")}</small>
       <input
         ref={inputRef}
         className="visually-hidden"
         type="file"
-        accept={ARTICLE_MEDIA_MIME_TYPES.join(",")}
+        accept={rule.mimeTypes.join(",")}
+        disabled={busy}
         onChange={(event) => {
           const file = event.target.files?.[0];
           if (file) void upload(file);

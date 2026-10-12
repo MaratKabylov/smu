@@ -2198,6 +2198,17 @@ export type Database = {
         };
         Returns: string;
       };
+      "finalize_media_upload": {
+        Args: {
+          "p_id": string | null;
+          "p_actor": string | null;
+          "p_mime_type": string | null;
+          "p_file_size": number | null;
+          "p_width": number | null;
+          "p_height": number | null;
+        };
+        Returns: undefined;
+      };
       "get_research_program_projects": {
         Args: {
           "p_id": string | null;

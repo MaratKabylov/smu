@@ -53,6 +53,7 @@ export class MediaRepository {
       .limit(60);
 
     if (filters.query) query = query.ilike("file_name", `%${filters.query}%`);
+    if (filters.bucket && filters.bucket !== "all") query = query.eq("storage_bucket", filters.bucket);
     if (filters.type === "image") query = query.like("mime_type", "image/%");
     if (filters.type === "video") query = query.like("mime_type", "video/%");
     if (filters.type === "document") {
@@ -139,21 +140,15 @@ export class MediaRepository {
     return mapMediaRow(data);
   }
 
-  async markReady(
+  async finalizeUpload(
     id: string,
+    actor: string,
     actual: { mimeType: string; fileSize: number; width: number | null; height: number | null },
   ) {
-    const { error } = await this.client
-      .from("media_assets")
-      .update({
-        mime_type: actual.mimeType,
-        file_size: actual.fileSize,
-        width: actual.width,
-        height: actual.height,
-        status: "ready",
-      })
-      .eq("id", id)
-      .eq("status", "uploading");
+    const { error } = await this.client.rpc("finalize_media_upload", {
+      p_id: id, p_actor: actor, p_mime_type: actual.mimeType, p_file_size: actual.fileSize,
+      p_width: actual.width, p_height: actual.height,
+    });
 
     if (error) throw error;
   }
