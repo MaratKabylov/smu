@@ -36,6 +36,7 @@ describe("session-scoped account records", () => {
       await expect(service.claimApplications()).rejects.toThrow("session");
       await expect(service.mentorshipProgress(id)).rejects.toThrow("session");
       await expect(service.withdrawMentorship(id)).rejects.toThrow("session");
+      await expect(service.researchProgram(id, "ru")).rejects.toThrow("session");
     }
     expect(mocks.rpc).not.toHaveBeenCalled();
   });
@@ -44,6 +45,16 @@ describe("session-scoped account records", () => {
     await expect(service.list("ru", "articles")).rejects.toThrow("setup");
     await expect(service.claimApplications()).rejects.toThrow("setup");
     expect(mocks.client).not.toHaveBeenCalled();
+  });
+  it("validates participant reads and calls only the account RPC without trusting admin metadata", async () => {
+    await expect(service.researchProgram("invalid", "ru")).rejects.toThrow("invalid");
+    // @ts-expect-error invalid runtime locale
+    await expect(service.researchProgram(id, "de")).rejects.toThrow("invalid");
+    expect(mocks.client).not.toHaveBeenCalled();
+    mocks.rpc.mockResolvedValue({ data: null, error: null });
+    expect(await service.researchProgram(id, "kk")).toBeNull();
+    expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith("get_account_research_program", { p_application: id, p_locale: "kk" });
+    expect(mocks.access).not.toHaveBeenCalled();
   });
   it("uses the session RPC without accepting or forwarding identity, email or metadata", async () => {
     expect(await service.list("kk", "projects", 2)).toEqual(page());

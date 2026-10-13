@@ -85,8 +85,8 @@ export class ResearchProgramRepository {
       p_input: { locale: input.locale, fullName: input.fullName, email: input.email, motivation: input.motivation, consent: input.consent } });
     if (error) throw error;
   }
-  async updateApplication(actor: string, id: string, status: ApplicationStatus, note: string) {
-    const { error } = await this.client.rpc("update_research_program_application", { p_id: id, p_actor: actor, p_status: status, p_note: note });
+  async updateApplication(id: string, status: ApplicationStatus, note: string) {
+    const { error } = await this.client.rpc("decide_research_program_application", { p_id: id, p_status: status, p_note: note });
     if (error) throw error;
   }
   private async hydrate(rows: ProgramRow[], publicOnly = false): Promise<ResearchProgram[]> {

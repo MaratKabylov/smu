@@ -20,11 +20,33 @@ describe("research program service authorization", () => {
     await expect(service.save(forbidden, {} as ResearchProgramInput, null)).rejects.toThrow("Недостаточно прав");
     await expect(service.changeState(forbidden, "id", "published")).rejects.toThrow("Недостаточно прав");
     await expect(service.updateApplication(forbidden, "id", "accepted", "note")).rejects.toThrow("Недостаточно прав");
+    await expect(service.participation(forbidden, "id")).rejects.toThrow("Недостаточно прав");
+    await expect(service.assignMentor(forbidden, "id", null, 1)).rejects.toThrow("Недостаточно прав");
     expect(mocks.privileged).not.toHaveBeenCalled(); expect(mocks.server).not.toHaveBeenCalled();
   });
-  it("passes the authenticated actor to privileged writes after permission checks", async () => {
+  it("uses session-scoped decisions without a supplied actor after permission checks", async () => {
     await new ResearchProgramService().updateApplication(allowed, "application", "in_review", "note");
-    expect(mocks.privileged).toHaveBeenCalledOnce();
-    expect(mocks.update).toHaveBeenCalledWith("user", "application", "in_review", "note");
+    expect(mocks.server).toHaveBeenCalledOnce();
+    expect(mocks.privileged).not.toHaveBeenCalled();
+    expect(mocks.update).toHaveBeenCalledWith("application", "in_review", "note");
+  });
+  it("validates participant IDs and versions before creating clients and requires admin access", async () => {
+    const service = new ResearchProgramService();
+    await expect(service.participation(allowed, "invalid")).rejects.toThrow("invalid_input");
+    await expect(service.assignMentor(allowed, "invalid", null, 1)).rejects.toThrow();
+    const id = "00000000-0000-4000-a000-000000000001";
+    await expect(service.assignMentor(allowed, id, null, 0)).rejects.toThrow();
+    await expect(service.participation({ ...allowed, permissions: new Set(["research_program.manage"]) }, id)).rejects.toThrow("Недостаточно прав");
+    expect(mocks.server).not.toHaveBeenCalled();
+  });
+  it("reads and assigns through the session RPCs, without sending a supplied actor", async () => {
+    const id = "00000000-0000-4000-a000-000000000001";
+    const rpc = vi.fn().mockResolvedValueOnce({ data: { status: "active", mentorId: null, version: 2 }, error: null }).mockResolvedValueOnce({ data: null, error: null });
+    mocks.server.mockResolvedValue({ rpc });
+    const service = new ResearchProgramService();
+    expect(await service.participation(allowed, id)).toEqual({ status: "active", mentorId: null, version: 2 });
+    await service.assignMentor(allowed, id, null, 2);
+    expect(rpc.mock.calls).toEqual([["get_research_program_participation", { p_application: id }], ["assign_research_program_mentor", { p_application: id, p_mentor: null, p_version: 2 }]]);
+    expect(mocks.privileged).not.toHaveBeenCalled();
   });
 });

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { richTextDocumentSchema } from "@/lib/articles/rich-text";
 
-export const accountSections = ["scientist", "articles", "projects", "applications"] as const;
+export const accountSections = ["scientist", "articles", "projects", "applications", "research-program"] as const;
 export const accountSectionSchema = z.enum(accountSections);
 export type AccountSection = z.infer<typeof accountSectionSchema>;
 export const accountRecordIdSchema = z.uuid();

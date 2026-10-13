@@ -1412,6 +1412,42 @@ export type Database = {
           { foreignKeyName: "research_program_applications_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
         ];
       };
+      "research_program_participations": {
+        Row: {
+          "id": string;
+          "application_id": string;
+          "mentor_id": string | null;
+          "status": "active" | "completed";
+          "version": number;
+          "baseline": boolean;
+          "created_at": string;
+          "updated_at": string;
+        };
+        Insert: {
+          "id"?: string;
+          "application_id": string;
+          "mentor_id"?: string | null;
+          "status": "active" | "completed";
+          "version"?: number;
+          "baseline"?: boolean;
+          "created_at"?: string;
+          "updated_at"?: string;
+        };
+        Update: {
+          "id"?: string;
+          "application_id"?: string;
+          "mentor_id"?: string | null;
+          "status"?: "active" | "completed";
+          "version"?: number;
+          "baseline"?: boolean;
+          "created_at"?: string;
+          "updated_at"?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "research_program_participations_application_id_fkey"; columns: ["application_id"]; isOneToOne: true; referencedRelation: "research_program_applications"; referencedColumns: ["id"] },
+          { foreignKeyName: "research_program_participations_mentor_id_fkey"; columns: ["mentor_id"]; isOneToOne: false; referencedRelation: "scientist_profiles"; referencedColumns: ["id"] },
+        ];
+      };
       "research_program_project_participants": {
         Row: {
           "program_id": string;
@@ -2155,6 +2191,14 @@ export type Database = {
         };
         Returns: undefined;
       };
+      "assign_research_program_mentor": {
+        Args: {
+          "p_application": string | null;
+          "p_mentor": string | null;
+          "p_version": number | null;
+        };
+        Returns: undefined;
+      };
       "capture_article_revision": {
         Args: {
           "p_id": string | null;
@@ -2295,6 +2339,14 @@ export type Database = {
         };
         Returns: undefined;
       };
+      "decide_research_program_application": {
+        Args: {
+          "p_id": string | null;
+          "p_status": "new" | "in_review" | "accepted" | "rejected" | "completed" | null;
+          "p_note": string | null;
+        };
+        Returns: undefined;
+      };
       "finalize_media_upload": {
         Args: {
           "p_id": string | null;
@@ -2306,7 +2358,20 @@ export type Database = {
         };
         Returns: undefined;
       };
+      "get_account_research_program": {
+        Args: {
+          "p_application": string | null;
+          "p_locale": string | null;
+        };
+        Returns: Json;
+      };
       "get_mentorship_progress": {
+        Args: {
+          "p_application": string | null;
+        };
+        Returns: Json;
+      };
+      "get_research_program_participation": {
         Args: {
           "p_application": string | null;
         };
@@ -2333,6 +2398,15 @@ export type Database = {
         Returns: undefined;
       };
       "list_account_records": {
+        Args: {
+          "p_locale": string | null;
+          "p_section": string | null;
+          "p_page"?: number | null;
+          "p_id"?: string | null;
+        };
+        Returns: Json;
+      };
+      "list_account_records_core": {
         Args: {
           "p_locale": string | null;
           "p_section": string | null;
@@ -2751,6 +2825,15 @@ export type Database = {
         };
         Returns: undefined;
       };
+      "smu_decide_research_program": {
+        Args: {
+          "p_id": string | null;
+          "p_actor": string | null;
+          "p_status": "new" | "in_review" | "accepted" | "rejected" | "completed" | null;
+          "p_note": string | null;
+        };
+        Returns: undefined;
+      };
       "smu_plain_text_document": {
         Args: {
           "p_text": string | null;
@@ -2799,6 +2882,15 @@ export type Database = {
         Returns: undefined;
       };
       "update_research_program_application": {
+        Args: {
+          "p_id": string | null;
+          "p_actor": string | null;
+          "p_status": "new" | "in_review" | "accepted" | "rejected" | "completed" | null;
+          "p_note": string | null;
+        };
+        Returns: undefined;
+      };
+      "update_research_program_application_core": {
         Args: {
           "p_id": string | null;
           "p_actor": string | null;

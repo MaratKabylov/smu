@@ -4,11 +4,14 @@ import { emptySearchPage, orderBySearch } from "@/lib/search";
 import "server-only";
 import { cache } from "react";
 import { isSupabaseConfigured } from "@/lib/env";
-import { canManageResearchProgram } from "@/lib/permissions/permissions";
+import { canAccessAdmin, canManageResearchProgram } from "@/lib/permissions/permissions";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/service-role";
 import type { ResearchProgramApplicationInput, ResearchProgramFilters, ResearchProgramInput } from "@/lib/validation/research-program";
 import { ResearchProgramRepository } from "@/server/repositories/research-program.repository";
+import { ResearchProgramParticipationRepository } from "@/server/repositories/research-program-participation.repository";
+import { programMentorInputSchema } from "@/lib/validation/research-program-participation";
+import { z } from "zod";
 import type { AccessContext } from "@/types/domain/auth";
 import type { ApplicationStatus, ResearchProgramStatus } from "@/types/domain/research-program";
 import type { ScientistLocale } from "@/types/domain/scientist";
@@ -17,7 +20,7 @@ export class ResearchProgramServiceError extends Error {
 }
 export class ResearchProgramService {
   private assertAccess(access: AccessContext) {
-    if (!canManageResearchProgram(access)) throw new ResearchProgramServiceError();
+    if (!canAccessAdmin(access) || !canManageResearchProgram(access)) throw new ResearchProgramServiceError();
   }
   async list(access: AccessContext, status: ResearchProgramStatus | "all") {
     this.assertAccess(access); return new ResearchProgramRepository(await createServerSupabaseClient()).list(status);
@@ -38,7 +41,17 @@ export class ResearchProgramService {
     this.assertAccess(access); return new ResearchProgramRepository(createServiceRoleSupabaseClient()).changeState(access.userId, id, status, remove);
   }
   async updateApplication(access: AccessContext, id: string, status: ApplicationStatus, note: string) {
-    this.assertAccess(access); return new ResearchProgramRepository(createServiceRoleSupabaseClient()).updateApplication(access.userId, id, status, note);
+    this.assertAccess(access); return new ResearchProgramRepository(await createServerSupabaseClient()).updateApplication(id, status, note);
+  }
+  async participation(access: AccessContext, id: string) {
+    this.assertAccess(access);
+    if (!z.uuid().safeParse(id).success) throw new Error("invalid_input");
+    return new ResearchProgramParticipationRepository(await createServerSupabaseClient()).get(id);
+  }
+  async assignMentor(access: AccessContext, id: string, mentorId: string | null, version: number) {
+    this.assertAccess(access);
+    const input = programMentorInputSchema.parse({ applicationId: id, mentorId, expectedVersion: version });
+    return new ResearchProgramParticipationRepository(await createServerSupabaseClient()).assign(input.applicationId, input.mentorId, input.expectedVersion);
   }
 }
 export class PublicResearchProgramService {

@@ -8,10 +8,12 @@ import { ResearchProgramProjectsService } from "@/server/services/research-progr
 import { canManageResearchProgram } from "@/lib/permissions/permissions";
 import { applicationStatusLabels, canChangeApplicationStatus, canChangeResearchProgramStatus, researchProgramAdminPath as base, researchProgramFormatLabels, researchProgramStatusLabels } from "@/lib/research-program";
 import { applicationStatusSchema, researchProgramStatusSchema } from "@/lib/validation/research-program";
-import { changeResearchProgram, saveResearchProgram, updateResearchProgramApplication } from "@/server/actions/research-program.actions";
+import { assignResearchProgramMentor, changeResearchProgram, saveResearchProgram, updateResearchProgramApplication } from "@/server/actions/research-program.actions";
 import { getAdminAccess } from "@/server/services/access.service";
 import { ResearchProgramService } from "@/server/services/research-program.service";
 import { applicationStatuses, researchProgramStatuses, type ResearchProgramApplication } from "@/types/domain/research-program";
+import type { AccessContext } from "@/types/domain/auth";
+import type { ScienceWorkOptions } from "@/types/domain/science-work";
 
 export type ResearchProgramAdminSearch = Promise<{ application?: string; status?: string; error?: string; saved?: string; deleted?: string; application_saved?: string }>;
 const errors: Record<string, string> = {
@@ -45,7 +47,8 @@ export async function ResearchProgramAdminList({ searchParams }: { searchParams:
     <section className="data-panel">{programs.length ? <div className="table-wrap"><table className="articles-table"><thead><tr><th>Программа</th><th>Координатор</th><th>Формат</th><th>Мест</th><th>Статус</th></tr></thead><tbody>{programs.map(program => <tr key={program.id}><td><Link href={base + "/" + program.id}>{program.translations.find(t => t.locale === "ru")?.title ?? "Без названия"}</Link><small>{program.field?.nameRu ?? "—"}</small></td><td>{program.coordinator.find(t => t.locale === "ru")?.fullName ?? "Профиль недоступен"}</td><td>{researchProgramFormatLabels.ru[program.format]}</td><td>{program.capacity}</td><td><span className={"status-badge status-" + program.status}>{researchProgramStatusLabels[program.status]}</span></td></tr>)}</tbody></table></div> : <div className="empty-state"><h3>Программы не найдены</h3><p>Создайте программу или измените фильтр.</p></div>}</section>
   </div>;
 }
-function ApplicationCard({ application, queue = false }: { application: ResearchProgramApplication; queue?: boolean }) {
+export async function ResearchProgramApplicationCard({ application, access, scientists, queue = false }: { application: ResearchProgramApplication; access: AccessContext; scientists: ScienceWorkOptions["scientists"]; queue?: boolean }) {
+  const participation = ["accepted", "completed"].includes(application.status) ? await new ResearchProgramService().participation(access, application.id) : null;
   return <article className="article-editor-panel mentorship-application"><div className="panel-title"><div><h3>{application.fullName}</h3><p>{new Intl.DateTimeFormat("ru-RU", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Almaty" }).format(new Date(application.createdAt))} · {application.locale.toUpperCase()}</p></div><span className="status-badge">{applicationStatusLabels[application.status]}</span></div>
     <a href={"mailto:" + application.email}>{application.email}</a><p className="mentorship-motivation">{application.motivation}</p><p className="field-hint">Согласие на обработку заявки получено {new Intl.DateTimeFormat("ru-RU", { dateStyle: "medium", timeZone: "Asia/Almaty" }).format(new Date(application.consentAt))}.</p>
     <form className="translation-fields" action={updateResearchProgramApplication.bind(null, application.id, application.programId)}>
@@ -53,6 +56,15 @@ function ApplicationCard({ application, queue = false }: { application: Research
       <label>Статус<select name="status" defaultValue={application.status}>{applicationStatuses.filter(value => canChangeApplicationStatus(application.status, value)).map(value => <option key={value} value={value}>{applicationStatusLabels[value]}</option>)}</select></label>
       <label>Внутренняя заметка<textarea name="note" defaultValue={application.managerNote} rows={3} maxLength={5000} /></label><div><SubmitButton label="Сохранить заявку" /></div>
     </form>
+    {participation && <section className="account-claim"><h4>Участие в программе</h4><p>{participation.status === "active" ? "Активное" : "Завершено"}</p>
+      {participation.status === "active" ? <form className="translation-fields" action={assignResearchProgramMentor.bind(null, application.id, application.programId)}>
+        <input type="hidden" name="returnTo" value={queue ? "queue" : "program"} /><input type="hidden" name="version" value={participation.version} />
+        <label>Наставник<select name="mentorId" defaultValue={participation.mentorId ?? ""}>
+          <option value="">Не назначен</option>{scientists.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
+          {participation.mentorId && !scientists.some(item => item.id === participation.mentorId) && <option value={participation.mentorId} disabled>Профиль недоступен — выберите другого наставника</option>}
+        </select></label><div><SubmitButton label="Сохранить наставника" /></div>
+      </form> : <p>Назначенный наставник: {scientists.find(item => item.id === participation.mentorId)?.name ?? (participation.mentorId ? "Профиль недоступен" : "Не назначен")}</p>}
+    </section>}
   </article>;
 }
 export async function ResearchProgramAdminEditor({ id, searchParams }: { id?: string; searchParams: ResearchProgramAdminSearch }) {
@@ -67,7 +79,7 @@ export async function ResearchProgramAdminEditor({ id, searchParams }: { id?: st
     {program ? <section className="workflow-panel"><div><h2>{researchProgramStatusLabels[program.status]}</h2><p>Набор открыт только в указанные даты. В архиве новые заявки не принимаются. Принятые и завершившие участие учитываются в лимите набора.</p>{program.status === "published" ? <div className="heading-actions">{program.translations.map(t => <Link key={t.locale} href={"/" + t.locale + "/research-program/" + t.slug} target="_blank">Открыть {t.locale.toUpperCase()}</Link>)}</div> : null}</div><div className="workflow-actions">{researchProgramStatuses.filter(value => canChangeResearchProgramStatus(program.status, value)).map(value => <form key={value} action={changeResearchProgram.bind(null, program.id, value)}><button className={value === "published" ? "primary-button" : "secondary-button"}>{value === "published" ? "Опубликовать" : value === "draft" ? "В черновики" : "В архив"}</button></form>)}</div></section> : null}
     <ResearchProgramForm action={saveResearchProgram.bind(null, program?.id ?? null)} program={program ?? undefined} options={options} />
     {program && projects ? <ResearchProgramProjectsEditor key={projects.graph.version} programId={program.id} {...projects} /> : null}
-    {program ? <><section className="mentorship-applications" id="applications"><div className="media-detail-heading"><div><h2>Заявки на участие</h2><p>До 100 последних заявок. Связывайтесь с заявителем по email; заметки видны только менеджерам.</p></div><Link href={base + "/applications"}>Все заявки и фильтры</Link></div>{applications.length ? applications.map(item => <ApplicationCard key={item.id} application={item} />) : <div className="empty-state"><p>Заявок пока нет.</p></div>}</section>
+    {program ? <><section className="mentorship-applications" id="applications"><div className="media-detail-heading"><div><h2>Заявки на участие</h2><p>До 100 последних заявок. Связывайтесь с заявителем по email; заметки видны только менеджерам.</p></div><Link href={base + "/applications"}>Все заявки и фильтры</Link></div>{applications.length ? applications.map(item => <ResearchProgramApplicationCard key={item.id} application={item} access={access} scientists={options.scientists} />) : <div className="empty-state"><p>Заявок пока нет.</p></div>}</section>
       <section className="danger-zone"><div><h2>Удалить программу</h2><p>Доступно после рассмотрения заявок и завершения участия принятых заявителей.</p></div><form action={changeResearchProgram.bind(null, program.id, "delete")}><label className="confirm-check"><input type="checkbox" name="confirm" value="yes" required />Подтверждаю действие</label><button className="danger-button">Удалить</button></form></section></> : null}
   </div>;
 }
@@ -78,8 +90,9 @@ export async function ResearchProgramApplicationQueue({ searchParams }: { search
   const status = parsed.success ? parsed.data : "all";
   if (state.application && !z.uuid().safeParse(state.application).success) notFound();
   const applications = await new ResearchProgramService().applications(access, undefined, status, state.application);
+  const options = applications.some(item => ["accepted", "completed"].includes(item.status)) ? await new ResearchProgramService().options(access) : { scientists: [] };
   return <div className="content-page"><Link className="back-link" href={base}>← Research Program</Link><div className="page-heading"><div><p className="page-kicker">Research Program</p><h1>Заявки на участие</h1><p>До 100 последних заявок по выбранному статусу.</p></div></div><Notice state={state} />
     <section className="media-toolbar"><form className="media-filters"><select name="status" defaultValue={status} aria-label="Статус заявки"><option value="all">Все статусы</option>{applicationStatuses.map(value => <option key={value} value={value}>{applicationStatusLabels[value]}</option>)}</select><button className="secondary-button">Применить</button></form></section>
-    {applications.length ? <div className="mentorship-applications">{applications.map(application => <div key={application.id}><Link className="back-link" href={base + "/" + application.programId + "#applications"}>Открыть программу →</Link><ApplicationCard application={application} queue /></div>)}</div> : <div className="empty-state"><h2>Заявки не найдены</h2><p>Измените фильтр или дождитесь новых заявок.</p></div>}
+    {applications.length ? <div className="mentorship-applications">{applications.map(application => <div key={application.id}><Link className="back-link" href={base + "/" + application.programId + "#applications"}>Открыть программу →</Link><ResearchProgramApplicationCard application={application} access={access} scientists={options.scientists} queue /></div>)}</div> : <div className="empty-state"><h2>Заявки не найдены</h2><p>Измените фильтр или дождитесь новых заявок.</p></div>}
   </div>;
 }

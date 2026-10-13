@@ -1,11 +1,13 @@
 "use server";
 import { revalidateLocalizedPath as revalidatePath } from "@/lib/i18n/revalidation";
+import { revalidatePath as revalidatePrivatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { researchProgramAdminPath as base } from "@/lib/research-program";
 import { applicationUpdateSchema, researchProgramApplicationSchema, researchProgramInputSchema, researchProgramStatusSchema } from "@/lib/validation/research-program";
 import { getAdminAccess } from "@/server/services/access.service";
 import { ResearchProgramService, ResearchProgramServiceError, PublicResearchProgramService } from "@/server/services/research-program.service";
+import { programMentorInputSchema } from "@/lib/validation/research-program-participation";
 async function access() {
   const result = await getAdminAccess();
   if (result.state === "unauthenticated") redirect("/admin/login");
@@ -15,9 +17,15 @@ async function access() {
 function errorCode(error: unknown) {
   if (error instanceof ResearchProgramServiceError) return "forbidden";
   const message = error && typeof error === "object" && "message" in error ? String(error.message) : "";
-  return ["not_found", "not_available", "applications_closed", "invalid_reference", "invalid_transition", "capacity_exceeded", "program_has_applications", "rate_limited", "duplicate_application"].find(code => message.includes(code)) ?? "action_failed";
+  return ["forbidden", "stale_version", "not_found", "not_available", "applications_closed", "invalid_reference", "invalid_transition", "capacity_exceeded", "program_has_applications", "rate_limited", "duplicate_application"].find(code => message.includes(code)) ?? "action_failed";
 }
-function invalidate() { revalidatePath(base, "layout"); revalidatePath("/research-program", "layout"); }
+function invalidateAccount() {
+  for (const locale of ["ru", "kk", "en"]) {
+    revalidatePrivatePath(`/${locale}/account/applications`, "layout");
+    revalidatePrivatePath(`/${locale}/account/research-program`, "layout");
+  }
+}
+function invalidate() { revalidatePath(base, "layout"); revalidatePath("/research-program", "layout"); invalidateAccount(); }
 export async function saveResearchProgram(id: string | null, form: FormData) {
   if (id !== null && !z.uuid().safeParse(id).success) redirect(base + "?error=validation");
   const target = base + (id ? "/" + id : "/new");
@@ -61,4 +69,15 @@ export async function submitResearchProgramApplication(_state: { code: string },
   catch (error) { return { code: errorCode(error) }; }
   revalidatePath(base, "layout");
   return { code: "submitted" };
+}
+export async function assignResearchProgramMentor(id: string, programId: string, form: FormData) {
+  if (!z.uuid().safeParse(id).success || !z.uuid().safeParse(programId).success) redirect(base + "?error=validation");
+  const target = form.get("returnTo") === "queue" ? base + "/applications" : base + "/" + programId;
+  const input = programMentorInputSchema.safeParse({ applicationId: id, mentorId: form.get("mentorId") === "" ? null : form.get("mentorId"), expectedVersion: form.get("version") });
+  if (!input.success) redirect(target + "?error=validation");
+  const user = await access();
+  try { await new ResearchProgramService().assignMentor(user, id, input.data.mentorId, input.data.expectedVersion); }
+  catch (error) { redirect(target + "?error=" + errorCode(error)); }
+  revalidatePrivatePath(base, "layout"); invalidateAccount();
+  redirect(target + "?application_saved=1" + (form.get("returnTo") === "queue" ? "" : "#applications"));
 }

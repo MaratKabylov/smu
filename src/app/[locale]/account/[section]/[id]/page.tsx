@@ -10,6 +10,9 @@ import { MentorshipProgress } from "@/components/mentorship/MentorshipProgress";
 import { WithdrawMentorshipForm } from "@/components/account/WithdrawMentorshipForm";
 import { mentorshipProgressCopy } from "@/lib/i18n/mentorship-progress";
 import type { MentorshipProgress as Progress } from "@/lib/validation/mentorship";
+import { ResearchProgramParticipation } from "@/components/account/ResearchProgramParticipation";
+import { researchProgramAccountCopy } from "@/lib/i18n/research-program-account";
+import type { AccountResearchProgram } from "@/lib/validation/research-program-participation";
 
 export default async function AccountRecordPage({ params }: { params: Promise<{ locale: string; section: string; id: string }> }) {
   const route = await params;
@@ -39,11 +42,22 @@ export default async function AccountRecordPage({ params }: { params: Promise<{ 
       progressFailed = true;
     }
   }
+  let program: AccountResearchProgram | null = null;
+  let programFailed = false;
+  if (result?.record.kind === "program_application") {
+    try { program = await new AccountRecordsService().researchProgram(route.id, locale); }
+    catch (error) {
+      if (error instanceof AccountRecordsError && error.code === "session") redirect(`/${locale}/account/login`);
+      programFailed = true;
+    }
+  }
   return <section className="login-card account-card account-records-card">
     <Link href={`/${locale}/account/${section}`}>{copy.backToList}</Link>
     {result ? <AccountRecordDetail locale={locale} {...result} /> : <p role="alert">{copy.unavailable}</p>}
     {progress && <MentorshipProgress locale={locale} progress={progress} />}
     {progressFailed && <p role="alert">{mentorshipProgressCopy[locale].unavailable}</p>}
     {progress && ["new", "in_review", "accepted"].includes(progress.applicationStatus) && <WithdrawMentorshipForm locale={locale} id={route.id} />}
+    {program && <ResearchProgramParticipation locale={locale} data={program} />}
+    {programFailed && <p role="alert">{researchProgramAccountCopy[locale].unavailable}</p>}
   </section>;
 }

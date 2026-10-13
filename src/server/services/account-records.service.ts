@@ -7,6 +7,7 @@ import { accountPageSchema, accountRecordIdSchema, accountSectionSchema, type Ac
 import { AccountRecordsRepository } from "@/server/repositories/account-records.repository";
 import { AccessRepository } from "@/server/repositories/access.repository";
 import { MentorshipRepository } from "@/server/repositories/mentorship.repository";
+import { ResearchProgramParticipationRepository } from "@/server/repositories/research-program-participation.repository";
 
 export class AccountRecordsError extends Error {
   constructor(public readonly code: "session" | "invalid" | "setup") { super(code); }
@@ -61,5 +62,11 @@ export class AccountRecordsService {
     if (!accountRecordIdSchema.safeParse(id).success) throw new AccountRecordsError("invalid");
     const { client } = await this.session();
     return new MentorshipRepository(client).withdraw(id);
+  }
+  async researchProgram(id: string, locale: Locale) {
+    if (!accountRecordIdSchema.safeParse(id).success || !isLocale(locale)) throw new AccountRecordsError("invalid");
+    const { client } = await this.session();
+    // Dedicated RPC enforces account ownership even for administrators.
+    return new ResearchProgramParticipationRepository(client).account(id, locale);
   }
 }

@@ -6,6 +6,7 @@ import { ResearchProgramProjectsService } from "@/server/services/research-progr
 import { programProjectsInputSchema } from "@/lib/validation/research-program-projects";
 import { revalidateLocalizedPath } from "@/lib/i18n/revalidation";
 import { researchProgramAdminPath } from "@/lib/research-program";
+import { revalidatePath } from "next/cache";
 async function access() {
   const result = await getAdminAccess();
   if (result.state !== "allowed") throw new Error("forbidden");
@@ -34,5 +35,9 @@ export async function saveResearchProgramProjects(id: string, form: FormData) {
   revalidateLocalizedPath(researchProgramAdminPath, "layout");
   revalidateLocalizedPath("/research-program", "layout");
   revalidateLocalizedPath("/projects", "layout");
+  for (const locale of ["ru", "kk", "en"]) {
+    revalidatePath(`/${locale}/account/research-program`, "layout");
+    revalidatePath(`/${locale}/account/applications`, "layout");
+  }
   redirect(target + "?saved=1#projects");
 }

@@ -6,9 +6,9 @@ vi.mock("@/server/services/account-records.service", () => ({ AccountRecordsServ
 import { AccountRecordsError } from "@/server/services/account-records.service";
 import { claimAccountApplications, withdrawAccountMentorship } from "./account-records.actions";
 beforeEach(() => { vi.clearAllMocks(); mocks.claim.mockResolvedValue(2); });
-it.each(["ru", "kk", "en"] as const)("claims in %s and refreshes only its private list", async locale => {
+it.each(["ru", "kk", "en"] as const)("claims in %s and refreshes its private application and participation lists", async locale => {
   expect(await claimAccountApplications(locale, {})).toEqual({ message: "claimed", count: 2 });
-  expect(mocks.revalidate).toHaveBeenCalledExactlyOnceWith(`/${locale}/account/applications`); expect(mocks.claim).toHaveBeenCalledExactlyOnceWith();
+  expect(mocks.revalidate.mock.calls).toEqual([[`/${locale}/account/applications`], [`/${locale}/account/research-program`]]); expect(mocks.claim).toHaveBeenCalledExactlyOnceWith();
 });
 const id = "00000000-0000-4000-a000-000000000001";
 const confirmation = () => { const form = new FormData(); form.set("confirm", "yes"); form.set("actor", "another-user"); return form; };

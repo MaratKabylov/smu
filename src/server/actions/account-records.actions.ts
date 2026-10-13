@@ -12,6 +12,7 @@ export async function claimAccountApplications(locale: Locale, _previous: ClaimA
   try {
     const count = await new AccountRecordsService().claimApplications();
     revalidatePath(`/${locale}/account/applications`);
+    revalidatePath(`/${locale}/account/research-program`);
     return { message: "claimed", count };
   } catch (error) {
     return { message: error instanceof AccountRecordsError && error.code === "session" ? "session" : "failed" };
