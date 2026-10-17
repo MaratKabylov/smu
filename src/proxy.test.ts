@@ -13,7 +13,7 @@ describe("public redirects and session proxy", () => {
     expect(result.headers.get("location")).toBe("https://example.org/kk/journal/story?q=test");
     expect(mocks.client).not.toHaveBeenCalled();
   });
-  it.each(["/admin/login", "/admin", "/api/admin/media/uploads", "/ru/account", "/kk/account/login", "/en/account/update-password", "/ru/account/confirm"])("continues session refresh on %s", async path => {
+  it.each(["/admin/login", "/admin", "/api/admin/media/uploads", "/ru/account", "/kk/account/login", "/en/account/update-password", "/ru/account/confirm", "/ru/support/it_request", "/kk/support/publication_support", "/en/support/research_proposal", "/api/support/request/files/file"])("continues session refresh on %s", async path => {
     const result = await proxy(new NextRequest(`https://example.org${path}`));
     expect(result.headers.get("location")).toBeNull(); expect(mocks.user).toHaveBeenCalledOnce();
   });

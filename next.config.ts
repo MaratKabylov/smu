@@ -8,7 +8,10 @@ const nextConfig: NextConfig = {
     ] })), { source: "/:locale(ru|kk|en)/mentorship/legacy/:path*", headers: [
       { key: "Cache-Control", value: "private, no-store" },
       { key: "Referrer-Policy", value: "no-referrer" },
-    ] }];
+    ] }, ...["/:locale(ru|kk|en)/support/:path*", "/api/support/:path*"].map(source => ({ source, headers: [
+      { key: "Cache-Control", value: "private, no-store" },
+      { key: "Referrer-Policy", value: "no-referrer" },
+    ] }))];
   },
   experimental: {
     serverActions: {

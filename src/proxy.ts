@@ -10,9 +10,10 @@ export async function proxy(request: NextRequest) {
 
   let response = NextResponse.next({ request });
 
-  // Public requests never refresh or depend on a visitor's auth session.
+  // Catalogues stay anonymous. Support submission uses optional verified ownership.
   const accountRoute = /^\/(ru|kk|en)\/account(?:\/|$)/.test(request.nextUrl.pathname);
-  const needsSession = accountRoute || request.nextUrl.pathname === "/admin" || request.nextUrl.pathname.startsWith("/admin/") || request.nextUrl.pathname.startsWith("/api/admin/");
+  const supportRoute = /^\/(ru|kk|en)\/support(?:\/|$)/.test(request.nextUrl.pathname) || request.nextUrl.pathname.startsWith("/api/support/");
+  const needsSession = accountRoute || supportRoute || request.nextUrl.pathname === "/admin" || request.nextUrl.pathname.startsWith("/admin/") || request.nextUrl.pathname.startsWith("/api/admin/");
   if (!needsSession || !isSupabaseConfigured()) {
     return response;
   }

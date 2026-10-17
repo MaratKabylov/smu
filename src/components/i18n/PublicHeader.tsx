@@ -7,6 +7,7 @@ import { LanguageSwitcher } from "./LanguageSwitcher";
 import { searchCopy } from "@/lib/search";
 import { accountCopy } from "@/lib/i18n/account";
 import { legacyCopy } from "@/lib/i18n/scientific-legacy";
+import { supportCopy } from "@/lib/i18n/support-request";
 
 export function PublicHeader({ locale, section, translations, paths }: {
   locale: Locale; section: PublicSection; translations?: readonly { locale: Locale; slug: string }[];
@@ -24,6 +25,7 @@ export function PublicHeader({ locale, section, translations, paths }: {
       <Link href={localizedPath(locale, "/search")}>{searchCopy[locale].find}</Link>
       <a href={localizedPath(locale, "/feed.xml")}>RSS</a>
       <Link href={localizedPath(locale, "/account")}>{accountCopy[locale].account}</Link>
+      <Link href={`/${locale}/support`}>{supportCopy[locale].title}</Link>
       <a href="/admin" target="_blank" rel="noreferrer">SMU Admin <ArrowUpRight aria-hidden="true" /></a>
     </nav>
     <Suspense fallback={<div className="journal-language" aria-label={copy.language}>{locales.map(language => <Link key={language} href={languagePaths?.[language] ?? localizedPath(language, `/${section}`)} hrefLang={language} className={language === locale ? "is-active" : ""}>{language === "ru" ? "RU" : "ҚАЗ"}</Link>)}</div>}>

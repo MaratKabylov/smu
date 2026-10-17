@@ -2155,6 +2155,104 @@ export type Database = {
         Relationships: [
         ];
       };
+      "support_request_files": {
+        Row: {
+          "id": string;
+          "request_id": string;
+          "storage_path": string;
+          "name": string;
+          "size": number;
+          "mime_type": string;
+        };
+        Insert: {
+          "id": string;
+          "request_id": string;
+          "storage_path": string;
+          "name": string;
+          "size": number;
+          "mime_type": string;
+        };
+        Update: {
+          "id"?: string;
+          "request_id"?: string;
+          "storage_path"?: string;
+          "name"?: string;
+          "size"?: number;
+          "mime_type"?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "support_request_files_request_id_fkey"; columns: ["request_id"]; isOneToOne: false; referencedRelation: "support_requests"; referencedColumns: ["id"] },
+        ];
+      };
+      "support_requests": {
+        Row: {
+          "id": string;
+          "kind": "research_proposal" | "it_request" | "publication_support";
+          "owner_id": string | null;
+          "locale": "ru" | "kk" | "en";
+          "title": string;
+          "description": string;
+          "contact_name": string;
+          "email": string;
+          "organization": string;
+          "details": Json;
+          "consent_at": string;
+          "consent_policy": string;
+          "status": "new" | "in_review" | "in_progress" | "completed" | "rejected";
+          "priority": "low" | "normal" | "high";
+          "assigned_to": string | null;
+          "manager_note": string;
+          "version": number;
+          "created_at": string;
+          "updated_at": string;
+        };
+        Insert: {
+          "id": string;
+          "kind": "research_proposal" | "it_request" | "publication_support";
+          "owner_id"?: string | null;
+          "locale": "ru" | "kk" | "en";
+          "title": string;
+          "description": string;
+          "contact_name": string;
+          "email": string;
+          "organization"?: string;
+          "details": Json;
+          "consent_at"?: string;
+          "consent_policy"?: string;
+          "status"?: "new" | "in_review" | "in_progress" | "completed" | "rejected";
+          "priority"?: "low" | "normal" | "high";
+          "assigned_to"?: string | null;
+          "manager_note"?: string;
+          "version"?: number;
+          "created_at"?: string;
+          "updated_at"?: string;
+        };
+        Update: {
+          "id"?: string;
+          "kind"?: "research_proposal" | "it_request" | "publication_support";
+          "owner_id"?: string | null;
+          "locale"?: "ru" | "kk" | "en";
+          "title"?: string;
+          "description"?: string;
+          "contact_name"?: string;
+          "email"?: string;
+          "organization"?: string;
+          "details"?: Json;
+          "consent_at"?: string;
+          "consent_policy"?: string;
+          "status"?: "new" | "in_review" | "in_progress" | "completed" | "rejected";
+          "priority"?: "low" | "normal" | "high";
+          "assigned_to"?: string | null;
+          "manager_note"?: string;
+          "version"?: number;
+          "created_at"?: string;
+          "updated_at"?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "support_requests_assigned_to_fkey"; columns: ["assigned_to"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+          { foreignKeyName: "support_requests_owner_id_fkey"; columns: ["owner_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+        ];
+      };
       "user_roles": {
         Row: {
           "user_id": string;
@@ -2541,6 +2639,16 @@ export type Database = {
         };
         Returns: (Database["public"]["Tables"]["scientist_profiles"]["Row"])[];
       };
+      "list_support_requests": {
+        Args: {
+          "p_kind": string | null;
+          "p_status"?: string | null;
+          "p_page"?: number | null;
+          "p_id"?: string | null;
+          "p_manage"?: boolean | null;
+        };
+        Returns: Json;
+      };
       "merge_scientists": {
         Args: {
           "p_source": string | null;
@@ -2606,6 +2714,13 @@ export type Database = {
           "p_output_id": string | null;
           "p_version": number | null;
           "p_upload_id": string | null;
+        };
+        Returns: Json;
+      };
+      "resolve_support_request_file": {
+        Args: {
+          "p_request": string | null;
+          "p_file": string | null;
         };
         Returns: Json;
       };
@@ -2889,6 +3004,13 @@ export type Database = {
         Args: Record<string, never>;
         Returns: string;
       };
+      "smu_can_manage_support": {
+        Args: {
+          "p_actor": string | null;
+          "p_kind": string | null;
+        };
+        Returns: boolean;
+      };
       "smu_decide_mentorship": {
         Args: {
           "p_id": string | null;
@@ -2914,6 +3036,12 @@ export type Database = {
         };
         Returns: Json;
       };
+      "smu_support_permission": {
+        Args: {
+          "p_kind": string | null;
+        };
+        Returns: string;
+      };
       "submit_article_review": {
         Args: {
           "p_id": string | null;
@@ -2936,6 +3064,21 @@ export type Database = {
           "p_input": Json | null;
         };
         Returns: undefined;
+      };
+      "submit_support_request": {
+        Args: {
+          "p_id": string | null;
+          "p_input": Json | null;
+          "p_files": Json | null;
+          "p_owner"?: string | null;
+        };
+        Returns: string;
+      };
+      "support_request_assignees": {
+        Args: {
+          "p_kind": string | null;
+        };
+        Returns: Json;
       };
       "update_mentorship_application": {
         Args: {
@@ -2969,6 +3112,17 @@ export type Database = {
           "p_id": string | null;
           "p_actor": string | null;
           "p_status": "new" | "in_review" | "accepted" | "rejected" | "completed" | null;
+          "p_note": string | null;
+        };
+        Returns: undefined;
+      };
+      "update_support_request": {
+        Args: {
+          "p_id": string | null;
+          "p_version": number | null;
+          "p_status": string | null;
+          "p_priority": string | null;
+          "p_assigned_to": string | null;
           "p_note": string | null;
         };
         Returns: undefined;

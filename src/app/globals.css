@@ -3252,3 +3252,20 @@ fieldset.article-editor-panel { min-width: 0; }
 .legacy-consent { margin: 1.5rem 0; padding: 1rem; border: 1px solid #cbd3df; border-radius: .5rem; }
 .legacy-text { white-space: pre-wrap; overflow-wrap: anywhere; }
 .legacy-public { padding-top: 2rem; padding-bottom: 3rem; }
+/* Request forms and private operational queues. */
+.support-page { max-width: 840px; margin: 40px auto; padding: 24px; }
+.support-page h1, .support-admin h1 { margin-bottom: 20px; }
+.support-cards { display: grid; gap: 14px; margin: 28px 0; }
+.support-cards a { padding: 22px; border: 1px solid #dbe2e8; border-radius: 14px; background: #fff; }
+.support-form { max-width: 760px; margin: 24px 0; }
+.support-form fieldset { display: grid; gap: 18px; border: 0; margin: 0; padding: 0; min-width: 0; }
+.support-form textarea, .support-form select, .support-form input:not([type="checkbox"]) { width: 100%; max-width: 100%; }
+.support-form textarea, .support-form select { border: 1px solid #cfd7d2; border-radius: 9px; background: #fff; color: var(--ink); padding: 12px; font: inherit; }
+.support-form .confirm-check { display: flex; align-items: flex-start; }
+.support-form input[type="checkbox"] { width: 18px; height: 18px; flex: 0 0 18px; margin-top: 2px; padding: 0; }
+.support-honeypot { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.support-detail { margin: 24px 0; overflow-wrap: anywhere; }
+.support-detail dt { margin-top: 16px; font-weight: 600; }
+.support-detail dd { margin: 6px 0 16px; }
+.support-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.support-admin { max-width: 1000px; }

@@ -53,6 +53,14 @@ const navigation: AdminNavigationSection[] = [
     ],
   },
   {
+    label: "Поддержка",
+    items: [
+      { label: "Предложения исследований", href: "/admin/support/research_proposal", icon: FlaskConical },
+      { label: "IT-заявки", href: "/admin/support/it_request", icon: LayoutGrid },
+      { label: "Поддержка публикаций", href: "/admin/support/publication_support", icon: BookOpenText },
+    ],
+  },
+  {
     label: "Система",
     items: [
       { label: "Пользователи и роли", icon: CircleUserRound },
