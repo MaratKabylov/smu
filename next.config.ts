@@ -2,10 +2,13 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   async headers() {
-    return ["/admin/:path*", "/api/:path*", "/:locale(ru|kk|en)/account/:path*"].map(source => ({ source, headers: [
+    return [...["/admin/:path*", "/api/:path*", "/:locale(ru|kk|en)/account/:path*"].map(source => ({ source, headers: [
       { key: "X-Robots-Tag", value: "noindex, nofollow" },
       ...(source.includes("account") ? [{ key: "Cache-Control", value: "private, no-store" }, { key: "Referrer-Policy", value: "no-referrer" }] : []),
-    ] }));
+    ] })), { source: "/:locale(ru|kk|en)/mentorship/legacy/:path*", headers: [
+      { key: "Cache-Control", value: "private, no-store" },
+      { key: "Referrer-Policy", value: "no-referrer" },
+    ] }];
   },
   experimental: {
     serverActions: {

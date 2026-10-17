@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { accountCopy } from "@/lib/i18n/account";
+import { legacyCopy } from "@/lib/i18n/scientific-legacy";
 import { accountRecordsCopy } from "@/lib/i18n/account-records";
 import { accountSections } from "@/lib/validation/account-records";
 import { requireLocale } from "@/lib/i18n/server";
@@ -18,7 +19,7 @@ export default async function AccountPage({ params, searchParams }: AccountPageP
   return <section className="login-card account-card"><p className="login-kicker">{copy.profile}</p><h1>{copy.account}</h1>
     {access.displayName && <p>{access.displayName}</p>}<p>{access.email}</p><p className="account-notice">{copy.verified}</p>
     {error === "logout" && <div className="form-error" role="alert">{copy.messages.logout}</div>}
-    <nav className="account-sections" aria-label={copy.account}>{accountSections.map(section => <Link key={section} href={`/${locale}/account/${section}`}>{accountRecordsCopy[locale].sections[section]}</Link>)}</nav>
+    <nav className="account-sections" aria-label={copy.account}>{accountSections.map(section => <Link key={section} href={`/${locale}/account/${section}`}>{accountRecordsCopy[locale].sections[section]}</Link>)}<Link href={`/${locale}/account/legacy`}>{legacyCopy[locale].title}</Link></nav>
     <nav className="account-links" aria-label={copy.account}><Link href={`/${locale}/account/update-password`}>{copy["update-password"]}</Link>{access.admin && <Link href="/admin">{copy.admin}</Link>}</nav>
     <form action={logoutAccount.bind(null, locale)} className="login-form"><button type="submit">{copy.logout}</button></form>
   </section>;

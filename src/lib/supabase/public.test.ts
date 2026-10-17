@@ -41,6 +41,8 @@ describe("anonymous public Supabase cache", () => {
     ["/rest/v1/articles", "DELETE", anonymous],
     ["/rest/v1/rpc/save_article", "POST", anonymous],
     ["/rest/v1/rpc/search_admin", "POST", anonymous],
+    ["/rest/v1/rpc/list_scientific_legacy", "POST", anonymous],
+    ["/rest/v1/rpc/list_scientific_legacy", "GET", anonymous],
     ["/rest/v1/rpc/unknown_function", "GET", anonymous],
     ["/auth/v1/user", "GET", anonymous],
     ["/storage/v1/object/article-media/photo.png", "GET", anonymous],

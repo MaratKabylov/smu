@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { applicationStatuses, mentorshipFormats, mentorshipStatuses, mentorshipKinds, mentorshipRelationStatuses } from "../../types/domain/mentorship";
 const slug = z.string().trim().min(2).max(160).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
-const translation = z.object({ title: z.string().trim().min(3).max(240), slug,
+const translation = z.object({ title: z.string().trim().min(3).max(240), slug: slug.refine(value => value !== "legacy"),
   summary: z.string().trim().min(20).max(800), description: z.string().trim().min(40).max(20000) });
 export const mentorshipStatusSchema = z.enum(mentorshipStatuses);
 export const applicationStatusSchema = z.enum(applicationStatuses);

@@ -11,6 +11,7 @@ describe("mentorship validation", () => {
     for (const capacity of ["", "0", "51", "2.5", "NaN"]) expect(mentorshipInputSchema.safeParse({ ...offer, capacity }).success).toBe(false);
     expect(mentorshipInputSchema.safeParse({ ...offer, kk: undefined }).success).toBe(false);
     expect(mentorshipInputSchema.safeParse({ ...offer, ru: { ...translation, slug: "../bad" } }).success).toBe(false);
+    expect(mentorshipInputSchema.safeParse({ ...offer, ru: { ...translation, slug: "legacy" } }).success).toBe(false);
   });
   it("normalizes email before duplicate and rate checks", () => {
     expect(mentorshipApplicationSchema.parse(application).email).toBe("applicant@example.kz");

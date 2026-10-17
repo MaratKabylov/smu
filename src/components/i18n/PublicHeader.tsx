@@ -6,6 +6,7 @@ import { localizedPath, locales, publicSections, translationPaths, type Locale, 
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { searchCopy } from "@/lib/search";
 import { accountCopy } from "@/lib/i18n/account";
+import { legacyCopy } from "@/lib/i18n/scientific-legacy";
 
 export function PublicHeader({ locale, section, translations, paths }: {
   locale: Locale; section: PublicSection; translations?: readonly { locale: Locale; slug: string }[];
@@ -19,6 +20,7 @@ export function PublicHeader({ locale, section, translations, paths }: {
     </Link>
     <nav className="journal-nav" aria-label={copy.navigation}>
       {publicSections.map(item => <Link key={item} href={localizedPath(locale, `/${item}`)} aria-current={item === section ? "page" : undefined}>{copy.sections[item]}</Link>)}
+      {section === "mentorship" && <Link href={`/${locale}/mentorship/legacy`}>{legacyCopy[locale].title}</Link>}
       <Link href={localizedPath(locale, "/search")}>{searchCopy[locale].find}</Link>
       <a href={localizedPath(locale, "/feed.xml")}>RSS</a>
       <Link href={localizedPath(locale, "/account")}>{accountCopy[locale].account}</Link>

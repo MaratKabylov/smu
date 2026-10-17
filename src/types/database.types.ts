@@ -1803,6 +1803,56 @@ export type Database = {
           { foreignKeyName: "scientific_fields_parent_id_fkey"; columns: ["parent_id"]; isOneToOne: false; referencedRelation: "scientific_fields"; referencedColumns: ["id"] },
         ];
       };
+      "scientific_legacy": {
+        Row: {
+          "id": string;
+          "owner_id": string;
+          "kind": "topic" | "archive" | "unpublished_data" | "dataset" | "methodology" | "collection" | "unfinished_research" | "scientific_school" | "successor_topic";
+          "status": "draft" | "published" | "archived";
+          "translations": Json;
+          "source_text": string;
+          "source_url": string;
+          "version": number;
+          "consent_version": number | null;
+          "consent_at": string | null;
+          "published_at": string | null;
+          "created_at": string;
+          "updated_at": string;
+        };
+        Insert: {
+          "id"?: string;
+          "owner_id": string;
+          "kind": "topic" | "archive" | "unpublished_data" | "dataset" | "methodology" | "collection" | "unfinished_research" | "scientific_school" | "successor_topic";
+          "status": "draft" | "published" | "archived";
+          "translations": Json;
+          "source_text"?: string;
+          "source_url"?: string;
+          "version"?: number;
+          "consent_version"?: number | null;
+          "consent_at"?: string | null;
+          "published_at"?: string | null;
+          "created_at"?: string;
+          "updated_at"?: string;
+        };
+        Update: {
+          "id"?: string;
+          "owner_id"?: string;
+          "kind"?: "topic" | "archive" | "unpublished_data" | "dataset" | "methodology" | "collection" | "unfinished_research" | "scientific_school" | "successor_topic";
+          "status"?: "draft" | "published" | "archived";
+          "translations"?: Json;
+          "source_text"?: string;
+          "source_url"?: string;
+          "version"?: number;
+          "consent_version"?: number | null;
+          "consent_at"?: string | null;
+          "published_at"?: string | null;
+          "created_at"?: string;
+          "updated_at"?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "scientific_legacy_owner_id_fkey"; columns: ["owner_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+        ];
+      };
       "scientific_organization_translations": {
         Row: {
           "organization_id": string;
@@ -2473,6 +2523,16 @@ export type Database = {
         };
         Returns: ({ "id": string | null; "scientist_id": string | null; "title": string | null; "year": number | null; "journal": string | null; "doi": string | null; "url": string | null; "publication_type": string | null; "scientist_name": string | null; "scientist_href": string | null; "authors": Json | null; "works": Json | null })[];
       };
+      "list_scientific_legacy": {
+        Args: {
+          "p_locale": string | null;
+          "p_page"?: number | null;
+          "p_id"?: string | null;
+          "p_own"?: boolean | null;
+          "p_kind"?: string | null;
+        };
+        Returns: Json;
+      };
       "list_scientist_profiles": {
         Args: {
           "p_ids"?: (string)[] | null;
@@ -2714,6 +2774,12 @@ export type Database = {
         };
         Returns: string;
       };
+      "save_scientific_legacy": {
+        Args: {
+          "p_input": Json | null;
+        };
+        Returns: string;
+      };
       "save_scientist": {
         Args: {
           "p_id": string | null;
@@ -2810,6 +2876,14 @@ export type Database = {
           "p_id"?: string | null;
         };
         Returns: Json;
+      };
+      "set_scientific_legacy_consent": {
+        Args: {
+          "p_id": string | null;
+          "p_version": number | null;
+          "p_granted": boolean | null;
+        };
+        Returns: undefined;
       };
       "smu_account_user_id": {
         Args: Record<string, never>;

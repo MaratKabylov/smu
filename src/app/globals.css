@@ -3242,3 +3242,13 @@ fieldset.article-editor-panel { min-width: 0; }
 .platform-search-results li { padding: 24px 0; border-bottom: 1px solid #d8e0dc; }
 .platform-search-results h2 { font-size: 22px; margin: 8px 0; }
 .platform-search-results p { white-space: pre-wrap; overflow-wrap: anywhere; }
+/* Scientific legacy uses the shared account and public catalogue surfaces. */
+.legacy-form fieldset { border: 0; padding: 0; margin: 0 0 1.5rem; min-width: 0; display: grid; gap: 1rem; }
+.legacy-form fieldset fieldset { border-top: 1px solid #e3e7ed; padding-top: 1rem; }
+.legacy-form legend { font-weight: 600; }
+.legacy-form label { display: grid; gap: .45rem; }
+.legacy-form input:not([type="checkbox"]), .legacy-form textarea, .legacy-form select { width: 100%; box-sizing: border-box; border: 1px solid #cbd3df; border-radius: .5rem; padding: .7rem; font: inherit; }
+.legacy-form .confirm-check { display: flex; align-items: flex-start; }
+.legacy-consent { margin: 1.5rem 0; padding: 1rem; border: 1px solid #cbd3df; border-radius: .5rem; }
+.legacy-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.legacy-public { padding-top: 2rem; padding-bottom: 3rem; }
