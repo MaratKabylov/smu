@@ -6,6 +6,7 @@ import { mentorshipAdminPath as base } from "@/lib/mentorship";
 import { mentorshipRelationStatusSchema } from "@/lib/validation/mentorship";
 import { applicationUpdateSchema, mentorshipApplicationSchema, mentorshipInputSchema, mentorshipStatusSchema } from "@/lib/validation/mentorship";
 import { getAdminAccess } from "@/server/services/access.service";
+import { protectPublicForm, PublicFormProtectionError } from "@/server/services/public-form-protection.service";
 import { MentorshipService, MentorshipServiceError, PublicMentorshipService } from "@/server/services/mentorship.service";
 async function access() {
   const result = await getAdminAccess();
@@ -14,6 +15,7 @@ async function access() {
   return result.access;
 }
 function errorCode(error: unknown) {
+  if (error instanceof PublicFormProtectionError && error.code === "invalid_input") return "validation";
   if (error instanceof MentorshipServiceError) return "forbidden";
   const message = error && typeof error === "object" && "message" in error ? String(error.message) : "";
   return ["forbidden", "not_found", "not_available", "invalid_reference", "invalid_transition", "capacity_exceeded", "mentor_has_applications", "rate_limited", "duplicate_application"].find(code => message.includes(code)) ?? "action_failed";
@@ -68,7 +70,7 @@ export async function changeMentorshipRelation(id: string, form: FormData) {
 export async function submitMentorshipApplication(_state: { code: string }, form: FormData): Promise<{ code: string }> {
   const input = mentorshipApplicationSchema.safeParse({ offerId: form.get("offerId"), locale: form.get("locale"), fullName: form.get("fullName"), email: form.get("email"), motivation: form.get("motivation"), consent: form.get("consent") === "yes", website: form.get("website") ?? "" });
   if (!input.success) return { code: "validation" };
-  try { await new PublicMentorshipService().submit(input.data); }
+  try { await protectPublicForm(form, input.data.email); await new PublicMentorshipService().submit(input.data); }
   catch (error) { return { code: errorCode(error) }; }
   revalidatePath(base, "layout");
   return { code: "submitted" };

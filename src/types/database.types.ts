@@ -1221,6 +1221,25 @@ export type Database = {
         Relationships: [
         ];
       };
+      "public_form_limits": {
+        Row: {
+          "key": string;
+          "attempts": number;
+          "expires_at": string;
+        };
+        Insert: {
+          "key": string;
+          "attempts": number;
+          "expires_at": string;
+        };
+        Update: {
+          "key"?: string;
+          "attempts"?: number;
+          "expires_at"?: string;
+        };
+        Relationships: [
+        ];
+      };
       "publication_coauthors": {
         Row: {
           "publication_id": string;
@@ -2561,6 +2580,13 @@ export type Database = {
           "p_reviewer": string | null;
         };
         Returns: undefined;
+      };
+      "consume_public_form_limit": {
+        Args: {
+          "p_network_key": string | null;
+          "p_email_key": string | null;
+        };
+        Returns: boolean;
       };
       "create_article_revision": {
         Args: {

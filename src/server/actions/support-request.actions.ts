@@ -3,8 +3,10 @@ import { revalidatePath } from "next/cache";
 import { isLocale, locales, type Locale } from "@/lib/i18n/locales";
 import { parseSupportForm, supportKinds, supportUpdateSchema, type SupportKind } from "@/lib/validation/support-request";
 import { SupportRequestService } from "@/server/services/support-request.service";
+import { protectPublicForm, PublicFormProtectionError } from "@/server/services/public-form-protection.service";
 export type SupportFormState = { message?: "saved" | "failed" | "invalid" | "session" | "rate" | "stale" | "file"; id?: string };
 function failure(error: unknown): SupportFormState {
+  if (error instanceof PublicFormProtectionError && error.code === "invalid_input") return { message: "invalid" };
   const message = error && typeof error === "object" && "message" in error ? error.message : "";
   return { message: message === "stale_version" ? "stale" : message === "rate_limited" ? "rate" : message === "invalid_file" ? "file" : message === "session" ? "session" : "failed" };
 }
@@ -18,6 +20,7 @@ export async function submitSupportRequest(locale: Locale, kind: SupportKind, _p
   const files = form.getAll("files").filter((file): file is File => file instanceof File && (file.size > 0 || file.name !== ""));
   if (form.getAll("files").some(file => !(file instanceof File))) return { message: "invalid" };
   try {
+    await protectPublicForm(form, input.email);
     const id = await new SupportRequestService().submit(input, files);
     refresh(); return { message: "saved", id };
   } catch (error) { return failure(error); }

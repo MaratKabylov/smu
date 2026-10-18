@@ -1,5 +1,6 @@
 import { beforeEach, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ access: vi.fn(), decision: vi.fn(), change: vi.fn(), path: vi.fn(), tag: vi.fn() }));
+vi.mock("@/server/services/public-form-protection.service", () => ({ protectPublicForm: vi.fn(), PublicFormProtectionError: class extends Error {} }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.path, revalidateTag: mocks.tag }));
 vi.mock("next/navigation", () => ({ redirect: (url: string) => { throw new Error("redirect:" + url); } }));
 vi.mock("@/server/services/access.service", () => ({ getAdminAccess: mocks.access }));

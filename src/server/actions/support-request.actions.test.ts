@@ -1,5 +1,6 @@
 import { beforeEach, expect, it, vi } from "vitest";
 const m = vi.hoisted(() => ({ submit: vi.fn(), update: vi.fn(), refresh: vi.fn() }));
+vi.mock("@/server/services/public-form-protection.service", () => ({ protectPublicForm: vi.fn(), PublicFormProtectionError: class extends Error {} }));
 vi.mock("next/cache", () => ({ revalidatePath: m.refresh }));
 vi.mock("@/server/services/support-request.service", () => ({ SupportRequestService: class { submit = m.submit; update = m.update; } }));
 import { submitSupportRequest, updateSupportRequest } from "./support-request.actions";

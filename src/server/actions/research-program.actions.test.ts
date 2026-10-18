@@ -1,4 +1,5 @@
 import { beforeEach, expect, it, vi } from "vitest";
+vi.mock("@/server/services/public-form-protection.service", () => ({ protectPublicForm: vi.fn(), PublicFormProtectionError: class extends Error {} }));
 const mocks = vi.hoisted(() => ({ access: vi.fn(), assign: vi.fn(), decide: vi.fn(), localized: vi.fn(), private: vi.fn() }));
 vi.mock("server-only", () => ({}));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.private }));

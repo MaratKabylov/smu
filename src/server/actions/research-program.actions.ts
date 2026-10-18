@@ -6,6 +6,7 @@ import { z } from "zod";
 import { researchProgramAdminPath as base } from "@/lib/research-program";
 import { applicationUpdateSchema, researchProgramApplicationSchema, researchProgramInputSchema, researchProgramStatusSchema } from "@/lib/validation/research-program";
 import { getAdminAccess } from "@/server/services/access.service";
+import { protectPublicForm, PublicFormProtectionError } from "@/server/services/public-form-protection.service";
 import { ResearchProgramService, ResearchProgramServiceError, PublicResearchProgramService } from "@/server/services/research-program.service";
 import { programMentorInputSchema } from "@/lib/validation/research-program-participation";
 async function access() {
@@ -15,6 +16,7 @@ async function access() {
   return result.access;
 }
 function errorCode(error: unknown) {
+  if (error instanceof PublicFormProtectionError && error.code === "invalid_input") return "validation";
   if (error instanceof ResearchProgramServiceError) return "forbidden";
   const message = error && typeof error === "object" && "message" in error ? String(error.message) : "";
   return ["forbidden", "stale_version", "not_found", "not_available", "applications_closed", "invalid_reference", "invalid_transition", "capacity_exceeded", "program_has_applications", "rate_limited", "duplicate_application"].find(code => message.includes(code)) ?? "action_failed";
@@ -65,7 +67,7 @@ export async function updateResearchProgramApplication(id: string, programId: st
 export async function submitResearchProgramApplication(_state: { code: string }, form: FormData): Promise<{ code: string }> {
   const input = researchProgramApplicationSchema.safeParse({ programId: form.get("programId"), locale: form.get("locale"), fullName: form.get("fullName"), email: form.get("email"), motivation: form.get("motivation"), consent: form.get("consent") === "yes", website: form.get("website") ?? "" });
   if (!input.success) return { code: "validation" };
-  try { await new PublicResearchProgramService().submit(input.data); }
+  try { await protectPublicForm(form, input.data.email); await new PublicResearchProgramService().submit(input.data); }
   catch (error) { return { code: errorCode(error) }; }
   revalidatePath(base, "layout");
   return { code: "submitted" };
