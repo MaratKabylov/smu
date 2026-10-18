@@ -15,9 +15,9 @@ export function pageAlternates(locale: Locale, section: PublicSection, translati
 // index. Unfiltered pagination has its own canonical; tracking is discarded.
 export function catalogMetadata(locale: Locale, section: PublicSection, title: string, description: string, query: PublicQuery = {}): Metadata {
   const page = readPage(query.page);
-  const filtered = ["q", "category", "tag", "organization", "field", "stage", "format", "kind", "period"].some(key => {
+  const filtered = ["q", "category", "tag", "organization", "field", "stage", "format", "kind", "period", "type", "country", "availability", "status"].some(key => {
     const value = query[key];
-    return (Array.isArray(value) ? value : [value]).some(item => item && (key === "period" ? item !== "upcoming" : item !== "all"));
+    return (Array.isArray(value) ? value : [value]).some(item => item && (key === "period" ? item !== "upcoming" : key === "availability" ? item !== "open" : item !== "all"));
   });
   const base = localizedPath(locale, "/" + section);
   const canonical = absoluteUrl(base + (!filtered && page > 1 ? "?page=" + page : ""));

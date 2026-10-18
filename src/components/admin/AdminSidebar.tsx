@@ -30,6 +30,7 @@ const navigation: AdminNavigationSection[] = [
     label: "Контент",
     items: [
       { label: "Статьи", href: "/admin/content/articles", icon: BookOpenText },
+      { label: "Возможности", href: "/admin/opportunities", icon: Sparkles },
       { label: "Медиа", href: "/admin/content/media", icon: Images },
     ],
   },

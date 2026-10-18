@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { appendPublicQuery, type Locale, type PublicQuery } from "@/lib/i18n/locales";
 
-export const searchSections = ["journal", "scientists", "research", "projects", "publications", "mentorship", "research-program", "events", "organizations", "users", "media", "mentorship-applications", "program-applications"] as const;
+export const searchSections = ["journal", "scientists", "research", "projects", "publications", "mentorship", "research-program", "events", "opportunities", "organizations", "users", "media", "mentorship-applications", "program-applications"] as const;
 export type SearchSection = typeof searchSections[number];
 export const searchPageSchema = z.object({
   total: z.number().int().nonnegative(), page: z.number().int().positive(), pageSize: z.number().int().positive(),
@@ -37,7 +37,7 @@ export const searchCopy = {
   en: { title: "Search the platform", input: "What are you looking for?", find: "Search", all: "All sections", empty: "No results found", hint: "Enter words to search the platform.", previous: "Previous", next: "Next", pagination: "Result pages", results: "Results", page: "Page" },
 } satisfies Record<Locale, Record<string, string>>;
 export const searchSectionLabels: Record<Locale, Record<SearchSection, string>> = {
-  ru: { journal: "Статьи", scientists: "Учёные", research: "Исследования", projects: "Проекты", publications: "Научные публикации", mentorship: "Наставничество", "research-program": "Research Program", events: "События", organizations: "Организации", users: "Пользователи", media: "Медиа", "mentorship-applications": "Заявки на наставничество", "program-applications": "Заявки Research Program" },
-  kk: { journal: "Мақалалар", scientists: "Ғалымдар", research: "Зерттеулер", projects: "Жобалар", publications: "Ғылыми жарияланымдар", mentorship: "Тәлімгерлік", "research-program": "Зерттеу бағдарламасы", events: "Іс-шаралар", organizations: "Ұйымдар", users: "Пайдаланушылар", media: "Медиа", "mentorship-applications": "Тәлімгерлік өтінімдері", "program-applications": "Бағдарлама өтінімдері" },
-  en: { journal: "Articles", scientists: "Scientists", research: "Research", projects: "Projects", publications: "Scientific publications", mentorship: "Mentorship", "research-program": "Research Program", events: "Events", organizations: "Organizations", users: "Users", media: "Media", "mentorship-applications": "Mentorship applications", "program-applications": "Program applications" },
+  ru: { journal: "Статьи", scientists: "Учёные", research: "Исследования", projects: "Проекты", publications: "Научные публикации", mentorship: "Наставничество", "research-program": "Research Program", events: "События", opportunities: "Возможности", organizations: "Организации", users: "Пользователи", media: "Медиа", "mentorship-applications": "Заявки на наставничество", "program-applications": "Заявки Research Program" },
+  kk: { journal: "Мақалалар", scientists: "Ғалымдар", research: "Зерттеулер", projects: "Жобалар", publications: "Ғылыми жарияланымдар", mentorship: "Тәлімгерлік", "research-program": "Зерттеу бағдарламасы", events: "Іс-шаралар", opportunities: "Мүмкіндіктер", organizations: "Ұйымдар", users: "Пайдаланушылар", media: "Медиа", "mentorship-applications": "Тәлімгерлік өтінімдері", "program-applications": "Бағдарлама өтінімдері" },
+  en: { journal: "Articles", scientists: "Scientists", research: "Research", projects: "Projects", publications: "Scientific publications", mentorship: "Mentorship", "research-program": "Research Program", events: "Events", opportunities: "Opportunities", organizations: "Organizations", users: "Users", media: "Media", "mentorship-applications": "Mentorship applications", "program-applications": "Program applications" },
 };

@@ -143,7 +143,7 @@ describe("database search and pagination", () => {
   });
   it("uses GIN indexes for every stored search document", async () => {
     const { rows } = await db.query<{ count: number }>("select count(*)::int count from pg_indexes where schemaname='public' and indexdef like '%USING gin (search_document)%'");
-    expect(rows[0].count).toBe(12);
+    expect(rows[0].count).toBe(13);
   });
   it("searches projects and research results, and applies stage and field filters", async () => {
     await temporary(`

@@ -6,7 +6,7 @@ export function isLocale(value: unknown): value is Locale {
   return typeof value === "string" && locales.some(locale => locale === value);
 }
 
-export const publicSections = ["journal", "scientists", "research", "projects", "publications", "mentorship", "research-program", "events"] as const;
+export const publicSections = ["journal", "scientists", "research", "projects", "publications", "mentorship", "research-program", "events", "opportunities"] as const;
 export type PublicSection = (typeof publicSections)[number];
 
 export function localizedPath(locale: Locale, path: string) {

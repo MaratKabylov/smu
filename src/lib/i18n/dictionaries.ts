@@ -3,18 +3,18 @@ import type { Locale } from "./locales";
 const common = {
   ru: {
     navigation: "Основная навигация", language: "Выбор языка", region: "Актюбинская область", footer: "Совет молодых учёных",
-    sections: { journal: "Журнал", scientists: "Учёные", research: "Исследования", projects: "Проекты", publications: "Публикации", mentorship: "Наставничество", "research-program": "Research Program", events: "События" },
-    brands: { journal: "Журнал молодых учёных", scientists: "Научное сообщество", research: "Исследования", projects: "Научные проекты", publications: "Научные публикации", mentorship: "Наставничество", "research-program": "Research Program", events: "События" },
+    sections: { journal: "Журнал", scientists: "Учёные", research: "Исследования", projects: "Проекты", publications: "Публикации", mentorship: "Наставничество", "research-program": "Research Program", events: "События", opportunities: "Возможности" },
+    brands: { journal: "Журнал молодых учёных", scientists: "Научное сообщество", research: "Исследования", projects: "Научные проекты", publications: "Научные публикации", mentorship: "Наставничество", "research-program": "Research Program", events: "События", opportunities: "Возможности" },
   },
   kk: {
     navigation: "Негізгі навигация", language: "Тілді таңдау", region: "Ақтөбе облысы", footer: "Жас ғалымдар кеңесі",
-    sections: { journal: "Журнал", scientists: "Ғалымдар", research: "Зерттеулер", projects: "Жобалар", publications: "Жарияланымдар", mentorship: "Тәлімгерлік", "research-program": "Зерттеу бағдарламасы", events: "Іс-шаралар" },
-    brands: { journal: "Жас ғалымдар журналы", scientists: "Ғылыми қауымдастық", research: "Зерттеулер", projects: "Ғылыми жобалар", publications: "Ғылыми жарияланымдар", mentorship: "Тәлімгерлік", "research-program": "Зерттеу бағдарламасы", events: "Іс-шаралар" },
+    sections: { journal: "Журнал", scientists: "Ғалымдар", research: "Зерттеулер", projects: "Жобалар", publications: "Жарияланымдар", mentorship: "Тәлімгерлік", "research-program": "Зерттеу бағдарламасы", events: "Іс-шаралар", opportunities: "Мүмкіндіктер" },
+    brands: { journal: "Жас ғалымдар журналы", scientists: "Ғылыми қауымдастық", research: "Зерттеулер", projects: "Ғылыми жобалар", publications: "Ғылыми жарияланымдар", mentorship: "Тәлімгерлік", "research-program": "Зерттеу бағдарламасы", events: "Іс-шаралар", opportunities: "Мүмкіндіктер" },
   },
   en: {
     navigation: "Main navigation", language: "Choose language", region: "Aktobe Region", footer: "Council of Young Scientists",
-    sections: { journal: "Journal", scientists: "Scientists", research: "Research", projects: "Projects", publications: "Publications", mentorship: "Mentorship", "research-program": "Research Program", events: "Events" },
-    brands: { journal: "Young Scientists Journal", scientists: "Scientific community", research: "Research", projects: "Research projects", publications: "Scientific publications", mentorship: "Mentorship", "research-program": "Research Program", events: "Events" },
+    sections: { journal: "Journal", scientists: "Scientists", research: "Research", projects: "Projects", publications: "Publications", mentorship: "Mentorship", "research-program": "Research Program", events: "Events", opportunities: "Opportunities" },
+    brands: { journal: "Young Scientists Journal", scientists: "Scientific community", research: "Research", projects: "Research projects", publications: "Scientific publications", mentorship: "Mentorship", "research-program": "Research Program", events: "Events", opportunities: "Opportunities" },
   },
 } as const;
 const journalCatalog = {

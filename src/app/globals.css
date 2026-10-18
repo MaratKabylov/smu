@@ -3269,3 +3269,5 @@ fieldset.article-editor-panel { min-width: 0; }
 .support-detail dd { margin: 6px 0 16px; }
 .support-text { white-space: pre-wrap; overflow-wrap: anywhere; }
 .support-admin { max-width: 1000px; }
+/* Reuse the platform's editorial panels without browser fieldset chrome. */
+.opportunity-fields { border: 0; padding: 0; margin: 0; min-width: 0; }

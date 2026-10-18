@@ -5,6 +5,7 @@ vi.mock("server-only", () => ({}));
 vi.mock("@/server/services/seo.service", () => ({ sitemapPageSize: 1000, SeoService: class { page = mocks.page; feed = mocks.feed; } }));
 vi.mock("next/navigation", () => ({ notFound: () => { throw new Error("not_found"); } }));
 import sitemap, { sitemapIds } from "./sitemap";
+import { locales, publicSections } from "@/lib/i18n/locales";
 import { GET as indexGET } from "@/app/sitemap.xml/route";
 import { GET as partGET } from "@/app/sitemap/[id]/route";
 import { GET as feedGET } from "@/app/[locale]/feed.xml/route";
@@ -25,8 +26,9 @@ describe("public indexing routes", () => {
   it("partitions all records and includes every catalog exactly once", async () => {
     expect(await sitemapIds()).toEqual([{ id: 0 }, { id: 1 }]);
     const first = await sitemap({ id: Promise.resolve("0") });
-    expect(first).toHaveLength(26);
-    expect(first.filter(item => item.url.includes("/en/"))).toHaveLength(8);
+    expect(first).toHaveLength(publicSections.length * locales.length + 2);
+    expect(first.filter(item => item.url.includes("/en/"))).toHaveLength(publicSections.length);
+    expect(first.some(item => item.url === "https://smu.example/kk/opportunities")).toBe(true);
     const second = await sitemap({ id: Promise.resolve("1") });
     expect(second).toHaveLength(2); expect(mocks.page).toHaveBeenLastCalledWith(2);
     expect(second[0].alternates?.languages).toEqual({ ru: "https://smu.example/ru/journal/voda", kk: "https://smu.example/kk/journal/su" });
@@ -35,7 +37,7 @@ describe("public indexing routes", () => {
   it("keeps a catalog sitemap for an empty site and rejects invalid/out-of-range parts", async () => {
     mocks.page.mockResolvedValue({ total: 0, items: [] });
     expect(await sitemapIds()).toEqual([{ id: 0 }]);
-    expect(await sitemap({ id: Promise.resolve("0") })).toHaveLength(24);
+    expect(await sitemap({ id: Promise.resolve("0") })).toHaveLength(publicSections.length * locales.length);
     for (const id of ["1", "-1", "01", "NaN", "50000", "100000000000000000000"]) await expect(sitemap({ id: Promise.resolve(id) })).rejects.toThrow("not_found");
   });
   it("serves XML parts and an index without persistent caching", async () => {

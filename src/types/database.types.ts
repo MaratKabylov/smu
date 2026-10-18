@@ -1073,6 +1073,107 @@ export type Database = {
           { foreignKeyName: "mentorship_relations_mentor_id_fkey"; columns: ["mentor_id"]; isOneToOne: false; referencedRelation: "scientist_profiles"; referencedColumns: ["id"] },
         ];
       };
+      "opportunities": {
+        Row: {
+          "id": string;
+          "type": "grant" | "conference" | "internship" | "competition" | "open_call" | "scholarship" | "other";
+          "country": string;
+          "deadline": string | null;
+          "source_url": string;
+          "status": "draft" | "published" | "archived";
+          "published_at": string | null;
+          "version": number;
+          "created_at": string;
+          "updated_at": string;
+          "deleted_at": string | null;
+        };
+        Insert: {
+          "id"?: string;
+          "type": "grant" | "conference" | "internship" | "competition" | "open_call" | "scholarship" | "other";
+          "country"?: string;
+          "deadline"?: string | null;
+          "source_url": string;
+          "status"?: "draft" | "published" | "archived";
+          "published_at"?: string | null;
+          "version"?: number;
+          "created_at"?: string;
+          "updated_at"?: string;
+          "deleted_at"?: string | null;
+        };
+        Update: {
+          "id"?: string;
+          "type"?: "grant" | "conference" | "internship" | "competition" | "open_call" | "scholarship" | "other";
+          "country"?: string;
+          "deadline"?: string | null;
+          "source_url"?: string;
+          "status"?: "draft" | "published" | "archived";
+          "published_at"?: string | null;
+          "version"?: number;
+          "created_at"?: string;
+          "updated_at"?: string;
+          "deleted_at"?: string | null;
+        };
+        Relationships: [
+        ];
+      };
+      "opportunity_slugs": {
+        Row: {
+          "locale": string;
+          "slug": string;
+          "opportunity_id": string;
+        };
+        Insert: {
+          "locale": string;
+          "slug": string;
+          "opportunity_id": string;
+        };
+        Update: {
+          "locale"?: string;
+          "slug"?: string;
+          "opportunity_id"?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "opportunity_slugs_opportunity_id_fkey"; columns: ["opportunity_id"]; isOneToOne: false; referencedRelation: "opportunities"; referencedColumns: ["id"] },
+        ];
+      };
+      "opportunity_translations": {
+        Row: {
+          "opportunity_id": string;
+          "locale": "ru" | "kk" | "en";
+          "slug": string;
+          "title": string;
+          "summary": string;
+          "description": string;
+          "organization": string;
+          "funding": string;
+          "search_document": string | null;
+        };
+        Insert: {
+          "opportunity_id": string;
+          "locale": "ru" | "kk" | "en";
+          "slug": string;
+          "title": string;
+          "summary": string;
+          "description": string;
+          "organization": string;
+          "funding"?: string;
+          "search_document"?: never;
+        };
+        Update: {
+          "opportunity_id"?: string;
+          "locale"?: "ru" | "kk" | "en";
+          "slug"?: string;
+          "title"?: string;
+          "summary"?: string;
+          "description"?: string;
+          "organization"?: string;
+          "funding"?: string;
+          "search_document"?: never;
+        };
+        Relationships: [
+          { foreignKeyName: "opportunity_translations_opportunity_id_fkey"; columns: ["opportunity_id"]; isOneToOne: false; referencedRelation: "opportunities"; referencedColumns: ["id"] },
+        ];
+      };
       "permissions": {
         Row: {
           "id": string;
@@ -2397,6 +2498,14 @@ export type Database = {
         };
         Returns: undefined;
       };
+      "change_opportunity_status": {
+        Args: {
+          "p_id": string | null;
+          "p_version": number | null;
+          "p_status": string | null;
+        };
+        Returns: undefined;
+      };
       "change_research_program_state": {
         Args: {
           "p_id": string | null;
@@ -2584,6 +2693,17 @@ export type Database = {
           "p_page"?: number | null;
         };
         Returns: ({ "id": string | null; "entity_type": string | null; "title_ru": string | null; "title_kk": string | null; "status": string | null; "deleted_at": string | null })[];
+      };
+      "list_opportunities": {
+        Args: {
+          "p_locale"?: string | null;
+          "p_page"?: number | null;
+          "p_id"?: string | null;
+          "p_slug"?: string | null;
+          "p_manage"?: boolean | null;
+          "p_filters"?: Json | null;
+        };
+        Returns: Json;
       };
       "list_public_programs_by_project": {
         Args: {
@@ -2830,6 +2950,12 @@ export type Database = {
         Args: {
           "p_id": string | null;
           "p_actor": string | null;
+          "p_input": Json | null;
+        };
+        Returns: string;
+      };
+      "save_opportunity": {
+        Args: {
           "p_input": Json | null;
         };
         Returns: string;
