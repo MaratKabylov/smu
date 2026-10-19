@@ -40,7 +40,7 @@ beforeAll(async () => {
   await db.exec(await readFile(new URL("./seed.sql", import.meta.url), "utf8"));
   for (const [id, role, email] of [[manager, "scientist_manager", "manager@example.kz"], [user, "user", "user@example.kz"]]) {
     await db.query("insert into auth.users values($1,$2,'{}')", [id, email]);
-    await db.query("insert into public.user_roles(user_id,role_id) select $1,id from public.roles where code=$2", [id, role]);
+    await db.query("insert into public.user_roles(user_id,role_id) select $1,id from public.roles where code=$2 on conflict do nothing", [id, role]);
   }
 }, 30_000);
 beforeEach(async () => { await db.exec("truncate public.scientific_fields, public.scientific_organizations, public.audit_logs cascade"); });

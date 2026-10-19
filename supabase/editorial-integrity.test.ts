@@ -995,7 +995,7 @@ describe("session-authorized editorial transactions", () => {
     expect((await visible("article_translations", author)).rows).toHaveLength(2);
     expect((await visible("articles")).rows).toHaveLength(0);
     expect((await db.query("select user_id from public.audit_logs where entity_id = $1", [id])).rows[0]).toEqual({ user_id: author });
-    expect((await visible("user_roles", author)).rows).toHaveLength(1);
+    expect((await visible("user_roles", author)).rows).toHaveLength(2);
   });
   it("denies anonymous/service-role RPCs and callers without a session", async () => {
     for (const role of ["anon", "service_role"]) {

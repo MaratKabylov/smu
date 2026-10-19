@@ -2797,6 +2797,13 @@ export type Database = {
         };
         Returns: undefined;
       };
+      "list_access_management": {
+        Args: {
+          "p_page"?: number | null;
+          "p_query"?: string | null;
+        };
+        Returns: Json;
+      };
       "list_account_notifications": {
         Args: {
           "p_page"?: number | null;
@@ -3279,6 +3286,13 @@ export type Database = {
         };
         Returns: undefined;
       };
+      "set_role_permissions": {
+        Args: {
+          "p_role_code": string | null;
+          "p_permission_codes": (string)[] | null;
+        };
+        Returns: boolean;
+      };
       "set_scientific_legacy_consent": {
         Args: {
           "p_id": string | null;
@@ -3286,6 +3300,13 @@ export type Database = {
           "p_granted": boolean | null;
         };
         Returns: undefined;
+      };
+      "set_user_roles": {
+        Args: {
+          "p_user_id": string | null;
+          "p_role_codes": (string)[] | null;
+        };
+        Returns: boolean;
       };
       "smu_account_user_id": {
         Args: Record<string, never>;

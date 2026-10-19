@@ -3217,6 +3217,49 @@ fieldset.article-editor-panel { min-width: 0; }
 .relation-options small { display: block; color: #64748b; }
 .relation-options label { display: grid; gap: 4px; }
 .relation-options li > a { overflow-wrap: anywhere; }
+
+/* Access management */
+.access-management-page { display: grid; gap: 20px; }
+.access-management-page .page-heading { margin-bottom: 0; }
+.access-users-table td:last-child { min-width: 620px; }
+.role-assignment-form { display: flex; align-items: flex-end; gap: 12px; }
+.role-assignment-form fieldset { display: flex; flex: 1; flex-wrap: wrap; gap: 7px; min-width: 0; margin: 0; border: 0; padding: 0; }
+.role-assignment-form label { display: inline-flex; align-items: center; gap: 5px; border: 1px solid #d7ddd9; border-radius: 999px; background: #f7f9f7; padding: 6px 9px; color: #46504c; font-size: 10px; font-weight: 750; }
+.role-assignment-form label:has(input:checked) { border-color: #9bc8ad; background: #ebf8f1; color: #206044; }
+.role-assignment-form label:has(input:disabled) { opacity: .72; }
+.role-assignment-form input[type="checkbox"], .permission-checklist input { width: 15px; height: 15px; accent-color: var(--forest); }
+.role-assignment-form .primary-button { min-height: 34px; padding-inline: 11px; font-size: 10px; white-space: nowrap; }
+.access-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+.access-pagination { justify-content: flex-end; }
+.access-pagination > span { color: var(--muted); font-size: 12px; }
+.access-permissions-section { display: grid; gap: 18px; margin-top: 20px; }
+.access-section-heading h2 { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: clamp(28px, 3vw, 38px); font-weight: 500; letter-spacing: -.035em; }
+.access-role-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.access-role-card { min-width: 0; border: 1px solid var(--line); border-radius: 14px; background: #fff; padding: 18px; }
+.access-role-card > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 15px; }
+.access-role-card h3 { margin: 0 0 4px; font-family: Georgia, "Times New Roman", serif; font-size: 21px; font-weight: 500; }
+.access-role-card header code { color: var(--muted); font-size: 10px; }
+.access-role-card header > span { border-radius: 999px; background: var(--mint); color: var(--forest); padding: 5px 8px; font-size: 10px; font-weight: 800; white-space: nowrap; }
+.access-role-card form { display: grid; gap: 14px; }
+.permission-checklist { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; max-height: 430px; overflow-y: auto; margin: 0; border: 0; padding: 2px; }
+.permission-checklist label { display: flex; align-items: flex-start; gap: 8px; min-width: 0; border: 1px solid #e3e8e4; border-radius: 8px; padding: 9px; font-size: 11px; line-height: 1.3; }
+.permission-checklist label:has(input:checked) { border-color: #b8d9c6; background: #f0f8f3; }
+.permission-checklist span { min-width: 0; }
+.permission-checklist code { display: block; margin-top: 3px; overflow-wrap: anywhere; color: var(--muted); font-size: 9px; }
+.access-permission-summary { display: flex; flex-wrap: wrap; gap: 6px; max-height: 220px; overflow-y: auto; }
+.access-permission-summary code { border-radius: 6px; background: #f3f6f4; padding: 5px 7px; color: #52605a; font-size: 9px; overflow-wrap: anywhere; }
+.access-permission-summary > span { color: var(--muted); font-size: 12px; }
+.access-role-note { margin: 14px 0 0; color: var(--muted); font-size: 10px; }
+
+@media (max-width: 1050px) {
+  .access-role-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 640px) {
+  .role-assignment-form { align-items: stretch; flex-direction: column; }
+  .permission-checklist { grid-template-columns: 1fr; }
+  .access-pagination { align-items: stretch; }
+}
 .public-relations { margin: 40px 0; }
 .public-relations ul { list-style: none; padding: 0; display: grid; gap: 16px; }
 .public-relations li { padding: 18px; background: #f5f7fa; border-radius: 12px; overflow-wrap: anywhere; }

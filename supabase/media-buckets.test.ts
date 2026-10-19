@@ -15,7 +15,7 @@ beforeAll(async () => {
   db = await createMigrationDatabase(); await db.exec(await readFile(new URL("./seed.sql", import.meta.url), "utf8"));
   for (const [actor, role] of [[owner, "author"], [other, "author"], [user, "user"]]) {
     await db.query("insert into auth.users values($1,$2,'{}')", [actor, actor + "@example.kz"]);
-    await db.query("insert into public.user_roles(user_id,role_id) select $1,id from public.roles where code=$2", [actor, role]);
+    await db.query("insert into public.user_roles(user_id,role_id) select $1,id from public.roles where code=$2 on conflict do nothing", [actor, role]);
   }
   await db.exec("grant select on storage.objects to anon,authenticated");
 }, 30000);

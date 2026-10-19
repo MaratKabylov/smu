@@ -14,7 +14,9 @@ beforeAll(async () => {
 afterAll(async () => { await db?.close(); });
 const failedChecks = async () => (await db.query<{ check_name: string; ok: boolean }>(verify)).rows.filter(row => !row.ok).map(row => row.check_name);
 it("keeps the published verification and recovery SQL in sync with the original migration", async () => {
-  const expected = await supportRecoveryArtifacts(); expect(verify).toBe(expected.verify); expect(reapply).toBe(expected.reapply);
+  const expected = await supportRecoveryArtifacts();
+  const normalized = (value: string) => value.replaceAll("\r", "");
+  expect(normalized(verify)).toBe(normalized(expected.verify)); expect(normalized(reapply)).toBe(normalized(expected.reapply));
 });
 it("identifies missing seed roles before recovery and resolves the reported six missing assignments with seed", async () => {
   const unseeded = await createMigrationDatabase({ through: 35 });
