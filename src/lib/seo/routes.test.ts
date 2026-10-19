@@ -39,8 +39,9 @@ describe("public indexing routes", () => {
   it("partitions all records and includes every catalog exactly once", async () => {
     expect(await sitemapIds()).toEqual([{ id: 0 }, { id: 1 }]);
     const first = await sitemap({ id: Promise.resolve("0") });
-    expect(first).toHaveLength(publicSections.length * locales.length + 2);
+    expect(first).toHaveLength((publicSections.length + 1) * locales.length + 2);
     expect(first.filter(item => item.url.includes("/en/"))).toHaveLength(publicSections.length);
+    expect(first.find(item => item.url === "https://smu.example/en")?.alternates?.languages).toEqual({ ru: "https://smu.example/ru", kk: "https://smu.example/kk", en: "https://smu.example/en" });
     expect(first.some(item => item.url === "https://smu.example/kk/opportunities")).toBe(true);
     const second = await sitemap({ id: Promise.resolve("1") });
     expect(second).toHaveLength(2); expect(mocks.page).toHaveBeenLastCalledWith(2);
@@ -50,7 +51,7 @@ describe("public indexing routes", () => {
   it("keeps a catalog sitemap for an empty site and rejects invalid/out-of-range parts", async () => {
     mocks.page.mockResolvedValue({ total: 0, items: [] });
     expect(await sitemapIds()).toEqual([{ id: 0 }]);
-    expect(await sitemap({ id: Promise.resolve("0") })).toHaveLength(publicSections.length * locales.length);
+    expect(await sitemap({ id: Promise.resolve("0") })).toHaveLength((publicSections.length + 1) * locales.length);
     for (const id of ["1", "-1", "01", "NaN", "50000", "100000000000000000000"]) await expect(sitemap({ id: Promise.resolve(id) })).rejects.toThrow("not_found");
   });
   it("serves XML parts and an index without persistent caching", async () => {

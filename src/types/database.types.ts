@@ -2992,6 +2992,20 @@ export type Database = {
         };
         Returns: ({ "id": string | null; "entity_type": string | null; "title_ru": string | null; "title_kk": string | null; "status": string | null; "deleted_at": string | null })[];
       };
+      "list_homepage_events": {
+        Args: {
+          "p_locale": string | null;
+          "p_limit"?: number | null;
+        };
+        Returns: Json;
+      };
+      "list_homepage_results": {
+        Args: {
+          "p_locale": string | null;
+          "p_limit"?: number | null;
+        };
+        Returns: Json;
+      };
       "list_opportunities": {
         Args: {
           "p_locale"?: string | null;
@@ -3130,6 +3144,10 @@ export type Database = {
           "p_expected_deleted_at": string | null;
         };
         Returns: undefined;
+      };
+      "read_admin_dashboard": {
+        Args: Record<string, never>;
+        Returns: Json;
       };
       "read_public_site_content": {
         Args: {

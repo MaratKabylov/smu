@@ -9,7 +9,7 @@ export async function PublicResearchOutputs({ workId, locale }: { workId: string
     kk: { title: "Ғылыми нәтижелер", version: "Нұсқа", license: "Пайдалану шарттары", download: "Жүктеп алу", external: "Нәтижені ашу" },
     en: { title: "Research outputs", version: "Version", license: "Terms of use", download: "Download", external: "Open output" },
   }[locale];
-  return <section className="science-work-body"><h2>{text.title}</h2>{outputs.map(o => <article key={o.id}>
+  return <section className="science-work-body" id="results"><h2>{text.title}</h2>{outputs.map(o => <article key={o.id}>
     <small>{researchOutputLabels[locale][o.kind]} · {text.version} {o.versionLabel}</small><h3>{o.title}</h3>
     {o.description.split(/\n{2,}/).map((p, i) => <p key={i}>{p}</p>)}<p>{text.license}: {o.license}</p>
     {o.externalUrl ? <p><a href={o.externalUrl} rel="noreferrer" target="_blank">{text.external}</a></p> : null}

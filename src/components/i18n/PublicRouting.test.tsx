@@ -20,7 +20,6 @@ vi.mock("@/server/repositories/article-images.repository", () => ({ getArticleIm
 import Journal, { generateMetadata as journalMetadata } from "@/app/[locale]/journal/page";
 import Scientists from "@/app/[locale]/scientists/page";
 import Publications from "@/app/[locale]/publications/page";
-import Home from "@/app/[locale]/page";
 import PublicLayout from "@/app/[locale]/layout";
 import AdminLayout from "@/app/admin/layout";
 import { PublicScienceWorkCatalog } from "@/components/science/PublicScienceWork";
@@ -88,9 +87,6 @@ describe("localized public pages", () => {
     expect(await journalMetadata(props("kk"))).toMatchObject({ title: "Жас ғалымдар журналы" });
     expect(renderToStaticMarkup(await Publications(props("kk")))).toContain("Ғылыми жарияланымдар");
     expect(mocks.publications).toHaveBeenCalledWith("kk", "science", 1);
-  });
-  it("preserves repeated query keys on locale home redirects", async () => {
-    await expect(Home({ params: Promise.resolve({ locale: "kk" }), searchParams: Promise.resolve({ lang: "ru", q: "science", tag: ["one", "two"] }) })).rejects.toThrow("redirect:/kk/journal?q=science&tag=one&tag=two");
   });
   it.each([
     { section: "journal", render: ArticleDetail, lookup: mocks.articleDetail, redirect: mocks.articleRedirect },

@@ -3331,6 +3331,28 @@ fieldset.article-editor-panel { min-width: 0; }
 .purge-record form { display: grid; gap: 12px; }
 @media (max-width: 640px) { .audit-filters { grid-template-columns: 1fr; } }
 .site-content-form { margin: 20px 0; }
+.homepage { max-width: 1200px; margin: auto; padding: 48px 24px; }
+.homepage-heading h1 { font-size: clamp(28px, 5vw, 56px); line-height: 1.1; overflow-wrap: anywhere; }
+.homepage-section { margin: 40px 0; padding: 28px 0; border-top: 1px solid #dfe5df; }
+.homepage-section-heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+.homepage-section-heading h2 { font-size: clamp(24px, 3vw, 36px); overflow-wrap: anywhere; }
+.homepage-hero { padding: clamp(24px, 5vw, 64px); background: #e4f0e9; border: 0; border-radius: 20px; }
+.homepage-intro { max-width: 760px; font-size: 22px; line-height: 1.6; margin-bottom: 28px; }
+.homepage-cards, .dashboard-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+.homepage-card, .dashboard-metric { padding: 24px; background: #fff; border: 1px solid #dfe5df; border-radius: 14px; overflow-wrap: anywhere; }
+.homepage-card:hover, .dashboard-metric:hover { border-color: #357658; }
+.homepage-card:focus-visible, .dashboard-metric:focus-visible { outline: 3px solid #357658; outline-offset: 4px; }
+.homepage-card h3 { font-size: 21px; line-height: 1.4; margin-bottom: 12px; }
+.homepage-card p, .homepage-empty { color: #53645a; line-height: 1.7; }
+.dashboard-grid { margin: 28px 0; }
+.dashboard-metric { display: flex; flex-direction: column; gap: 16px; }
+.dashboard-metric strong { font-size: 36px; }
+.dashboard-lists { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.dashboard-records { list-style: none; padding: 0 24px; }
+.dashboard-records li { padding: 16px 0; border-bottom: 1px solid #dfe5df; overflow-wrap: anywhere; }
+.dashboard-empty { padding: 24px; }
+@media (max-width: 900px) { .homepage-cards, .dashboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .dashboard-lists { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .homepage-cards, .dashboard-grid { grid-template-columns: 1fr; } .homepage { padding: 28px 20px; } }
 .site-content-form fieldset { border: 0; padding: 0; margin: 0 0 20px; min-width: 0; display: grid; gap: 18px; }
 .site-content-form label { display: grid; gap: 8px; margin-bottom: 14px; }
 .site-content-form input:not([type="checkbox"]), .site-content-form select, .site-content-form textarea { width: 100%; min-width: 0; padding: 12px; border: 1px solid #cfd7d2; border-radius: 8px; font: inherit; }

@@ -33,7 +33,7 @@ export function legacyPublicUrl(url: URL): URL | null {
   const requestedLocale = url.searchParams.get("lang");
   const locale = isLocale(requestedLocale) ? requestedLocale : defaultLocale;
   if (parts.length === 0) {
-    target.pathname = `/${locale}/journal`;
+    target.pathname = `/${locale}`;
   } else if (section === "mentorship" && parts[1] === "legacy" && (parts.length === 2 || (parts.length === 3 && /^[0-9a-f-]{36}$/.test(parts[2])))) {
     target.pathname = `/${locale}/${parts.join("/")}`;
   } else if ((publicSections.some(item => item === section) || section === "search") && parts.length === 1) {

@@ -28,6 +28,8 @@ export default async function sitemap({ id }: { id: Promise<string> }): Promise<
     for (const translation of item.translations) entries.push({ url: languages[translation.locale], lastModified: item.updatedAt, alternates: { languages } });
   }
   if (index === 0) {
+    const languages = Object.fromEntries(locales.map(locale => [locale, absoluteUrl(`/${locale}`)]));
+    for (const locale of locales) entries.push({ url: languages[locale], alternates: { languages } });
     const pages = await getPublicContentPaths();
     for (const page of pages) {
       const languages = Object.fromEntries(pages.filter(p => p.page_key === page.page_key)

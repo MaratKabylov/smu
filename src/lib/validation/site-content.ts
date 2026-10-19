@@ -56,7 +56,7 @@ export type ContentPage = z.infer<typeof contentPageSchema>;
 export const publicSiteContentSchema = z.object({
   page: z.object({ key: z.enum(pageKeys), template: z.enum(["standard", "landing", "program", "support"]), updated_at: z.string(),
     title: z.string(), summary: z.string(), body: z.string(), cta_label: z.string(), cta_href: z.union([z.literal(""), contentHrefSchema]), locales: z.array(localeSchema) }).nullable(),
-  sections: z.array(z.object({ key: z.enum(sectionKeys), sort_order: z.number(), display_limit: z.number(), title: z.string() })),
+  sections: z.array(z.object({ key: z.enum(sectionKeys), sort_order: z.number().int().min(0).max(100), display_limit: z.number().int().min(1).max(12), title: z.string() })),
   settings: z.object(settingValueSchemas),
 });
 export type PublicSiteContent = z.infer<typeof publicSiteContentSchema>;

@@ -23,7 +23,7 @@ describe("anonymous public Supabase cache", () => {
     expect(mocks.create).toHaveBeenCalledTimes(2);
     expect(mocks.create.mock.calls[0][2]).not.toHaveProperty("cookies");
   });
-  it.each(["search_public", "seo_public_page", "seo_public_feed", "public_article_relations", "public_related_articles", "list_public_publications", "list_public_work_publications", "read_public_site_content", "list_public_content_paths"])("caches the read-only %s POST including its body", async rpc => {
+  it.each(["search_public", "seo_public_page", "seo_public_feed", "public_article_relations", "public_related_articles", "list_public_publications", "list_public_work_publications", "read_public_site_content", "list_public_content_paths", "list_homepage_results", "list_homepage_events"])("caches the read-only %s POST including its body", async rpc => {
     createPublicSupabaseClient();
     const init = { method: "POST", headers: anonymous, body: '{"p_locale":"kk","p_page":2}', cache: "no-store" };
     const url = origin + "/rest/v1/rpc/" + rpc;
@@ -41,6 +41,7 @@ describe("anonymous public Supabase cache", () => {
     ["/rest/v1/articles", "DELETE", anonymous],
     ["/rest/v1/rpc/save_article", "POST", anonymous],
     ["/rest/v1/rpc/search_admin", "POST", anonymous],
+    ["/rest/v1/rpc/read_admin_dashboard", "POST", anonymous],
     ["/rest/v1/rpc/list_scientific_legacy", "POST", anonymous],
     ["/rest/v1/rpc/list_scientific_legacy", "GET", anonymous],
     ["/rest/v1/rpc/unknown_function", "GET", anonymous],

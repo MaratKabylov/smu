@@ -10,6 +10,8 @@ const publicReadRpcs = new Set([
   "list_opportunities",
   "read_public_site_content",
   "list_public_content_paths",
+  "list_homepage_results",
+  "list_homepage_events",
 ]);
 
 export function createPublicFetch(origin: string, publicKey: string): typeof fetch {

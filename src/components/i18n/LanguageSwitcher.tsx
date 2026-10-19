@@ -11,7 +11,7 @@ export function LanguageSwitcher({ locale, section, paths, label }: {
   return <div className="journal-language" aria-label={label}>
     {locales.map(language => <Link key={language} href={languageSwitchPath(section, language, new URLSearchParams(query.toString()), paths)}
       className={language === locale ? "is-active" : ""} hrefLang={language} lang={language} aria-current={language === locale ? "page" : undefined}>
-      {language === "ru" ? "RU" : "ҚАЗ"}
+      {language === "ru" ? "RU" : language === "kk" ? "ҚАЗ" : "EN"}
     </Link>)}
   </div>;
 }

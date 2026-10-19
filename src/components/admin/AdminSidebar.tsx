@@ -26,6 +26,7 @@ type AdminNavigationSection = {
 };
 
 const navigation: AdminNavigationSection[] = [
+  { label: "Работа", items: [{ label: "Обзор", href: "/admin", icon: LayoutGrid }] },
   {
     label: "Контент",
     items: [
@@ -93,7 +94,7 @@ export function AdminSidebar() {
             <h2>{section.label}</h2>
             {section.items.map((item) => {
               const Icon = item.icon;
-              const active = item.href ? pathname.startsWith(item.href) : false;
+              const active = item.href ? item.href === "/admin" ? pathname === "/admin" : pathname.startsWith(item.href) : false;
 
               if (!item.href) {
                 return (

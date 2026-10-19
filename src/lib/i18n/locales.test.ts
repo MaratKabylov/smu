@@ -19,7 +19,9 @@ describe("public locale routing", () => {
   });
   it("uses a deterministic default and accepts only registered locales", () => {
     for (const value of [undefined, null, "de", "RU", "__proto__", "constructor", "ru-RU"]) expect(isLocale(value)).toBe(false);
-    expect(legacyPublicUrl(new URL("https://example.org/?lang=kk&q=test"))?.pathname).toBe("/kk/journal");
+    const home = legacyPublicUrl(new URL("https://example.org/?lang=kk&q=test&tag=one&tag=two"))!;
+    expect(home.pathname).toBe("/kk");
+    expect(home.search).toBe("?q=test&tag=one&tag=two");
     expect(legacyPublicUrl(new URL("https://example.org/journal?lang=en"))?.pathname).toBe("/en/journal");
     expect(isLocale("ru")).toBe(true); expect(isLocale("kk")).toBe(true); expect(isLocale("en")).toBe(true);
   });
