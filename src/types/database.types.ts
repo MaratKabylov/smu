@@ -657,6 +657,61 @@ export type Database = {
           { foreignKeyName: "authors_profile_id_fkey"; columns: ["profile_id"]; isOneToOne: true; referencedRelation: "profiles"; referencedColumns: ["id"] },
         ];
       };
+      "email_outbox": {
+        Row: {
+          "id": string;
+          "event_key": string;
+          "recipient_email": string;
+          "locale": "ru" | "kk" | "en";
+          "template_key": "application_received" | "application_status" | "manager_new_request" | "assignment";
+          "payload": Json;
+          "status": "pending" | "processing" | "sent" | "failed";
+          "attempt_count": number;
+          "available_at": string;
+          "locked_at": string | null;
+          "claim_token": string | null;
+          "provider_message_id": string | null;
+          "last_error_code": string | null;
+          "created_at": string;
+          "sent_at": string | null;
+        };
+        Insert: {
+          "id"?: string;
+          "event_key": string;
+          "recipient_email": string;
+          "locale": "ru" | "kk" | "en";
+          "template_key": "application_received" | "application_status" | "manager_new_request" | "assignment";
+          "payload": Json;
+          "status"?: "pending" | "processing" | "sent" | "failed";
+          "attempt_count"?: number;
+          "available_at"?: string;
+          "locked_at"?: string | null;
+          "claim_token"?: string | null;
+          "provider_message_id"?: string | null;
+          "last_error_code"?: string | null;
+          "created_at"?: string;
+          "sent_at"?: string | null;
+        };
+        Update: {
+          "id"?: string;
+          "event_key"?: string;
+          "recipient_email"?: string;
+          "locale"?: "ru" | "kk" | "en";
+          "template_key"?: "application_received" | "application_status" | "manager_new_request" | "assignment";
+          "payload"?: Json;
+          "status"?: "pending" | "processing" | "sent" | "failed";
+          "attempt_count"?: number;
+          "available_at"?: string;
+          "locked_at"?: string | null;
+          "claim_token"?: string | null;
+          "provider_message_id"?: string | null;
+          "last_error_code"?: string | null;
+          "created_at"?: string;
+          "sent_at"?: string | null;
+        };
+        Relationships: [
+        ];
+      };
       "event_translations": {
         Row: {
           "event_id": string;
@@ -1073,6 +1128,47 @@ export type Database = {
           { foreignKeyName: "mentorship_relations_mentor_id_fkey"; columns: ["mentor_id"]; isOneToOne: false; referencedRelation: "scientist_profiles"; referencedColumns: ["id"] },
         ];
       };
+      "notifications": {
+        Row: {
+          "id": string;
+          "user_id": string;
+          "event_key": string;
+          "type": "application_received" | "application_status" | "manager_new_request" | "assignment";
+          "locale": "ru" | "kk" | "en";
+          "title": string;
+          "message": string;
+          "url": string;
+          "read_at": string | null;
+          "created_at": string;
+        };
+        Insert: {
+          "id"?: string;
+          "user_id": string;
+          "event_key": string;
+          "type": "application_received" | "application_status" | "manager_new_request" | "assignment";
+          "locale": "ru" | "kk" | "en";
+          "title": string;
+          "message": string;
+          "url": string;
+          "read_at"?: string | null;
+          "created_at"?: string;
+        };
+        Update: {
+          "id"?: string;
+          "user_id"?: string;
+          "event_key"?: string;
+          "type"?: "application_received" | "application_status" | "manager_new_request" | "assignment";
+          "locale"?: "ru" | "kk" | "en";
+          "title"?: string;
+          "message"?: string;
+          "url"?: string;
+          "read_at"?: string | null;
+          "created_at"?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "notifications_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+        ];
+      };
       "opportunities": {
         Row: {
           "id": string;
@@ -1203,6 +1299,7 @@ export type Database = {
           "created_at": string;
           "updated_at": string;
           "search_document": string | null;
+          "notification_locale": "ru" | "kk" | "en";
         };
         Insert: {
           "id": string;
@@ -1210,6 +1307,7 @@ export type Database = {
           "created_at"?: string;
           "updated_at"?: string;
           "search_document"?: never;
+          "notification_locale"?: "ru" | "kk" | "en";
         };
         Update: {
           "id"?: string;
@@ -1217,6 +1315,7 @@ export type Database = {
           "created_at"?: string;
           "updated_at"?: string;
           "search_document"?: never;
+          "notification_locale"?: "ru" | "kk" | "en";
         };
         Relationships: [
         ];
@@ -2573,6 +2672,13 @@ export type Database = {
         Args: Record<string, never>;
         Returns: number;
       };
+      "claim_email_jobs": {
+        Args: {
+          "p_limit": number | null;
+          "p_worker": string | null;
+        };
+        Returns: Json;
+      };
       "configure_article_review": {
         Args: {
           "p_id": string | null;
@@ -2641,6 +2747,17 @@ export type Database = {
         };
         Returns: undefined;
       };
+      "finish_email_job": {
+        Args: {
+          "p_id": string | null;
+          "p_worker": string | null;
+          "p_success": boolean | null;
+          "p_provider_id"?: string | null;
+          "p_error_code"?: string | null;
+          "p_retryable"?: boolean | null;
+        };
+        Returns: string;
+      };
       "get_account_research_program": {
         Args: {
           "p_application": string | null;
@@ -2679,6 +2796,12 @@ export type Database = {
           "p_expected_version": number | null;
         };
         Returns: undefined;
+      };
+      "list_account_notifications": {
+        Args: {
+          "p_page"?: number | null;
+        };
+        Returns: Json;
       };
       "list_account_records": {
         Args: {
@@ -2794,6 +2917,12 @@ export type Database = {
           "p_manage"?: boolean | null;
         };
         Returns: Json;
+      };
+      "mark_account_notification_read": {
+        Args: {
+          "p_id"?: string | null;
+        };
+        Returns: number;
       };
       "merge_scientists": {
         Args: {
@@ -3144,6 +3273,12 @@ export type Database = {
         };
         Returns: Json;
       };
+      "set_notification_locale": {
+        Args: {
+          "p_locale": string | null;
+        };
+        Returns: undefined;
+      };
       "set_scientific_legacy_consent": {
         Args: {
           "p_id": string | null;
@@ -3179,6 +3314,41 @@ export type Database = {
           "p_actor": string | null;
           "p_status": "new" | "in_review" | "accepted" | "rejected" | "completed" | null;
           "p_note": string | null;
+        };
+        Returns: undefined;
+      };
+      "smu_enqueue_notification": {
+        Args: {
+          "p_event_key": string | null;
+          "p_user": string | null;
+          "p_email": string | null;
+          "p_locale": string | null;
+          "p_type": string | null;
+          "p_status": string | null;
+          "p_kind": string | null;
+          "p_url": string | null;
+          "p_payload": Json | null;
+          "p_in_app"?: boolean | null;
+        };
+        Returns: undefined;
+      };
+      "smu_notification_copy": {
+        Args: {
+          "p_type": string | null;
+          "p_locale": string | null;
+          "p_status"?: string | null;
+          "p_kind"?: string | null;
+        };
+        Returns: Json;
+      };
+      "smu_notify_managers": {
+        Args: {
+          "p_base_key": string | null;
+          "p_permission": string | null;
+          "p_type": string | null;
+          "p_kind": string | null;
+          "p_url": string | null;
+          "p_payload": Json | null;
         };
         Returns: undefined;
       };

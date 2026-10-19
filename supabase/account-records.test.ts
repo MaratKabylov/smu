@@ -62,10 +62,11 @@ beforeAll(async () => {
   field = (await db.query<{ id: string }>("insert into public.scientific_fields(slug,name_ru,name_kk) values('account-science','Наука','Ғылым') returning id")).rows[0].id;
   // Recreate the actual previous schema, insert guests, then apply 031. The
   // fresh-schema path is already executed above and in database-types.test.ts.
-  await db.exec("drop function public.list_account_records(text,text,integer,uuid); drop function public.claim_account_applications(); drop function public.smu_account_user_id(); alter table public.mentorship_applications drop column user_id; alter table public.research_program_applications drop column user_id; drop index public.science_works_creator_idx");
+  await db.exec("drop trigger mentorship_notifications on public.mentorship_applications; drop trigger research_program_notifications on public.research_program_applications; drop function public.list_account_records(text,text,integer,uuid); drop function public.claim_account_applications(); drop function public.smu_account_user_id(); alter table public.mentorship_applications drop column user_id; alter table public.research_program_applications drop column user_id; drop index public.science_works_creator_idx");
   const legacyRows = await applications();
   legacySnapshot = (await db.query<Record<string, unknown>>("select * from public.mentorship_applications where id=$1", [legacyRows.mentorApplication])).rows[0];
   await db.exec(await readFile(new URL("./migrations/031_account_records.sql", import.meta.url), "utf8"));
+  await db.exec("create trigger mentorship_notifications after insert or update of status,user_id on public.mentorship_applications for each row execute function public.smu_mentorship_notifications(); create trigger research_program_notifications after insert or update of status,user_id on public.research_program_applications for each row execute function public.smu_research_program_notifications()");
   upgradedSnapshot = (await db.query<Record<string, unknown>>("select * from public.mentorship_applications where id=$1", [legacyRows.mentorApplication])).rows[0];
   await db.exec("truncate public.scientist_profiles cascade");
 }, 30000);

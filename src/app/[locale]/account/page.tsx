@@ -9,6 +9,7 @@ import { requireLocale } from "@/lib/i18n/server";
 import { getAccountAccess } from "@/server/services/account.service";
 import { logoutAccount } from "@/server/actions/account.actions";
 import type { AccountPageProps } from "@/components/account/AccountAuthPage";
+import { notificationCopy } from "@/lib/i18n/notifications";
 
 export default async function AccountPage({ params, searchParams }: AccountPageProps) {
   const locale = requireLocale((await params).locale);
@@ -22,6 +23,7 @@ export default async function AccountPage({ params, searchParams }: AccountPageP
     {error === "logout" && <div className="form-error" role="alert">{copy.messages.logout}</div>}
     <nav className="account-sections" aria-label={copy.account}>{accountSections.map(section => <Link key={section} href={`/${locale}/account/${section}`}>{accountRecordsCopy[locale].sections[section]}</Link>)}<Link href={`/${locale}/account/legacy`}>{legacyCopy[locale].title}</Link></nav>
     <Link href={`/${locale}/account/support`}>{supportCopy[locale].own}</Link>
+    <Link href={`/${locale}/account/notifications`}>{notificationCopy[locale].title}</Link>
     <nav className="account-links" aria-label={copy.account}><Link href={`/${locale}/account/update-password`}>{copy["update-password"]}</Link>{access.admin && <Link href="/admin">{copy.admin}</Link>}</nav>
     <form action={logoutAccount.bind(null, locale)} className="login-form"><button type="submit">{copy.logout}</button></form>
   </section>;
