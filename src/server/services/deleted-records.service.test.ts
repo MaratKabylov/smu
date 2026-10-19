@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
-const mocks = vi.hoisted(() => ({ client: vi.fn(), list: vi.fn() }));
+const mocks = vi.hoisted(() => ({ client: vi.fn(), list: vi.fn(), purge: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createServerSupabaseClient: mocks.client }));
-vi.mock("@/server/repositories/deleted-records.repository", () => ({ DeletedRecordsRepository: class { list = mocks.list; } }));
+vi.mock("@/server/repositories/deleted-records.repository", () => ({ DeletedRecordsRepository: class { list = mocks.list; purge = mocks.purge; } }));
 import { DeletedRecordsService } from "./deleted-records.service";
 import type { AccessContext, PermissionCode } from "@/types/domain/auth";
 const access = (permissions: PermissionCode[]): AccessContext => ({ userId: "user", roles: new Set(), permissions: new Set(permissions) });
@@ -26,5 +26,16 @@ describe("deleted records listing", () => {
     for (const invalid of [{ ...filters, page: 0 }, { ...filters, query: "x".repeat(121) }])
       await expect(new DeletedRecordsService().list(access(["admin.access", "articles.delete"]), invalid)).rejects.toThrow();
     expect(mocks.client).not.toHaveBeenCalled();
+  });
+  it("requires the super-admin role as well as admin access before purging", async () => {
+    const input = { kind: "article" as const, id: "00000000-0000-4000-a000-000000000002", expectedDeletedAt: "2026-10-19T00:00:00.123456Z", confirm: "PURGE" as const };
+    for (const actor of [access(["admin.access", "media.purge"]), { ...access([]), roles: new Set(["super_admin" as const]) }])
+      await expect(new DeletedRecordsService().purge(actor, input)).rejects.toThrow("forbidden");
+    expect(mocks.client).not.toHaveBeenCalled();
+    const owner = { ...access(["admin.access"]), roles: new Set(["super_admin" as const]) };
+    await expect(new DeletedRecordsService().purge(owner, { ...input, confirm: "yes" as "PURGE" })).rejects.toThrow();
+    expect(mocks.client).not.toHaveBeenCalled();
+    await new DeletedRecordsService().purge(owner, input);
+    expect(mocks.purge).toHaveBeenCalledWith(input);
   });
 });

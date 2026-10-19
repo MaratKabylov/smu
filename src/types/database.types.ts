@@ -2545,6 +2545,14 @@ export type Database = {
         };
         Returns: boolean;
       };
+      "assert_editorial_purge_unreferenced": {
+        Args: {
+          "p_table": string | null;
+          "p_id": string | null;
+          "p_owned": (string)[] | null;
+        };
+        Returns: undefined;
+      };
       "assert_restorable_article_links": {
         Args: {
           "p_id": string | null;
@@ -2842,6 +2850,18 @@ export type Database = {
         };
         Returns: ({ "id": string | null; "article_id": string | null; "content_version": number | null; "reviewer_id": string | null; "reviewer_name": string | null; "decision": string | null; "comment": string | null; "created_at": string | null })[];
       };
+      "list_audit_records": {
+        Args: {
+          "p_entity_type"?: string | null;
+          "p_action"?: string | null;
+          "p_actor"?: string | null;
+          "p_entity_id"?: string | null;
+          "p_from"?: string | null;
+          "p_until"?: string | null;
+          "p_page"?: number | null;
+        };
+        Returns: ({ "id": string | null; "user_id": string | null; "entity_type": string | null; "entity_id": string | null; "action": string | null; "created_at": string | null })[];
+      };
       "list_deleted_editorial_records": {
         Args: {
           "p_kind"?: string | null;
@@ -2972,6 +2992,14 @@ export type Database = {
           "p_limit"?: number | null;
         };
         Returns: Json;
+      };
+      "purge_deleted_editorial_record": {
+        Args: {
+          "p_kind": string | null;
+          "p_id": string | null;
+          "p_expected_deleted_at": string | null;
+        };
+        Returns: undefined;
       };
       "require_smu_session": {
         Args: Record<string, never>;

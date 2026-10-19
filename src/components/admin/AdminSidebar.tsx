@@ -65,7 +65,7 @@ const navigation: AdminNavigationSection[] = [
     label: "Система",
     items: [
       { label: "Пользователи и роли", href: "/admin/system/access", icon: CircleUserRound },
-      { label: "Audit log", icon: ShieldCheck },
+      { label: "Журнал аудита", href: "/admin/audit", icon: ShieldCheck },
       { label: "Удалённые записи", href: "/admin/deleted", icon: Trash2 },
       { label: "Настройки", icon: Settings },
     ],

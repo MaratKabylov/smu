@@ -3321,3 +3321,12 @@ fieldset.article-editor-panel { min-width: 0; }
 .support-admin { max-width: 1000px; }
 /* Reuse the platform's editorial panels without browser fieldset chrome. */
 .opportunity-fields { border: 0; padding: 0; margin: 0; min-width: 0; }
+.audit-filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; width: 100%; }
+.audit-filters label, .purge-record label { display: grid; gap: 6px; }
+.audit-filters input, .purge-record input:not([type="hidden"]) { width: 100%; min-width: 0; padding: 10px; border: 1px solid #cfd7d2; border-radius: 8px; font: inherit; }
+.audit-table code { overflow-wrap: anywhere; white-space: normal; }
+.purge-record { margin-top: 18px; max-width: 360px; }
+.purge-record summary { cursor: pointer; color: #9b2637; }
+.purge-record p { margin: 12px 0; }
+.purge-record form { display: grid; gap: 12px; }
+@media (max-width: 640px) { .audit-filters { grid-template-columns: 1fr; } }

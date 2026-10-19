@@ -15,3 +15,7 @@ export const restoreDeletedRecordSchema = z.object({
   confirm: z.literal("yes"),
 });
 export type DeletedRecordsFilters = z.infer<typeof deletedRecordsFiltersSchema>;
+export const purgeDeletedRecordSchema = restoreDeletedRecordSchema.extend({
+  confirm: z.literal("PURGE"),
+});
+export type PurgeDeletedRecordInput = z.infer<typeof purgeDeletedRecordSchema>;

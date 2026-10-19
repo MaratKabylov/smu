@@ -9,14 +9,14 @@ vi.mock("@/server/services/access.service", () => ({ getAdminAccess: mocks.acces
 vi.mock("@/server/services/deleted-records.service", async importOriginal => ({
   ...await importOriginal<object>(), DeletedRecordsService: class { list = mocks.list; },
 }));
-vi.mock("@/server/actions/deleted-records.actions", () => ({ restoreDeletedRecord: vi.fn() }));
+vi.mock("@/server/actions/deleted-records.actions", () => ({ restoreDeletedRecord: vi.fn(), purgeDeletedRecord: vi.fn() }));
 vi.mock("@/components/science/SubmitButton", () => ({ SubmitButton: ({ label }: { label: string }) => <button>{label}</button> }));
 import Page from "@/app/admin/(panel)/deleted/page";
 const token = "2026-10-06T12:00:00.123456+00:00";
 const record = { id: "id", kind: "article", titleRu: "Статья <script>", titleKk: "Қазақша мақала", status: "published", deletedAt: token };
 const page = (params: Record<string, string | undefined> = {}) => Page({ searchParams: Promise.resolve(params) });
 beforeEach(() => {
-  vi.clearAllMocks(); mocks.access.mockResolvedValue({ state: "allowed", access: { userId: "admin", permissions: new Set(["admin.access", "articles.delete", "scientists.edit"]) } });
+  vi.clearAllMocks(); mocks.access.mockResolvedValue({ state: "allowed", access: { userId: "admin", roles: new Set(["admin"]), permissions: new Set(["admin.access", "articles.delete", "scientists.edit"]) } });
   mocks.list.mockResolvedValue({ records: [record], hasNextPage: true });
 });
 describe("deleted records page", () => {
@@ -37,7 +37,7 @@ describe("deleted records page", () => {
     expect(mocks.list).not.toHaveBeenCalled();
   });
   it("hides forbidden type options and denies explicit unauthorized filters", async () => {
-    mocks.access.mockResolvedValue({ state: "allowed", access: { userId: "manager", permissions: new Set(["admin.access", "scientists.edit"]) } });
+    mocks.access.mockResolvedValue({ state: "allowed", access: { userId: "manager", roles: new Set(), permissions: new Set(["admin.access", "scientists.edit"]) } });
     mocks.list.mockResolvedValue({ records: [], hasNextPage: false });
     const html = renderToStaticMarkup(await page());
     expect(html).not.toContain('<option value="article"'); expect(html).toContain('<option value="scientist"');
@@ -56,5 +56,15 @@ describe("deleted records page", () => {
   it("rejects invalid query bounds and arbitrary entity kinds before accessing data", async () => {
     for (const params of [{ kind: "media" }, { page: "0" }, { q: "x".repeat(121) }]) await expect(page(params)).rejects.toThrow("not_found");
     expect(mocks.list).not.toHaveBeenCalled(); expect(mocks.access).not.toHaveBeenCalled();
+  });
+  it("shows permanent deletion only to super admins with a separate explicit confirmation", async () => {
+    expect(renderToStaticMarkup(await page())).not.toContain('name="confirm" required="" pattern="PURGE"');
+    expect(renderToStaticMarkup(await page())).not.toContain("Удалить навсегда");
+    mocks.access.mockResolvedValue({ state: "allowed", access: { userId: "owner", roles: new Set(["super_admin"]), permissions: new Set(["admin.access", "articles.delete"]) } });
+    const html = renderToStaticMarkup(await page({ purged: "1" }));
+    expect(html).toContain('pattern="PURGE"');
+    expect(html).toContain("Удалить навсегда");
+    expect(html).toContain("Запись удалена навсегда");
+    expect(html).toContain(token);
   });
 });
