@@ -3330,3 +3330,28 @@ fieldset.article-editor-panel { min-width: 0; }
 .purge-record p { margin: 12px 0; }
 .purge-record form { display: grid; gap: 12px; }
 @media (max-width: 640px) { .audit-filters { grid-template-columns: 1fr; } }
+.site-content-form { margin: 20px 0; }
+.site-content-form fieldset { border: 0; padding: 0; margin: 0 0 20px; min-width: 0; display: grid; gap: 18px; }
+.site-content-form label { display: grid; gap: 8px; margin-bottom: 14px; }
+.site-content-form input:not([type="checkbox"]), .site-content-form select, .site-content-form textarea { width: 100%; min-width: 0; padding: 12px; border: 1px solid #cfd7d2; border-radius: 8px; font: inherit; }
+.site-content-form .confirm-check { display: flex; align-items: center; }
+.content-page-tabs { display: flex; flex-wrap: wrap; gap: 10px; margin: 24px 0; }
+.content-page-tabs a { padding: 10px; border: 1px solid #cfd7d2; border-radius: 8px; }
+.content-page-tabs [aria-current="page"] { background: #e4f0e9; }
+.content-slot { margin-bottom: 24px; max-width: 900px; }
+.content-page-meta p { margin: 12px 0; }
+.content-social-links { display: grid; gap: 18px; }
+.content-social-link { display: grid; grid-template-columns: minmax(80px, .5fr) 1fr 2fr; gap: 12px; align-items: center; }
+.information-page { min-height: 100vh; background: #fafbf8; }
+.information-header, .information-footer { padding: 24px max(24px, calc((100vw - 1100px) / 2)); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 24px; border-bottom: 1px solid #dfe5df; }
+.information-header nav, .information-footer { display: flex; gap: 20px; }
+.information-header [aria-current="page"] { font-weight: 700; text-decoration: underline; }
+.information-main { max-width: 900px; margin: auto; padding: 64px 24px; }
+.information-main h1 { font-size: clamp(32px, 5vw, 60px); line-height: 1.1; margin: 16px 0 24px; overflow-wrap: anywhere; }
+.information-summary { font-size: 22px; line-height: 1.6; color: #53645a; }
+.information-body { margin: 40px 0; line-height: 1.8; overflow-wrap: anywhere; }
+.information-body p { margin: 0 0 20px; white-space: pre-wrap; }
+.information-landing .information-main > header { padding: 32px; background: #e4f0e9; border-radius: 16px; }
+.information-program .information-main > header { border-left: 5px solid #357658; padding-left: 24px; }
+.information-support .information-cta { padding: 24px; background: #e4f0e9; border-radius: 12px; }
+@media (max-width: 640px) { .information-main { padding-top: 32px; } .information-landing .information-main > header { padding: 20px; } .content-social-link { grid-template-columns: 1fr; } }

@@ -1,8 +1,9 @@
 vi.mock("next/server", () => ({ connection: vi.fn().mockResolvedValue(undefined) }));
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-const mocks = vi.hoisted(() => ({ page: vi.fn(), feed: vi.fn() }));
+const mocks = vi.hoisted(() => ({ page: vi.fn(), feed: vi.fn(), contentPaths: vi.fn().mockResolvedValue([]) }));
 vi.mock("server-only", () => ({}));
 vi.mock("@/server/services/seo.service", () => ({ sitemapPageSize: 1000, SeoService: class { page = mocks.page; feed = mocks.feed; } }));
+vi.mock("@/server/services/site-content.service", () => ({ getPublicContentPaths: mocks.contentPaths }));
 vi.mock("next/navigation", () => ({ notFound: () => { throw new Error("not_found"); } }));
 import sitemap, { sitemapIds } from "./sitemap";
 import { locales, publicSections } from "@/lib/i18n/locales";
@@ -23,6 +24,18 @@ const entry = { id: "00000000-0000-4000-a000-000000000001", section: "journal", 
 beforeEach(() => { vi.clearAllMocks(); vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://smu.example"); mocks.page.mockResolvedValue({ total: 1001, items: [entry] }); mocks.feed.mockResolvedValue([]); });
 afterEach(() => vi.unstubAllEnvs());
 describe("public indexing routes", () => {
+  it("adds only published information-page paths to the first sitemap part", async () => {
+    mocks.contentPaths.mockResolvedValueOnce([
+      { page_key: "about", locale: "ru", updated_at: entry.updatedAt },
+      { page_key: "about", locale: "kk", updated_at: entry.updatedAt },
+    ]);
+    const first = await sitemap({ id: Promise.resolve("0") });
+    const pages = first.filter(item => item.url.includes("/pages/"));
+    expect(pages).toHaveLength(2); expect(pages[0].alternates?.languages).toEqual({ ru: "https://smu.example/ru/pages/about", kk: "https://smu.example/kk/pages/about" });
+    mocks.contentPaths.mockClear();
+    await sitemap({ id: Promise.resolve("1") });
+    expect(mocks.contentPaths).not.toHaveBeenCalled();
+  });
   it("partitions all records and includes every catalog exactly once", async () => {
     expect(await sitemapIds()).toEqual([{ id: 0 }, { id: 1 }]);
     const first = await sitemap({ id: Promise.resolve("0") });

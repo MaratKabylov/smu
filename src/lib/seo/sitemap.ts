@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { locales, publicSections } from "@/lib/i18n/locales";
 import { absoluteUrl } from "@/lib/seo/site";
 import { SeoService, sitemapPageSize } from "@/server/services/seo.service";
+import { getPublicContentPaths } from "@/server/services/site-content.service";
 
 // Indexing always reads current public visibility; persistent caching is a
 // separate implementation-plan step. Do not freeze the index at build time.
@@ -25,6 +26,14 @@ export default async function sitemap({ id }: { id: Promise<string> }): Promise<
   for (const item of items) {
     const languages = Object.fromEntries(item.translations.map(t => [t.locale, absoluteUrl(t.href)]));
     for (const translation of item.translations) entries.push({ url: languages[translation.locale], lastModified: item.updatedAt, alternates: { languages } });
+  }
+  if (index === 0) {
+    const pages = await getPublicContentPaths();
+    for (const page of pages) {
+      const languages = Object.fromEntries(pages.filter(p => p.page_key === page.page_key)
+        .map(p => [p.locale, absoluteUrl(`/${p.locale}/pages/${p.page_key}`)]));
+      entries.push({ url: languages[page.locale], lastModified: page.updated_at, alternates: { languages } });
+    }
   }
   return entries;
 }

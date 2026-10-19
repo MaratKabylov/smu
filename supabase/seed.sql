@@ -44,6 +44,7 @@ values
   ('users.manage', 'Управление пользователями'),
   ('roles.manage', 'Управление ролями и доступами'),
   ('settings.manage', 'Управление системными настройками'),
+  ('content.manage', 'Управление страницами и главной'),
   ('audit.read', 'Просмотр журнала аудита'),
   ('audit.write', 'Запись в журнал аудита')
 on conflict (code) do update set name = excluded.name;
@@ -66,6 +67,7 @@ with grants(role_code, permission_code) as (
     ('scientific_reviewer', 'admin.access'),
     ('scientific_reviewer', 'articles.review'),
     ('content_manager', 'admin.access'),
+    ('content_manager', 'content.manage'),
     ('content_manager', 'opportunities.manage'),
     ('content_manager', 'articles.create'),
     ('content_manager', 'articles.edit_any'),

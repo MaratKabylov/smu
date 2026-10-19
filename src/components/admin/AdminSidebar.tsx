@@ -32,6 +32,8 @@ const navigation: AdminNavigationSection[] = [
       { label: "Статьи", href: "/admin/content/articles", icon: BookOpenText },
       { label: "Возможности", href: "/admin/opportunities", icon: Sparkles },
       { label: "Медиа", href: "/admin/content/media", icon: Images },
+      { label: "Информационные страницы", href: "/admin/content/pages", icon: BookOpenText },
+      { label: "Главная страница", href: "/admin/content/homepage", icon: LayoutGrid },
     ],
   },
   {
@@ -67,7 +69,7 @@ const navigation: AdminNavigationSection[] = [
       { label: "Пользователи и роли", href: "/admin/system/access", icon: CircleUserRound },
       { label: "Журнал аудита", href: "/admin/audit", icon: ShieldCheck },
       { label: "Удалённые записи", href: "/admin/deleted", icon: Trash2 },
-      { label: "Настройки", icon: Settings },
+      { label: "Настройки", href: "/admin/system/settings", icon: Settings },
     ],
   },
 ];

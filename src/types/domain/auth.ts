@@ -44,6 +44,7 @@ export const permissionCodes = [
   "users.manage",
   "roles.manage",
   "settings.manage",
+  "content.manage",
   "audit.read",
   "audit.write",
 ] as const;

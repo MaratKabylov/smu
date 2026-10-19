@@ -5,6 +5,32 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type Database = {
   public: {
     Tables: {
+      "app_settings": {
+        Row: {
+          "key": "site_name" | "contact_email" | "social_links";
+          "value": Json;
+          "version": number;
+          "updated_by": string | null;
+          "updated_at": string;
+        };
+        Insert: {
+          "key": "site_name" | "contact_email" | "social_links";
+          "value": Json;
+          "version"?: number;
+          "updated_by"?: string | null;
+          "updated_at"?: string;
+        };
+        Update: {
+          "key"?: "site_name" | "contact_email" | "social_links";
+          "value"?: Json;
+          "version"?: number;
+          "updated_by"?: string | null;
+          "updated_at"?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "app_settings_updated_by_fkey"; columns: ["updated_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+        ];
+      };
       "article_authors": {
         Row: {
           "article_id": string;
@@ -657,6 +683,67 @@ export type Database = {
           { foreignKeyName: "authors_profile_id_fkey"; columns: ["profile_id"]; isOneToOne: true; referencedRelation: "profiles"; referencedColumns: ["id"] },
         ];
       };
+      "content_page_translations": {
+        Row: {
+          "page_key": string;
+          "locale": "ru" | "kk" | "en";
+          "title": string;
+          "summary": string;
+          "body": string;
+          "cta_label": string;
+          "cta_href": string;
+        };
+        Insert: {
+          "page_key": string;
+          "locale": "ru" | "kk" | "en";
+          "title": string;
+          "summary"?: string;
+          "body": string;
+          "cta_label"?: string;
+          "cta_href"?: string;
+        };
+        Update: {
+          "page_key"?: string;
+          "locale"?: "ru" | "kk" | "en";
+          "title"?: string;
+          "summary"?: string;
+          "body"?: string;
+          "cta_label"?: string;
+          "cta_href"?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "content_page_translations_page_key_fkey"; columns: ["page_key"]; isOneToOne: false; referencedRelation: "content_pages"; referencedColumns: ["key"] },
+        ];
+      };
+      "content_pages": {
+        Row: {
+          "key": "about" | "foundation" | "team" | "partners" | "documents" | "contacts" | "research_program" | "it_support" | "publication_support";
+          "template": "standard" | "landing" | "program" | "support";
+          "status": "draft" | "published";
+          "version": number;
+          "updated_by": string | null;
+          "updated_at": string;
+        };
+        Insert: {
+          "key": "about" | "foundation" | "team" | "partners" | "documents" | "contacts" | "research_program" | "it_support" | "publication_support";
+          "template": "standard" | "landing" | "program" | "support";
+          "status"?: "draft" | "published";
+          "version"?: number;
+          "updated_by"?: string | null;
+          "updated_at"?: string;
+        };
+        Update: {
+          "key"?: "about" | "foundation" | "team" | "partners" | "documents" | "contacts" | "research_program" | "it_support" | "publication_support";
+          "template"?: "standard" | "landing" | "program" | "support";
+          "status"?: "draft" | "published";
+          "version"?: number;
+          "updated_by"?: string | null;
+          "updated_at"?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "content_pages_updated_by_fkey"; columns: ["updated_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+        ];
+      };
       "email_outbox": {
         Row: {
           "id": string;
@@ -805,6 +892,41 @@ export type Database = {
         Relationships: [
           { foreignKeyName: "events_cover_media_id_fkey"; columns: ["cover_media_id"]; isOneToOne: false; referencedRelation: "media_assets"; referencedColumns: ["id"] },
           { foreignKeyName: "events_created_by_fkey"; columns: ["created_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+        ];
+      };
+      "homepage_sections": {
+        Row: {
+          "key": "hero" | "featured_research" | "featured_scientists" | "research_program" | "mentorship" | "scientist_support" | "latest_articles" | "opportunities" | "events" | "results" | "partners";
+          "enabled": boolean;
+          "sort_order": number;
+          "display_limit": number;
+          "titles": Json;
+          "version": number;
+          "updated_by": string | null;
+          "updated_at": string;
+        };
+        Insert: {
+          "key": "hero" | "featured_research" | "featured_scientists" | "research_program" | "mentorship" | "scientist_support" | "latest_articles" | "opportunities" | "events" | "results" | "partners";
+          "enabled"?: boolean;
+          "sort_order": number;
+          "display_limit"?: number;
+          "titles"?: Json;
+          "version"?: number;
+          "updated_by"?: string | null;
+          "updated_at"?: string;
+        };
+        Update: {
+          "key"?: "hero" | "featured_research" | "featured_scientists" | "research_program" | "mentorship" | "scientist_support" | "latest_articles" | "opportunities" | "events" | "results" | "partners";
+          "enabled"?: boolean;
+          "sort_order"?: number;
+          "display_limit"?: number;
+          "titles"?: Json;
+          "version"?: number;
+          "updated_by"?: string | null;
+          "updated_at"?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "homepage_sections_updated_by_fkey"; columns: ["updated_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
         ];
       };
       "media_asset_translations": {
@@ -2881,6 +3003,10 @@ export type Database = {
         };
         Returns: Json;
       };
+      "list_public_content_paths": {
+        Args: Record<string, never>;
+        Returns: ({ "page_key": string | null; "locale": string | null; "updated_at": string | null })[];
+      };
       "list_public_programs_by_project": {
         Args: {
           "p_work_id": string | null;
@@ -2934,6 +3060,10 @@ export type Database = {
           "p_status"?: string | null;
         };
         Returns: (Database["public"]["Tables"]["scientist_profiles"]["Row"])[];
+      };
+      "list_site_content": {
+        Args: Record<string, never>;
+        Returns: Json;
       };
       "list_support_requests": {
         Args: {
@@ -3000,6 +3130,13 @@ export type Database = {
           "p_expected_deleted_at": string | null;
         };
         Returns: undefined;
+      };
+      "read_public_site_content": {
+        Args: {
+          "p_locale": string | null;
+          "p_page_key"?: string | null;
+        };
+        Returns: Json;
       };
       "require_smu_session": {
         Args: Record<string, never>;
@@ -3240,6 +3377,15 @@ export type Database = {
           "p_input": Json | null;
         };
         Returns: string;
+      };
+      "save_site_content": {
+        Args: {
+          "p_kind": string | null;
+          "p_key": string | null;
+          "p_expected_version": number | null;
+          "p_data": Json | null;
+        };
+        Returns: number;
       };
       "schedule_article": {
         Args: {
@@ -3497,6 +3643,12 @@ export type Database = {
           "p_note": string | null;
         };
         Returns: undefined;
+      };
+      "valid_content_href": {
+        Args: {
+          "p_href": string | null;
+        };
+        Returns: boolean;
       };
       "validate_smu_rich_text": {
         Args: {
