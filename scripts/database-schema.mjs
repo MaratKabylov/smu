@@ -1,6 +1,23 @@
 import { readFile, readdir } from "node:fs/promises";
 import { PGlite } from "@electric-sql/pglite";
 
+export async function applyMigrations(db, { from = 1, through = Infinity } = {}) {
+  const directory = new URL("../supabase/migrations/", import.meta.url);
+  const files = (await readdir(directory))
+    .filter(name => /^\d+.*\.sql$/.test(name))
+    .filter(name => {
+      const version = Number(name.split("_")[0]);
+      return version >= from && version <= through;
+    })
+    .sort();
+
+  for (const name of files) {
+    const sql = await readFile(new URL(name, directory), "utf8");
+    // PGlite provides gen_random_uuid() but does not bundle pgcrypto.
+    await db.exec(sql.replace("create extension if not exists pgcrypto;", ""));
+  }
+}
+
 // Minimal platform objects used by the application migrations. Public types
 // come from executed migrations, never from these Auth/Storage stand-ins.
 export async function createMigrationDatabase({ through = Infinity } = {}) {
@@ -18,13 +35,7 @@ export async function createMigrationDatabase({ through = Infinity } = {}) {
       alter table storage.objects enable row level security;
       grant usage on schema public, auth, storage to anon, authenticated, service_role;
     `);
-    const directory = new URL("../supabase/migrations/", import.meta.url);
-    const files = (await readdir(directory)).filter(name => /^\d+.*\.sql$/.test(name) && Number(name.split("_")[0]) <= through).sort();
-    for (const name of files) {
-      const sql = await readFile(new URL(name, directory), "utf8");
-      // PGlite provides gen_random_uuid() but does not bundle pgcrypto.
-      await db.exec(sql.replace("create extension if not exists pgcrypto;", ""));
-    }
+    await applyMigrations(db, { through });
     return db;
   } catch (error) {
     await db.close();

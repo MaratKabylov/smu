@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "db:migrations:verify": "vitest run supabase/migration-readiness.test.ts",
     "db:types": "node scripts/generate-database-types.mjs",
     "db:types:check": "node scripts/generate-database-types.mjs --check",
     "verify": "npm run db:types:check && npm run lint && npm run typecheck && npm run test && npm run build"

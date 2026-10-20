@@ -3,7 +3,9 @@
 Главная и административная сводка используют миграцию **042 после 001–041**. Перед обновлением
 приложения примените `042_homepage_dashboard.sql` целиком; для новой базы выполните все
 миграции по порядку, затем `seed.sql`. Рабочая база и развёртывание локально
-не изменяются.
+не изменяются. Перед обновлением существующей среды выполните
+[`npm run db:migrations:verify`](docs/DATABASE_OPERATIONS.md) и следуйте инструкции
+по резервному копированию, пробному восстановлению и откату.
 
 В `/ru/account`, `/kk/account`, `/en/account` доступны разделы:
 `scientist`, `articles`, `projects`, `applications`, `research-program`, `legacy`,
@@ -957,6 +959,7 @@ where code = 'super_admin';
 ## Проверки
 
 ```text
+npm run db:migrations:verify
 npm run lint
 npm run typecheck
 npm run test
