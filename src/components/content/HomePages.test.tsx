@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 const mocks = vi.hoisted(() => ({ home: vi.fn(), content: vi.fn(), access: vi.fn(), dashboard: vi.fn() }));
 vi.mock("next/navigation", () => ({ notFound: () => { throw new Error("not_found"); }, redirect: (href: string) => { throw new Error(`redirect:${href}`); }, useSearchParams: () => new URLSearchParams() }));
 vi.mock("@/server/services/homepage.service", () => ({ getPublicHomepage: mocks.home }));
-vi.mock("@/server/services/site-content.service", () => ({ getPublicSiteContent: mocks.content }));
+vi.mock("@/server/services/site-content.service", () => ({ getPublicSiteContent: mocks.content, getPublicContentPaths: vi.fn().mockResolvedValue([]) }));
 vi.mock("@/server/services/access.service", () => ({ getAdminAccess: mocks.access }));
 vi.mock("@/server/services/dashboard.service", () => ({ DashboardService: class { read = mocks.dashboard; } }));
 import Home, { generateMetadata } from "@/app/[locale]/page";

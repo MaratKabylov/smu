@@ -1,5 +1,6 @@
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
+vi.mock("@/server/services/site-content.service", () => ({ getPublicContentPaths: vi.fn().mockResolvedValue([]) }));
 import { PublicContentPage } from "./PublicContentPage";
 import type { PublicSiteContent } from "@/lib/validation/site-content";
 

@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const pageKeys = ["about", "foundation", "team", "partners", "documents", "contacts", "research_program", "it_support", "publication_support"] as const;
+export type PageKey = (typeof pageKeys)[number];
 export const sectionKeys = ["hero", "featured_research", "featured_scientists", "research_program", "mentorship", "scientist_support", "latest_articles", "opportunities", "events", "results", "partners"] as const;
 export const settingKeys = ["site_name", "contact_email", "social_links"] as const;
 export const contentLabels: Record<string, string> = {

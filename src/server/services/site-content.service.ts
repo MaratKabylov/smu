@@ -27,7 +27,7 @@ export const getPublicSiteContent = cache(async (locale: Locale, key = ""): Prom
   return new SiteContentRepository(createPublicSupabaseClient()).publicContent(locale, key);
 });
 
-export async function getPublicContentPaths() {
+export const getPublicContentPaths = cache(async () => {
   if (!isSupabaseConfigured()) return [];
   return new SiteContentRepository(createPublicSupabaseClient()).publicPaths();
-}
+});

@@ -3,7 +3,7 @@ vi.mock("@/components/science/PublicResearchOutputs", () => ({ PublicResearchOut
 vi.mock("@/components/research-program/PublicProgramProjects", () => ({ PublicProgramProjects: () => null, ProjectPrograms: () => null }));
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-const mocks = vi.hoisted(() => ({ articles: vi.fn(), scientists: vi.fn(), works: vi.fn(), events: vi.fn(), mentorship: vi.fn(), programs: vi.fn(), publications: vi.fn(), articleDetail: vi.fn(), scientistDetail: vi.fn(), articleRedirect: vi.fn(), scientistRedirect: vi.fn() }));
+const mocks = vi.hoisted(() => ({ articles: vi.fn(), scientists: vi.fn(), works: vi.fn(), events: vi.fn(), mentorship: vi.fn(), programs: vi.fn(), publications: vi.fn(), articleDetail: vi.fn(), scientistDetail: vi.fn(), articleRedirect: vi.fn(), scientistRedirect: vi.fn(), contentPaths: vi.fn() }));
 vi.mock("next/navigation", () => ({ notFound: () => { throw new Error("not_found"); }, redirect: (path: string) => { throw new Error(`redirect:${path}`); }, permanentRedirect: (path: string) => { throw new Error(`redirect:${path}`); }, useSearchParams: () => new URLSearchParams("q=science&field=physics&page=2") }));
 vi.mock("@/server/services/public-article.service", () => ({ getPublishedArticleBySlug: mocks.articleDetail, PublicArticleService: class { listPage = mocks.articles; getSlugRedirect = mocks.articleRedirect; } }));
 vi.mock("@/server/services/scientist.service", () => ({ getPublicScientistBySlug: mocks.scientistDetail, PublicScientistService: class { listPage = mocks.scientists; getSlugRedirect = mocks.scientistRedirect; } }));
@@ -12,6 +12,7 @@ vi.mock("@/server/services/event.service", () => ({ PublicEventService: class { 
 vi.mock("@/server/services/mentorship.service", () => ({ PublicMentorshipService: class { listPage = mocks.mentorship; } }));
 vi.mock("@/server/services/research-program.service", () => ({ PublicResearchProgramService: class { listPage = mocks.programs; } }));
 vi.mock("@/server/services/publication.service", () => ({ PublicationService: class { listPublicPage = mocks.publications; } }));
+vi.mock("@/server/services/site-content.service", () => ({ getPublicContentPaths: mocks.contentPaths }));
 vi.mock("@/components/mentorship/ApplicationForm", () => ({ ApplicationForm: () => null }));
 vi.mock("@/components/research-program/ApplicationForm", () => ({ ApplicationForm: () => null }));
 vi.mock("@/components/articles/PublicArticleRelations", () => ({ RelatedArticles: () => null, PublicArticleRelations: () => null }));
@@ -29,6 +30,8 @@ import { PublicResearchProgramCatalog } from "@/components/research-program/Publ
 import { PublicHeader } from "./PublicHeader";
 import ArticleDetail from "@/app/[locale]/journal/[slug]/page";
 import ScientistDetail from "@/app/[locale]/scientists/[slug]/page";
+import { PublicInformationMenu } from "./PublicInformationMenu";
+import { PublicInformationNavigation } from "./PublicInformationNavigation";
 
 const taxonomy = { categories: [], tags: [], fields: [], organizations: [] };
 const pagination = { items: [], total: 0, page: 1, pageSize: 12 };
@@ -50,6 +53,7 @@ describe("localized public pages", () => {
     mocks.mentorship.mockResolvedValue({ offers: [], taxonomy, pagination }); mocks.programs.mockResolvedValue({ programs: [], taxonomy, pagination }); mocks.publications.mockResolvedValue({ publications: [], pagination });
     mocks.articleDetail.mockResolvedValue(null); mocks.scientistDetail.mockResolvedValue(null);
     mocks.articleRedirect.mockResolvedValue(null); mocks.scientistRedirect.mockResolvedValue(null);
+    mocks.contentPaths.mockResolvedValue([]);
   });
   it.each(catalogs)("uses the route language for $section including invalid-filter fallback", async ({ section, render, list }) => {
     const html = renderToStaticMarkup(await render(props("kk")));
@@ -82,6 +86,25 @@ describe("localized public pages", () => {
     expect(html).toContain('href="/kk/journal/gylym?q=science&amp;field=physics&amp;page=2"');
     expect(html).not.toContain('/kk/journal/science?');
     expect(renderToStaticMarkup(<PublicHeader locale="kk" section="scientists" />)).toContain('href="/ru/scientists?q=science&amp;field=physics&amp;page=2"');
+  });
+  it("shows only published information pages in localized shared navigation", () => {
+    const html = renderToStaticMarkup(<PublicInformationMenu locale="kk" pages={["foundation", "team", "partners", "documents", "contacts"]} current="team" />);
+    for (const key of ["foundation", "team", "partners", "documents", "contacts"]) expect(html).toContain(`href="/kk/pages/${key}"`);
+    expect(html).toContain('aria-current="page" href="/kk/pages/team"');
+    expect(html).not.toContain('/kk/pages/about');
+  });
+  it("loads information links only for published translations in the route locale", async () => {
+    mocks.contentPaths.mockResolvedValue([
+      { page_key: "foundation", locale: "ru", updated_at: "now" },
+      { page_key: "team", locale: "kk", updated_at: "now" },
+      { page_key: "partners", locale: "kk", updated_at: "now" },
+      { page_key: "research_program", locale: "kk", updated_at: "now" },
+    ]);
+    const html = renderToStaticMarkup(await PublicInformationNavigation({ locale: "kk", current: "team" }));
+    expect(html).toContain('href="/kk/pages/team"');
+    expect(html).toContain('href="/kk/pages/partners"');
+    expect(html).not.toContain('/kk/pages/foundation');
+    expect(html).not.toContain('/kk/pages/research_program');
   });
   it("localizes metadata and scientific publications", async () => {
     expect(await journalMetadata(props("kk"))).toMatchObject({ title: "Жас ғалымдар журналы" });
