@@ -12,22 +12,25 @@ import { homeCopy } from "@/lib/homepage";
 import { sectionKeys } from "@/lib/validation/site-content";
 const settings = { site_name: "SMU <script>name</script>", contact_email: "contact@example.org", social_links: [{ label: "Community", href: "https://example.org" }] };
 beforeEach(() => {
-  vi.clearAllMocks(); mocks.home.mockResolvedValue({ settings, sections: [] }); mocks.content.mockResolvedValue({ settings });
+  vi.clearAllMocks(); mocks.home.mockResolvedValue({ settings, sections: [], stats: { scientists: 42, researchProjects: 17, partners: 9 } }); mocks.content.mockResolvedValue({ settings });
   mocks.access.mockResolvedValue({ state: "allowed", access: { userId: "actor", roles: new Set(), permissions: new Set(["admin.access", "articles.edit_own"]) } });
   mocks.dashboard.mockResolvedValue({ metrics: { own_drafts: 0 }, ownDrafts: [], reviewQueue: [], recentActions: [] });
 });
 it.each(["ru", "kk", "en"] as const)("renders a %s home with localized navigation and empty states, without redirecting", async locale => {
-  mocks.home.mockResolvedValue({ settings, sections: sectionKeys.map((key, i) => ({ key, title: i === 0 ? "Custom <script>title</script>" : "", display_limit: 1, sort_order: i, items: [] })) });
+  mocks.home.mockResolvedValue({ settings, stats: { scientists: 42, researchProjects: 17, partners: 9 }, sections: sectionKeys.map((key, i) => ({ key, title: i === 0 ? "Custom <script>title</script>" : "", display_limit: 1, sort_order: i, items: [] })) });
   const html = renderToStaticMarkup(await Home({ params: Promise.resolve({ locale }) }));
   expect(mocks.home).toHaveBeenCalledWith(locale);
   expect(html).toContain(homeCopy[locale].empty); expect(html).toContain(homeCopy[locale].sections.results);
   expect(html).toContain(`href="/${locale}/support/research_proposal"`); expect(html).toContain(`href="/${locale}/support/it_request"`);
   expect(html).toContain('href="/kk"'); expect(html).toContain('href="/en"');
   expect(html).toContain('>EN</a>');
+  expect(html).toContain(locale === "ru" ? "smu-logo-ru.png" : "smu-logo-kk.png");
+  expect(html).not.toContain(locale === "ru" ? "smu-logo-kk.png" : "smu-logo-ru.png");
+  expect(html).toContain("<dt>42</dt>"); expect(html).toContain("<dt>17</dt>"); expect(html).toContain("<dt>9</dt>");
   expect(html).toContain("Custom &lt;script&gt;title&lt;/script&gt;"); expect(html).not.toContain("<script>");
 });
 it("renders published cards safely and omits disabled sections", async () => {
-  mocks.home.mockResolvedValue({ settings, sections: [{ key: "latest_articles", title: "", display_limit: 2, sort_order: 1,
+  mocks.home.mockResolvedValue({ settings, stats: { scientists: 42, researchProjects: 17, partners: 9 }, sections: [{ key: "latest_articles", title: "", display_limit: 2, sort_order: 1,
     items: [{ id: "article", title: "<img onerror=alert(1)>", summary: "<iframe>body</iframe>", href: "/ru/journal/article" }] }] });
   const html = renderToStaticMarkup(await Home({ params: Promise.resolve({ locale: "ru" }) }));
   expect(html).toContain('href="/ru/journal/article"'); expect(html).toContain("&lt;img onerror=alert(1)&gt;");

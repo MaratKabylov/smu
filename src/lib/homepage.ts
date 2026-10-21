@@ -5,7 +5,8 @@ export const homeCardSchema = z.object({ id: z.uuid(), title: z.string(), summar
   href: z.string().startsWith("/").refine(value => !value.startsWith("//")) });
 export type HomeCard = z.infer<typeof homeCardSchema>;
 export type HomeSection = PublicSiteContent["sections"][number] & { items: HomeCard[] };
-export type Homepage = { settings: PublicSiteContent["settings"]; sections: HomeSection[] };
+export type HomepageStats = { scientists: number; researchProjects: number; partners: number };
+export type Homepage = { settings: PublicSiteContent["settings"]; sections: HomeSection[]; stats: HomepageStats };
 type SectionKey = typeof sectionKeys[number];
 export const homeCopy = {
   ru: { home: "Главная", intro: "Наука начинается с людей и совместных идей. Исследования, наставничество и поддержка научного сообщества.", all: "Все материалы", empty: "Опубликованных материалов пока нет.",

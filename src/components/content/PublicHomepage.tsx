@@ -19,7 +19,7 @@ import {
   Users,
 } from "lucide-react";
 import { homeCatalogs, homeCopy, type HomeCard, type Homepage } from "@/lib/homepage";
-import { locales, publicSections, type Locale } from "@/lib/i18n/locales";
+import { locales, type Locale } from "@/lib/i18n/locales";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import { supportCopy } from "@/lib/i18n/support-request";
 import styles from "./PublicHomepage.module.css";
@@ -34,7 +34,7 @@ const copy = {
     heroIntro: "Объединяем учёных, данные и реальные задачи Актюбинской области.",
     scientist: "Я учёный",
     propose: "Предложить задачу",
-    stats: ["Языковые версии", "Разделов платформы", "Формата поддержки"],
+    stats: ["Учёных в сообществе", "Исследовательских проектов", "Партнёров в регионе"],
     actionsTitle: "Что вы можете сделать на платформе",
     actions: [
       ["Найти коллег", "Ищите исследователей по направлениям и компетенциям, собирайте команды."],
@@ -81,7 +81,7 @@ const copy = {
     heroIntro: "Ақтөбе облысының ғалымдарын, деректерін және нақты міндеттерін біріктіреміз.",
     scientist: "Мен ғалыммын",
     propose: "Міндет ұсыну",
-    stats: ["Тілдік нұсқа", "Платформа бөлімі", "Қолдау форматы"],
+    stats: ["Қауымдастықтағы ғалымдар", "Зерттеу жобалары", "Өңірдегі серіктестер"],
     actionsTitle: "Платформада не істей аласыз",
     actions: [
       ["Әріптестерді табу", "Зерттеушілерді бағыттары мен құзыреттері бойынша тауып, команда құрыңыз."],
@@ -128,7 +128,7 @@ const copy = {
     heroIntro: "We connect scientists, data, and real challenges of the Aktobe Region.",
     scientist: "I am a scientist",
     propose: "Propose a challenge",
-    stats: ["Language versions", "Platform sections", "Support formats"],
+    stats: ["Scientists in the community", "Research projects", "Regional partners"],
     actionsTitle: "What you can do on the platform",
     actions: [
       ["Find colleagues", "Discover researchers by field and expertise and build a team."],
@@ -180,10 +180,18 @@ const opportunityTypes = ["grant", "conference", "competition", "internship"];
 const taskIcons = [Microscope, Lightbulb, Handshake];
 const taskHrefs = (locale: Locale) => [`/${locale}/projects`, `/${locale}/research-program`, `/${locale}/mentorship`];
 
-function Brand({ siteName, priority = false }: { siteName: string; priority?: boolean }) {
+function Brand({ locale, priority = false }: { locale: Locale; priority?: boolean }) {
+  const russian = locale === "ru";
   return <span className={styles.brand}>
-    <Image className={styles.brandLogo} src="/images/smu-logo.png" width={1260} height={1260} sizes="80px" alt="" priority={priority} />
-    <span className={styles.brandText}><strong>{siteName}</strong><small>Совет молодых учёных</small></span>
+    <Image
+      className={styles.brandLogo}
+      src={russian ? "/images/smu-logo-ru.png" : "/images/smu-logo-kk.png"}
+      width={1448}
+      height={1086}
+      sizes="(max-width: 820px) 190px, 225px"
+      alt={russian ? "Совет молодых учёных" : "Жас ғалымдар кеңесі"}
+      priority={priority}
+    />
   </span>;
 }
 
@@ -195,7 +203,7 @@ function HomeHeader({ locale, siteName }: { locale: Locale; siteName: string }) 
     [text.nav.opportunities, `/${locale}/opportunities`], [text.nav.about, `/${locale}/pages/about`],
   ] as const;
   return <header className={styles.header}><div className={styles.headerInner}>
-    <Link className={styles.brandLink} href={`/${locale}`} aria-label={siteName}><Brand siteName={siteName} priority /></Link>
+    <Link className={styles.brandLink} href={`/${locale}`} aria-label={siteName}><Brand locale={locale} priority /></Link>
     <nav className={styles.desktopNav} aria-label={text.navigation}>{links.map(([label, href]) => <Link href={href} key={href}>{label}</Link>)}</nav>
     <div className={styles.headerTools}>
       <span className={styles.languages}>{locales.map(language => <Link key={language} href={`/${language}`} aria-current={language === locale ? "page" : undefined}>{language.toUpperCase()}</Link>)}</span>
@@ -256,7 +264,7 @@ export function PublicHomepage({ data, locale }: { data: Homepage; locale: Local
       <section className={styles.hero} aria-labelledby="home-title"><div className={styles.heroInner}>
         <div className={styles.heroCopy}><p className={styles.eyebrow}>{getDictionary(locale).common.region}</p><h1 id="home-title">{hero?.title || text.heroTitle}</h1><p className={styles.heroIntro}>{text.heroIntro}</p>
           <div className={styles.heroActions}><Link className={styles.primaryButton} href={`/${locale}/scientists`}>{text.scientist}<Users aria-hidden="true" /></Link><Link className={styles.secondaryButton} href={`/${locale}/support/research_proposal`}>{text.propose}<Lightbulb aria-hidden="true" /></Link></div>
-          <dl className={styles.stats}><div><dt>3</dt><dd>{text.stats[0]}</dd></div><div><dt>{publicSections.length}</dt><dd>{text.stats[1]}</dd></div><div><dt>3</dt><dd>{text.stats[2]}</dd></div></dl>
+          <dl className={styles.stats}><div><dt>{data.stats.scientists}</dt><dd>{text.stats[0]}</dd></div><div><dt>{data.stats.researchProjects}</dt><dd>{text.stats[1]}</dd></div><div><dt>{data.stats.partners}</dt><dd>{text.stats[2]}</dd></div></dl>
         </div><HeroVisual />
       </div></section>
 
@@ -274,7 +282,7 @@ export function PublicHomepage({ data, locale }: { data: Homepage; locale: Local
 
       {additional.map(section => <GenericSection section={section} locale={locale} key={section.key} />)}
     </main>
-    <footer className={styles.footer}><div className={styles.footerGrid}><div><Brand siteName={data.settings.site_name} /><p>{text.footerText}</p><div className={styles.socials}>{data.settings.social_links.map((link, index) => <a href={link.href} rel="noreferrer" key={index}>{link.label}</a>)}</div></div>
+    <footer className={styles.footer}><div className={styles.footerGrid}><div><Brand locale={locale} /><p>{text.footerText}</p><div className={styles.socials}>{data.settings.social_links.map((link, index) => <a href={link.href} rel="noreferrer" key={index}>{link.label}</a>)}</div></div>
       <div><h2>{text.footerNav}</h2><Link href={`/${locale}`}>{fallback.home}</Link><Link href={`/${locale}/scientists`}>{text.nav.scientists}</Link><Link href={`/${locale}/research`}>{text.nav.research}</Link><Link href={`/${locale}/projects`}>{text.nav.projects}</Link><Link href={`/${locale}/opportunities`}>{text.nav.opportunities}</Link></div>
       <div><h2>{text.contacts}</h2><span><MapPin aria-hidden="true" />{text.region}</span>{data.settings.contact_email ? <a href={`mailto:${data.settings.contact_email}`}><Mail aria-hidden="true" />{data.settings.contact_email}</a> : <Link href={`/${locale}/pages/contacts`}><Mail aria-hidden="true" />{text.contacts}</Link>}</div>
       <div><h2>{text.connect}</h2><p>{text.connectText}</p><Link className={styles.footerCta} href={`/${locale}/support`}>{text.write}<Send aria-hidden="true" /></Link></div>

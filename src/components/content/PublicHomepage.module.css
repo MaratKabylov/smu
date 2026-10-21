@@ -34,11 +34,8 @@
 }
 
 .brandLink { width: fit-content; color: inherit; }
-.brand { display: inline-flex; align-items: center; gap: 11px; }
-.brandLogo { width: 66px; height: 66px; flex: 0 0 auto; border-radius: 50%; background: #fff; object-fit: contain; }
-.brandText { display: grid; max-width: 165px; line-height: 1.05; text-transform: uppercase; }
-.brandText strong { font-size: 16px; letter-spacing: .02em; }
-.brandText small { margin-top: 5px; color: #15859c; font-size: 8px; font-weight: 850; letter-spacing: .08em; }
+.brand { display: block; position: relative; width: 174px; height: 70px; overflow: hidden; flex: 0 0 auto; background: #fff; }
+.brandLogo { position: absolute; top: -46px; left: -30px; width: 225px; height: auto; max-width: none; }
 
 .desktopNav { display: flex; align-items: center; justify-content: center; gap: clamp(14px, 2vw, 29px); }
 .desktopNav a { position: relative; color: #264e70; font-size: 12px; font-weight: 700; white-space: nowrap; }
@@ -161,9 +158,8 @@
 
 .footer { margin-top: 62px; background: linear-gradient(120deg, #073665, #023055 70%, #004768); color: #fff; }
 .footerGrid { display: grid; grid-template-columns: 1.3fr .72fr .95fr 1fr; width: min(100% - 48px, 1240px); margin: 0 auto; gap: 55px; padding: 48px 0 38px; }
-.footer .brandLogo { width: 78px; height: 78px; box-shadow: 0 0 0 1px rgb(255 255 255 / 16%); }
-.footer .brandText { color: #fff; }
-.footer .brandText small { color: #77d4df; }
+.footer .brand { width: 220px; height: 88px; border-radius: 7px; box-shadow: 0 0 0 1px rgb(255 255 255 / 16%); }
+.footer .brandLogo { top: -60px; left: -39px; width: 290px; }
 .footerGrid > div { display: flex; flex-direction: column; align-items: flex-start; gap: 11px; }
 .footerGrid > div:first-child > p { max-width: 290px; margin: 12px 0 0; color: #b9d0df; font-size: 11px; line-height: 1.7; }
 .footerGrid h2 { margin: 5px 0 8px; color: #fff; font-size: 14px; }
@@ -196,8 +192,8 @@
 @media (max-width: 820px) {
   .headerInner, .heroInner, .section, .secondarySection, .itBanner, .footerGrid, .footerBottom { width: min(100% - 32px, 720px); }
   .headerInner { min-height: 76px; }
-  .brandLogo { width: 56px; height: 56px; }
-  .brandText strong { font-size: 14px; }
+  .header .brand { width: 145px; height: 58px; }
+  .header .brandLogo { top: -39px; left: -26px; width: 190px; }
   .languages { display: none; }
   .heroInner { grid-template-columns: 1fr; min-height: auto; }
   .heroCopy { padding-bottom: 10px; }
@@ -213,8 +209,6 @@
 
 @media (max-width: 560px) {
   .headerCta { display: none; }
-  .brandText small { display: none; }
-  .brandText { max-width: 135px; }
   .heroCopy { padding-top: 48px; }
   .hero h1 { font-size: clamp(36px, 10.5vw, 42px); }
   .heroIntro { font-size: 17px; }
