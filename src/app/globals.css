@@ -3416,3 +3416,764 @@ fieldset.article-editor-panel { min-width: 0; }
 .information-program .information-main > header { border-left: 5px solid #357658; padding-left: 24px; }
 .information-support .information-cta { padding: 24px; background: #e4f0e9; border-radius: 12px; }
 @media (max-width: 640px) { .information-main { padding-top: 32px; } .information-landing .information-main > header { padding: 20px; } .content-social-link { grid-template-columns: 1fr; } }
+
+/* Unified public site — follows the visual language of the homepage. */
+body:has(.public-header) {
+  background: #f8fbfd;
+}
+
+.public-header + main {
+  background: #f8fbfd;
+}
+
+.public-header,
+.journal-hero,
+.scientists-hero,
+.journal-catalog,
+.scientists-catalog,
+.public-article-page,
+.public-article-shell,
+.support-page,
+.information-page,
+.legacy-public {
+  --public-navy: #073a6b;
+  --public-blue: #07558d;
+  --public-cyan: #0098b6;
+  --public-gold: #dda52c;
+  --public-text: #0a345d;
+  --public-muted: #627792;
+  --public-line: #dceaf0;
+}
+
+.public-header {
+  position: sticky;
+  top: 0;
+  border-bottom: 1px solid rgb(7 58 107 / 8%);
+  background: rgb(255 255 255 / 96%);
+  box-shadow: 0 6px 24px rgb(7 58 107 / 5%);
+  backdrop-filter: blur(16px);
+}
+
+.public-header .journal-header-inner {
+  grid-template-columns: 205px minmax(0, 1fr) auto;
+  width: min(100% - 48px, 1240px);
+  min-height: 88px;
+  gap: 26px;
+}
+
+.public-header .journal-brand {
+  width: 174px;
+  height: 70px;
+  overflow: hidden;
+}
+
+.public-logo-crop {
+  display: block;
+  position: relative;
+  width: 174px;
+  height: 70px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.public-logo {
+  position: absolute;
+  top: -46px;
+  left: -30px;
+  width: 225px;
+  height: auto;
+  max-width: none;
+}
+
+.public-header .journal-nav {
+  justify-content: center;
+  flex-wrap: nowrap;
+  gap: clamp(14px, 1.8vw, 28px);
+  padding: 0;
+}
+
+.public-header .journal-nav > a,
+.public-header .public-information-navigation > summary {
+  position: relative;
+  color: #264e70;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.public-header .journal-nav > a::after {
+  position: absolute;
+  right: 50%;
+  bottom: -12px;
+  left: 50%;
+  height: 2px;
+  background: var(--public-cyan);
+  content: "";
+  transition: right .2s ease, left .2s ease;
+}
+
+.public-header .journal-nav > a:hover::after,
+.public-header .journal-nav > a:focus-visible::after,
+.public-header .journal-nav > a[aria-current="page"]::after {
+  right: 0;
+  left: 0;
+}
+
+.public-header .journal-nav > a[aria-current="page"],
+.public-header .public-information-navigation.is-current > summary {
+  color: var(--public-blue);
+}
+
+.public-header-tools {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.public-more-menu,
+.public-mobile-menu {
+  position: relative;
+}
+
+.public-more-menu summary,
+.public-mobile-menu summary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  border-radius: 8px;
+  color: #264e70;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  list-style: none;
+}
+
+.public-more-menu summary {
+  padding: 0 10px;
+}
+
+.public-more-menu summary::-webkit-details-marker,
+.public-mobile-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.public-more-menu > div,
+.public-mobile-menu > nav {
+  display: grid;
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 12px);
+  right: 0;
+  width: 245px;
+  gap: 3px;
+  border: 1px solid var(--public-line);
+  border-radius: 14px;
+  background: #fff;
+  padding: 10px;
+  box-shadow: 0 18px 48px rgb(7 58 107 / 16%);
+}
+
+.public-more-menu a,
+.public-mobile-menu a {
+  border-radius: 8px;
+  color: var(--public-text);
+  padding: 10px 11px;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.public-more-menu a:hover,
+.public-mobile-menu a:hover,
+.public-more-menu a[aria-current="page"],
+.public-mobile-menu a[aria-current="page"] {
+  background: #edf8fa;
+  color: var(--public-blue);
+}
+
+.public-mobile-languages {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--public-line);
+  padding: 2px 2px 9px;
+}
+
+.public-mobile-menu .public-mobile-languages a {
+  min-width: 42px;
+  padding: 7px 9px;
+  text-align: center;
+}
+
+.public-mobile-menu .public-mobile-languages a[aria-current="page"] {
+  background: #e8f6f8;
+  color: var(--public-cyan);
+}
+
+.public-header .journal-language {
+  border: 0;
+  background: transparent;
+}
+
+.public-header .journal-language a {
+  border-radius: 7px;
+  color: #7890a4;
+  padding: 6px;
+}
+
+.public-header .journal-language a.is-active {
+  background: #e8f6f8;
+  color: #087e9b;
+}
+
+.public-header-cta {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #0871a7, #043b72);
+  box-shadow: 0 8px 20px rgb(5 72 124 / 22%);
+  color: #fff;
+  padding: 0 16px;
+  font-size: 11px;
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.public-mobile-menu {
+  display: none;
+}
+
+.public-header .public-information-navigation > div {
+  border-color: var(--public-line);
+  box-shadow: 0 14px 36px rgb(7 58 107 / 14%);
+}
+
+.public-header .public-information-navigation > div a:hover {
+  background: #edf8fa;
+}
+
+.journal-hero,
+.scientists-hero {
+  background:
+    radial-gradient(circle at 82% 38%, rgb(93 200 217 / 28%), transparent 25%),
+    linear-gradient(105deg, #fff 8%, #f7fcfe 55%, #e8f7fa);
+  color: var(--public-text);
+}
+
+.journal-hero::before,
+.scientists-hero::before {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(#0b94ad 1px, transparent 1px);
+  background-size: 28px 28px;
+  content: "";
+  opacity: .06;
+  mask-image: linear-gradient(90deg, transparent 28%, #000);
+}
+
+.journal-hero::after,
+.scientists-hero::after {
+  top: -180px;
+  right: 5%;
+  bottom: auto;
+  width: 430px;
+  height: 430px;
+  border-color: rgb(7 85 141 / 10%);
+  box-shadow: 0 0 0 58px rgb(0 152 182 / 3%), 0 0 0 116px rgb(0 152 182 / 2%);
+}
+
+.journal-hero-inner,
+.scientists-hero .journal-hero-inner {
+  width: min(100% - 48px, 1240px);
+  padding: 72px 0 78px;
+}
+
+.journal-eyebrow {
+  color: var(--public-cyan);
+  font-size: 11px;
+  letter-spacing: .12em;
+}
+
+.journal-hero h1,
+.scientists-hero h1 {
+  color: #082f59;
+  font-family: inherit;
+  font-size: clamp(42px, 5.2vw, 66px);
+  font-weight: 850;
+  letter-spacing: -.045em;
+  line-height: 1.04;
+  overflow-wrap: anywhere;
+}
+
+.journal-hero-inner > p:last-child,
+.scientists-hero .journal-hero-inner > p:not(.journal-eyebrow) {
+  color: var(--public-muted);
+  font-size: 16px;
+  line-height: 1.65;
+}
+
+.scientists-stat {
+  border-top-color: rgb(7 85 141 / 14%);
+}
+
+.scientists-stat strong {
+  color: var(--public-gold);
+  font-family: inherit;
+  font-weight: 850;
+}
+
+.scientists-stat span {
+  color: var(--public-muted);
+}
+
+.journal-catalog,
+.scientists-catalog,
+.public-article-page,
+.public-article-shell,
+.legacy-public {
+  background: #f8fbfd;
+}
+
+.journal-catalog,
+.scientists-catalog {
+  width: min(100% - 48px, 1240px);
+  padding-top: 40px;
+}
+
+.journal-category-row a {
+  border-color: var(--public-line);
+  background: #fff;
+  color: var(--public-muted);
+}
+
+.journal-category-row a.is-active {
+  border-color: var(--public-blue);
+  background: var(--public-blue);
+}
+
+.journal-search-form label,
+.journal-search-form select,
+.science-filters label,
+.science-filters select,
+.scientists-filters,
+.scientists-filters input,
+.scientists-filters select {
+  border-color: var(--public-line);
+  border-radius: 10px;
+}
+
+.journal-search-form button,
+.science-filters button,
+.scientists-filters button,
+.support-form button,
+.mentorship-public-form button {
+  border: 0;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #0871a7, #043b72);
+  color: #fff;
+  font-weight: 800;
+  box-shadow: 0 7px 18px rgb(5 72 124 / 16%);
+}
+
+.scientists-filters {
+  border-radius: 14px;
+  box-shadow: 0 12px 35px rgb(7 58 107 / 6%);
+}
+
+.public-article-card,
+.scientist-card {
+  border: 1px solid var(--public-line);
+  border-radius: 14px;
+  box-shadow: 0 10px 34px rgb(7 58 107 / 7%);
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+
+.public-article-card:hover,
+.scientist-card:hover {
+  border-color: rgb(0 152 182 / 38%);
+  box-shadow: 0 18px 42px rgb(7 58 107 / 11%);
+  transform: translateY(-3px);
+}
+
+.public-card-cover {
+  background: linear-gradient(145deg, #07558d, #0098b6);
+}
+
+.public-card-content h2,
+.scientist-card-content h2 {
+  color: var(--public-text);
+  font-family: inherit;
+  font-weight: 800;
+}
+
+.public-card-content h2 a,
+.scientist-card-content h2 a {
+  color: inherit;
+}
+
+.public-card-link,
+.science-card-field,
+.mentorship-mentor a,
+.mentorship-card-link {
+  color: var(--public-cyan);
+}
+
+.mentorship-card {
+  border-top: 3px solid var(--public-cyan);
+}
+
+.journal-empty {
+  border-color: #c9e0e8;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.journal-empty > svg,
+.journal-empty a {
+  color: var(--public-cyan);
+}
+
+.journal-empty h2 {
+  color: var(--public-text);
+  font-family: inherit;
+  font-weight: 800;
+}
+
+.public-article-page {
+  min-height: calc(100vh - 88px);
+}
+
+.public-article-shell {
+  width: min(100% - 48px, 1100px);
+  padding-top: 48px;
+}
+
+.public-breadcrumbs,
+.public-breadcrumbs a {
+  color: var(--public-muted);
+}
+
+.public-breadcrumbs a {
+  font-weight: 800;
+}
+
+.public-article-header h1,
+.public-article-shell > h1,
+.platform-search > h1,
+.support-page h1,
+.information-main h1,
+.legacy-public > h1 {
+  color: var(--public-text);
+  font-family: inherit;
+  font-weight: 850;
+  letter-spacing: -.04em;
+}
+
+.public-article-shell > h1,
+.platform-search > h1,
+.support-page h1,
+.legacy-public > h1 {
+  margin: 0 0 18px;
+  font-size: clamp(38px, 5vw, 56px);
+  line-height: 1.06;
+}
+
+.public-article-lead,
+.information-summary {
+  color: var(--public-muted);
+  font-family: inherit;
+}
+
+.public-article-kicker,
+.public-article-kicker a {
+  color: var(--public-cyan);
+}
+
+.public-article-cover {
+  overflow: hidden;
+  border-radius: 18px;
+  box-shadow: 0 20px 60px rgb(7 58 107 / 12%);
+}
+
+.science-work-body,
+.public-article-body,
+.information-body {
+  color: #274963;
+  font-family: inherit;
+  font-size: 17px;
+  line-height: 1.8;
+}
+
+.science-work-body h2,
+.public-article-body h2 {
+  color: var(--public-text);
+  font-family: inherit;
+  font-weight: 800;
+}
+
+.public-article-aside,
+.science-work-aside {
+  border: 1px solid var(--public-line);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 12px 36px rgb(7 58 107 / 6%);
+}
+
+.public-article-aside a,
+.science-return a,
+.public-relations a,
+.platform-search-results a,
+.support-page > a,
+.legacy-public > a {
+  color: var(--public-blue);
+}
+
+.public-relations li {
+  border: 1px solid var(--public-line);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgb(7 58 107 / 5%);
+}
+
+.catalog-pagination a,
+.catalog-pagination [aria-current] {
+  border-color: var(--public-line);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--public-blue);
+  text-decoration: none;
+}
+
+.catalog-pagination [aria-current] {
+  border-color: var(--public-blue);
+  background: var(--public-blue);
+  color: #fff;
+}
+
+.journal-footer {
+  border-top-color: rgb(255 255 255 / 12%);
+  background: linear-gradient(120deg, #073665, #023055 70%, #004768);
+  color: #9db8c9;
+  padding: 24px max(24px, calc((100vw - 1240px) / 2));
+}
+
+.journal-footer a {
+  color: #d4e5ee;
+}
+
+.support-page {
+  width: min(100% - 40px, 920px);
+  max-width: none;
+  min-height: calc(100vh - 88px);
+  margin: 0 auto;
+  padding: 64px 0 90px;
+}
+
+.support-page > p {
+  max-width: 720px;
+  color: var(--public-muted);
+  font-size: 17px;
+  line-height: 1.7;
+}
+
+.support-cards {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.support-cards a {
+  position: relative;
+  border-color: var(--public-line);
+  border-radius: 14px;
+  color: var(--public-text);
+  padding: 25px 54px 25px 24px;
+  font-weight: 800;
+  text-decoration: none;
+  box-shadow: 0 10px 30px rgb(7 58 107 / 6%);
+}
+
+.support-cards a::after {
+  position: absolute;
+  right: 22px;
+  color: var(--public-cyan);
+  content: "→";
+}
+
+.support-form,
+.mentorship-public-form {
+  border: 1px solid var(--public-line);
+  border-radius: 16px;
+  background: #fff;
+  padding: 28px;
+  box-shadow: 0 14px 40px rgb(7 58 107 / 7%);
+}
+
+.support-form input:not([type="checkbox"]),
+.support-form textarea,
+.support-form select,
+.mentorship-public-form input:not([type="checkbox"]),
+.mentorship-public-form textarea {
+  border: 1px solid var(--public-line);
+  border-radius: 9px;
+  padding: 12px;
+}
+
+.support-form button,
+.mentorship-public-form button {
+  min-height: 46px;
+  padding: 0 20px;
+  cursor: pointer;
+}
+
+.information-page {
+  background: #f8fbfd;
+}
+
+.information-main {
+  max-width: 980px;
+  padding: 72px 24px 96px;
+}
+
+.information-main > header,
+.information-landing .information-main > header,
+.information-program .information-main > header {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--public-line);
+  border-left: 0;
+  border-radius: 18px;
+  background: linear-gradient(120deg, #fff, #edf9fb);
+  padding: 38px;
+}
+
+.information-main > header::after {
+  position: absolute;
+  right: -65px;
+  bottom: -95px;
+  width: 230px;
+  height: 230px;
+  border: 28px solid rgb(0 152 182 / 6%);
+  border-radius: 50%;
+  content: "";
+}
+
+.information-body {
+  max-width: 780px;
+}
+
+.information-cta {
+  border-radius: 14px;
+  background: #e8f7fa;
+  padding: 24px;
+}
+
+.information-footer {
+  border-top-color: rgb(255 255 255 / 12%);
+  background: linear-gradient(120deg, #073665, #023055 70%, #004768);
+  color: #a9c2d1;
+}
+
+.information-footer a {
+  color: #e3eff5;
+}
+
+@media (max-width: 1120px) {
+  .public-header .journal-header-inner {
+    grid-template-columns: 190px minmax(0, 1fr) auto;
+    gap: 16px;
+  }
+  .public-header .journal-nav { gap: 15px; }
+  .public-header .journal-nav > a,
+  .public-header .public-information-navigation > summary { font-size: 11px; }
+  .public-header-cta { display: none; }
+}
+
+@media (max-width: 900px) {
+  .public-header .journal-header-inner {
+    grid-template-columns: 1fr auto;
+  }
+  .public-primary-nav,
+  .public-desktop-more {
+    display: none !important;
+  }
+  .public-mobile-menu {
+    display: block;
+  }
+  .public-mobile-menu summary {
+    width: 42px;
+    height: 42px;
+    background: #edf8fa;
+  }
+  .public-mobile-menu summary svg {
+    width: 20px;
+  }
+  .scientists-filters,
+  .science-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .scientists-filters button,
+  .science-filters button {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 640px) {
+  .public-header .journal-header-inner {
+    width: min(100% - 28px, 1240px);
+    min-height: 78px;
+  }
+  .public-header .journal-brand,
+  .public-logo-crop {
+    width: 151px;
+    height: 62px;
+  }
+  .public-logo {
+    top: -40px;
+    left: -25px;
+    width: 195px;
+  }
+  .public-header-tools { gap: 4px; }
+  .public-header-tools > .journal-language { display: none; }
+  .journal-hero-inner,
+  .scientists-hero .journal-hero-inner,
+  .journal-catalog,
+  .scientists-catalog,
+  .public-article-shell {
+    width: min(100% - 32px, 1240px);
+  }
+  .journal-hero-inner,
+  .scientists-hero .journal-hero-inner {
+    padding: 54px 0 60px;
+  }
+  .journal-hero h1,
+  .scientists-hero h1 {
+    font-size: clamp(36px, 11vw, 48px);
+  }
+  .scientists-filters,
+  .science-filters,
+  .support-cards {
+    grid-template-columns: 1fr;
+  }
+  .public-article-header h1 {
+    font-size: 38px;
+  }
+  .support-page {
+    width: min(100% - 32px, 920px);
+    padding-top: 42px;
+  }
+  .support-form,
+  .mentorship-public-form {
+    padding: 20px;
+  }
+  .information-main {
+    padding: 40px 16px 70px;
+  }
+  .information-main > header,
+  .information-landing .information-main > header,
+  .information-program .information-main > header {
+    padding: 24px 20px;
+  }
+}

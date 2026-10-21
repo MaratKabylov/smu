@@ -282,7 +282,7 @@ export function PublicHomepage({ data, locale }: { data: Homepage; locale: Local
 
       {additional.map(section => <GenericSection section={section} locale={locale} key={section.key} />)}
     </main>
-    <footer className={styles.footer}><div className={styles.footerGrid}><div><Brand locale={locale} /><p>{text.footerText}</p><div className={styles.socials}>{data.settings.social_links.map((link, index) => <a href={link.href} rel="noreferrer" key={index}>{link.label}</a>)}</div></div>
+    <footer className={styles.footer}><div className={styles.footerGrid}><div><p>{text.footerText}</p><div className={styles.socials}>{data.settings.social_links.map((link, index) => <a href={link.href} rel="noreferrer" key={index}>{link.label}</a>)}</div></div>
       <div><h2>{text.footerNav}</h2><Link href={`/${locale}`}>{fallback.home}</Link><Link href={`/${locale}/scientists`}>{text.nav.scientists}</Link><Link href={`/${locale}/research`}>{text.nav.research}</Link><Link href={`/${locale}/projects`}>{text.nav.projects}</Link><Link href={`/${locale}/opportunities`}>{text.nav.opportunities}</Link></div>
       <div><h2>{text.contacts}</h2><span><MapPin aria-hidden="true" />{text.region}</span>{data.settings.contact_email ? <a href={`mailto:${data.settings.contact_email}`}><Mail aria-hidden="true" />{data.settings.contact_email}</a> : <Link href={`/${locale}/pages/contacts`}><Mail aria-hidden="true" />{text.contacts}</Link>}</div>
       <div><h2>{text.connect}</h2><p>{text.connectText}</p><Link className={styles.footerCta} href={`/${locale}/support`}>{text.write}<Send aria-hidden="true" /></Link></div>

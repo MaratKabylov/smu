@@ -158,10 +158,8 @@
 
 .footer { margin-top: 62px; background: linear-gradient(120deg, #073665, #023055 70%, #004768); color: #fff; }
 .footerGrid { display: grid; grid-template-columns: 1.3fr .72fr .95fr 1fr; width: min(100% - 48px, 1240px); margin: 0 auto; gap: 55px; padding: 48px 0 38px; }
-.footer .brand { width: 220px; height: 88px; border-radius: 7px; box-shadow: 0 0 0 1px rgb(255 255 255 / 16%); }
-.footer .brandLogo { top: -60px; left: -39px; width: 290px; }
 .footerGrid > div { display: flex; flex-direction: column; align-items: flex-start; gap: 11px; }
-.footerGrid > div:first-child > p { max-width: 290px; margin: 12px 0 0; color: #b9d0df; font-size: 11px; line-height: 1.7; }
+.footerGrid > div:first-child > p { max-width: 290px; margin: 5px 0 0; color: #b9d0df; font-size: 11px; line-height: 1.7; }
 .footerGrid h2 { margin: 5px 0 8px; color: #fff; font-size: 14px; }
 .footerGrid a, .footerGrid span:not(.brand, .brandMark, .brandText, .socials) { display: inline-flex; align-items: center; gap: 9px; color: #c2d7e4; font-size: 11px; line-height: 1.45; }
 .footerGrid a:hover { color: #fff; }
