@@ -152,12 +152,12 @@ describe("scientist profile lifecycle and privacy", () => {
   });
 });
 describe("atomic scientist merging", () => {
-  it("retargets the graph, deduplicates memberships, resets approval/schedules and preserves snapshots/slugs", async () => {
+  it("retargets the graph, deduplicates memberships, resets approval and preserves snapshots/slugs", async () => {
     const source = await verified('source',{links:[{type:'orcid',url:'https://orcid.org/0000-0002-1825-0097'}]});
     const target = await verified('target',{collaboration:{coauthoring:true}}); const linked = await graph(source);
     await db.query<Record<string, unknown>>("insert into public.science_work_members values($1,$2,'member')",[linked.work,target]);
     await db.query<Record<string, unknown>>("insert into public.article_scientists values($1,$2,'subject',1)",[linked.article,target]);
-    await db.query<Record<string, unknown>>("update public.articles set status='scheduled',scheduled_at=now()+interval '1 day',scheduled_by=$2 where id=$1",[linked.article,admin]);
+    await db.query<Record<string, unknown>>("update public.articles set status='approved',approved_version=content_version where id=$1",[linked.article]);
     await db.query<Record<string, unknown>>("insert into public.slug_redirects(entity_type,entity_id,locale,old_slug) values('scientist',$1,'ru','older-source')",[source]);
     await merge(source,target,manager,await version(source),await version(target));
     expect((await asRole(manager,() => db.query("select * from public.list_deleted_editorial_records('scientist')"))).rows).toEqual([]);
@@ -168,7 +168,7 @@ describe("atomic scientist merging", () => {
     expect((await db.query<Record<string, unknown>>('select scientist_id from public.mentorship_offers where id=$1',[linked.offer])).rows[0].scientist_id).toBe(target);
     expect((await db.query<Record<string, unknown>>('select coordinator_id from public.research_programs where id=$1',[linked.program])).rows[0].coordinator_id).toBe(target);
     expect((await db.query<Record<string, unknown>>('select scientist_id,relation_type from public.article_scientists where article_id=$1',[linked.article])).rows).toEqual([{scientist_id:target,relation_type:'subject'}]);
-    expect((await db.query<Record<string, unknown>>('select status,content_version,approved_version,scheduled_at from public.articles where id=$1',[linked.article])).rows[0]).toEqual({status:'draft',content_version:2,approved_version:null,scheduled_at:null});
+    expect((await db.query<Record<string, unknown>>('select status,content_version,approved_version from public.articles where id=$1',[linked.article])).rows[0]).toEqual({status:'draft',content_version:2,approved_version:null});
     expect((await db.query<Record<string, unknown>>('select source_snapshot from public.scientist_merges')).rows[0].source_snapshot).toMatchObject({profile:{id:source},articles:[{scientist_id:source}],publications:[linked.publication]});
     expect((await asRole(null,() => db.query<Record<string, unknown>>("select * from public.slug_redirects where old_slug='source'"))).rows).toEqual([]);
     await decision(target,'verified','',await version(target));

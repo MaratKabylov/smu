@@ -277,7 +277,6 @@ export type Database = {
           "snapshot": Json;
           "created_by": string | null;
           "created_at": string;
-          "is_system": boolean;
         };
         Insert: {
           "id"?: string;
@@ -290,7 +289,6 @@ export type Database = {
           "snapshot": Json;
           "created_by"?: string | null;
           "created_at"?: string;
-          "is_system"?: boolean;
         };
         Update: {
           "id"?: string;
@@ -303,7 +301,6 @@ export type Database = {
           "snapshot"?: Json;
           "created_by"?: string | null;
           "created_at"?: string;
-          "is_system"?: boolean;
         };
         Relationships: [
           { foreignKeyName: "article_revisions_article_id_fkey"; columns: ["article_id"]; isOneToOne: false; referencedRelation: "articles"; referencedColumns: ["id"] },
@@ -514,7 +511,7 @@ export type Database = {
           "category_id": string | null;
           "cover_media_id": string | null;
           "content_type": string;
-          "status": "draft" | "in_review" | "changes_requested" | "approved" | "scheduled" | "published" | "archived";
+          "status": "draft" | "in_review" | "changes_requested" | "approved" | "published" | "archived";
           "published_at": string | null;
           "created_at": string;
           "updated_at": string;
@@ -525,8 +522,6 @@ export type Database = {
           "first_published_at": string | null;
           "updated_by": string | null;
           "requires_scientific_review": boolean;
-          "scheduled_at": string | null;
-          "scheduled_by": string | null;
         };
         Insert: {
           "id"?: string;
@@ -534,7 +529,7 @@ export type Database = {
           "category_id"?: string | null;
           "cover_media_id"?: string | null;
           "content_type"?: string;
-          "status"?: "draft" | "in_review" | "changes_requested" | "approved" | "scheduled" | "published" | "archived";
+          "status"?: "draft" | "in_review" | "changes_requested" | "approved" | "published" | "archived";
           "published_at"?: string | null;
           "created_at"?: string;
           "updated_at"?: string;
@@ -545,8 +540,6 @@ export type Database = {
           "first_published_at"?: string | null;
           "updated_by"?: string | null;
           "requires_scientific_review"?: boolean;
-          "scheduled_at"?: string | null;
-          "scheduled_by"?: string | null;
         };
         Update: {
           "id"?: string;
@@ -554,7 +547,7 @@ export type Database = {
           "category_id"?: string | null;
           "cover_media_id"?: string | null;
           "content_type"?: string;
-          "status"?: "draft" | "in_review" | "changes_requested" | "approved" | "scheduled" | "published" | "archived";
+          "status"?: "draft" | "in_review" | "changes_requested" | "approved" | "published" | "archived";
           "published_at"?: string | null;
           "created_at"?: string;
           "updated_at"?: string;
@@ -565,15 +558,12 @@ export type Database = {
           "first_published_at"?: string | null;
           "updated_by"?: string | null;
           "requires_scientific_review"?: boolean;
-          "scheduled_at"?: string | null;
-          "scheduled_by"?: string | null;
         };
         Relationships: [
           { foreignKeyName: "articles_author_id_fkey"; columns: ["author_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
           { foreignKeyName: "articles_category_id_fkey"; columns: ["category_id"]; isOneToOne: false; referencedRelation: "article_categories"; referencedColumns: ["id"] },
           { foreignKeyName: "articles_content_type_fkey"; columns: ["content_type"]; isOneToOne: false; referencedRelation: "article_types"; referencedColumns: ["slug"] },
           { foreignKeyName: "articles_cover_media_id_fkey"; columns: ["cover_media_id"]; isOneToOne: false; referencedRelation: "media_assets"; referencedColumns: ["id"] },
-          { foreignKeyName: "articles_scheduled_by_fkey"; columns: ["scheduled_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
           { foreignKeyName: "articles_scientific_reviewer_id_fkey"; columns: ["scientific_reviewer_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
           { foreignKeyName: "articles_updated_by_fkey"; columns: ["updated_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
         ];
@@ -742,61 +732,6 @@ export type Database = {
         };
         Relationships: [
           { foreignKeyName: "content_pages_updated_by_fkey"; columns: ["updated_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
-        ];
-      };
-      "email_outbox": {
-        Row: {
-          "id": string;
-          "event_key": string;
-          "recipient_email": string;
-          "locale": "ru" | "kk" | "en";
-          "template_key": "application_received" | "application_status" | "manager_new_request" | "assignment";
-          "payload": Json;
-          "status": "pending" | "processing" | "sent" | "failed";
-          "attempt_count": number;
-          "available_at": string;
-          "locked_at": string | null;
-          "claim_token": string | null;
-          "provider_message_id": string | null;
-          "last_error_code": string | null;
-          "created_at": string;
-          "sent_at": string | null;
-        };
-        Insert: {
-          "id"?: string;
-          "event_key": string;
-          "recipient_email": string;
-          "locale": "ru" | "kk" | "en";
-          "template_key": "application_received" | "application_status" | "manager_new_request" | "assignment";
-          "payload": Json;
-          "status"?: "pending" | "processing" | "sent" | "failed";
-          "attempt_count"?: number;
-          "available_at"?: string;
-          "locked_at"?: string | null;
-          "claim_token"?: string | null;
-          "provider_message_id"?: string | null;
-          "last_error_code"?: string | null;
-          "created_at"?: string;
-          "sent_at"?: string | null;
-        };
-        Update: {
-          "id"?: string;
-          "event_key"?: string;
-          "recipient_email"?: string;
-          "locale"?: "ru" | "kk" | "en";
-          "template_key"?: "application_received" | "application_status" | "manager_new_request" | "assignment";
-          "payload"?: Json;
-          "status"?: "pending" | "processing" | "sent" | "failed";
-          "attempt_count"?: number;
-          "available_at"?: string;
-          "locked_at"?: string | null;
-          "claim_token"?: string | null;
-          "provider_message_id"?: string | null;
-          "last_error_code"?: string | null;
-          "created_at"?: string;
-          "sent_at"?: string | null;
-        };
-        Relationships: [
         ];
       };
       "event_translations": {
@@ -2661,12 +2596,6 @@ export type Database = {
       };
     };
     Functions: {
-      "article_version_publishable": {
-        Args: {
-          "p_id": string | null;
-        };
-        Returns: boolean;
-      };
       "assert_editorial_purge_unreferenced": {
         Args: {
           "p_table": string | null;
@@ -2706,16 +2635,7 @@ export type Database = {
       "change_article_state": {
         Args: {
           "p_id": string | null;
-          "p_status": "draft" | "in_review" | "changes_requested" | "approved" | "scheduled" | "published" | "archived" | null;
-          "p_delete"?: boolean | null;
-          "p_expected_version"?: number | null;
-        };
-        Returns: undefined;
-      };
-      "change_article_state_before_scheduling": {
-        Args: {
-          "p_id": string | null;
-          "p_status": "draft" | "in_review" | "changes_requested" | "approved" | "scheduled" | "published" | "archived" | null;
+          "p_status": "draft" | "in_review" | "changes_requested" | "approved" | "published" | "archived" | null;
           "p_delete"?: boolean | null;
           "p_expected_version"?: number | null;
         };
@@ -2802,13 +2722,6 @@ export type Database = {
         Args: Record<string, never>;
         Returns: number;
       };
-      "claim_email_jobs": {
-        Args: {
-          "p_limit": number | null;
-          "p_worker": string | null;
-        };
-        Returns: Json;
-      };
       "configure_article_review": {
         Args: {
           "p_id": string | null;
@@ -2876,17 +2789,6 @@ export type Database = {
           "p_height": number | null;
         };
         Returns: undefined;
-      };
-      "finish_email_job": {
-        Args: {
-          "p_id": string | null;
-          "p_worker": string | null;
-          "p_success": boolean | null;
-          "p_provider_id"?: string | null;
-          "p_error_code"?: string | null;
-          "p_retryable"?: boolean | null;
-        };
-        Returns: string;
       };
       "get_account_research_program": {
         Args: {
@@ -3130,12 +3032,6 @@ export type Database = {
           "p_locale": string | null;
         };
         Returns: ({ "id": string | null; "title": string | null; "href": string | null; "excerpt": string | null; "relation_type": string | null })[];
-      };
-      "publish_scheduled_articles": {
-        Args: {
-          "p_limit"?: number | null;
-        };
-        Returns: Json;
       };
       "purge_deleted_editorial_record": {
         Args: {
@@ -3405,15 +3301,6 @@ export type Database = {
         };
         Returns: number;
       };
-      "schedule_article": {
-        Args: {
-          "p_id": string | null;
-          "p_expected_version": number | null;
-          "p_scheduled_at": string | null;
-          "p_expected_scheduled_at"?: string | null;
-        };
-        Returns: undefined;
-      };
       "scientist_linked_account": {
         Args: {
           "p_id": string | null;
@@ -3534,14 +3421,11 @@ export type Database = {
         Args: {
           "p_event_key": string | null;
           "p_user": string | null;
-          "p_email": string | null;
           "p_locale": string | null;
           "p_type": string | null;
           "p_status": string | null;
           "p_kind": string | null;
           "p_url": string | null;
-          "p_payload": Json | null;
-          "p_in_app"?: boolean | null;
         };
         Returns: undefined;
       };
@@ -3561,7 +3445,6 @@ export type Database = {
           "p_type": string | null;
           "p_kind": string | null;
           "p_url": string | null;
-          "p_payload": Json | null;
         };
         Returns: undefined;
       };
@@ -3685,7 +3568,7 @@ export type Database = {
     };
     Enums: {
       "article_content_type": "article" | "news" | "interview" | "announcement";
-      "article_status": "draft" | "in_review" | "changes_requested" | "approved" | "scheduled" | "published" | "archived";
+      "article_status": "draft" | "in_review" | "changes_requested" | "approved" | "published" | "archived";
       "event_format": "offline" | "online" | "hybrid";
       "event_kind": "conference" | "seminar" | "workshop" | "meetup";
       "event_status": "draft" | "published" | "cancelled" | "archived";

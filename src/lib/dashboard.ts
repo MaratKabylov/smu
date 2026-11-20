@@ -14,7 +14,6 @@ export const dashboardMetrics = {
   it_requests: { label: "Новые IT-заявки", href: "/admin/support/it_request?status=new", allowed: (a: AccessContext) => has(a, "it_requests.manage") },
   publication_requests: { label: "Новые обращения по публикациям", href: "/admin/support/publication_support?status=new", allowed: (a: AccessContext) => has(a, "publication_support.manage") },
   article_drafts: { label: "Черновики статей", href: "/admin/content/articles?status=draft", allowed: globalArticles },
-  scheduled_articles: { label: "Запланированные статьи", href: "/admin/content/articles?status=scheduled", allowed: globalArticles },
   review_articles: { label: "Статьи на моей проверке", href: "/admin/content/articles?status=in_review", allowed: (a: AccessContext) => has(a, "articles.review") },
   own_drafts: { label: "Мои черновики", href: "/ru/account/articles", allowed: (a: AccessContext) => has(a, "articles.edit_own") || globalArticles(a) },
   upcoming_events: { label: "Предстоящие события", href: "/admin/programs/events", allowed: (a: AccessContext) => has(a, "events.manage") },

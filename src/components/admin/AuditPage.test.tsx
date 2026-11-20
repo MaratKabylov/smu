@@ -39,6 +39,6 @@ it("rejects malformed filters before querying and handles empty/system events", 
   mocks.list.mockResolvedValueOnce({ records: [], hasNextPage: false });
   const empty = renderToStaticMarkup(await page());
   expect(empty).toContain("События не найдены"); expect(empty).not.toContain("Следующая страница");
-  mocks.list.mockResolvedValueOnce({ records: [{ id, user_id: null, entity_type: "system", entity_id: null, action: "scheduled", created_at: "2026-10-19T12:00:00Z" }], hasNextPage: false });
+  mocks.list.mockResolvedValueOnce({ records: [{ id, user_id: null, entity_type: "system", entity_id: null, action: "system.job", created_at: "2026-10-19T12:00:00Z" }], hasNextPage: false });
   expect(renderToStaticMarkup(await page())).toContain("Автоматический процесс / удалённый аккаунт");
 });

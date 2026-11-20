@@ -14,7 +14,7 @@ describe("public locale routing", () => {
     expect(detail.pathname).toBe(`/kk/${section}/localized-slug`);
     expect(detail.search).toBe("?utm_source=old");
   });
-  it.each(["/admin", "/admin/login", "/api/cron/publish-scheduled", "/_next/static/file.js", "/favicon.ico", "/robots.txt", "/unknown", "/journal/de/story", "/journal/ru", "/journal/ru/story/more", "/ru/journal", "/kk/scientists/name"])("leaves %s to its own route", path => {
+  it.each(["/admin", "/admin/login", "/_next/static/file.js", "/favicon.ico", "/robots.txt", "/unknown", "/journal/de/story", "/journal/ru", "/journal/ru/story/more", "/ru/journal", "/kk/scientists/name"])("leaves %s to its own route", path => {
     expect(legacyPublicUrl(new URL(path, "https://example.org"))).toBeNull();
   });
   it("uses a deterministic default and accepts only registered locales", () => {

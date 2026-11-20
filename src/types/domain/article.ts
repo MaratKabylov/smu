@@ -7,7 +7,6 @@ export const articleStatuses = [
   "in_review",
   "changes_requested",
   "approved",
-  "scheduled",
   "published",
   "archived",
 ] as const;
@@ -82,7 +81,6 @@ export type Article = {
   contentType: ArticleContentType;
   status: ArticleStatus;
   publishedAt: string | null;
-  scheduledAt: string | null;
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
@@ -135,7 +133,6 @@ export type ArticleRevisionSummary = {
   titleKk: string;
   createdBy: string | null;
   createdByName: string | null;
-  isSystem: boolean;
   createdAt: string;
 };
 export type ArticleRevision = ArticleRevisionSummary & { snapshot: ArticleSnapshot };

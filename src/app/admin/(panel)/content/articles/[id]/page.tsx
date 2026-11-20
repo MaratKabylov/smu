@@ -2,7 +2,6 @@ import { ArrowLeft, Archive, CheckCircle2, Send, Trash2, Undo2 } from "lucide-re
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArticleForm } from "@/components/articles/ArticleForm";
-import { ArticleSchedulePanel } from "@/components/articles/ArticleSchedulePanel";
 import { articleStatusLabels } from "@/lib/articles/presentation";
 import {
   canDeleteArticle,
@@ -33,7 +32,6 @@ type ArticleDetailPageProps = {
     status_changed?: string;
     reviewer_saved?: string;
     review_saved?: string;
-    schedule_saved?: string;
     restored?: string;
     error?: string;
   }>;
@@ -124,7 +122,6 @@ export default async function ArticleDetailPage({ params, searchParams }: Articl
       {state.reviewer_saved === "1" ? <div className="notice success-notice">Назначение рецензента сохранено.</div> : null}
       {state.restored === "1" ? <div className="notice success-notice">Версия восстановлена. Статья возвращена в черновики; перед публикацией нужно повторное одобрение.</div> : null}
       {state.review_saved === "1" ? <div className="notice success-notice">Решение рецензента сохранено для текущей версии.</div> : null}
-      {state.schedule_saved === "1" ? <div className="notice success-notice">Расписание публикации обновлено.</div> : null}
       {state.error ? <div className="notice error-notice" role="alert">{errorMessages[state.error] ?? errorMessages.action_failed}</div> : null}
 
       <section className="workflow-panel">
@@ -145,8 +142,6 @@ export default async function ArticleDetailPage({ params, searchParams }: Articl
           />
         </div>
       </section>
-
-      <ArticleSchedulePanel article={article} mayPublish={canPublish} />
 
       {canReadArticleRevisions(result.access, article) ? <div className="preview-links">
         <Link href={`/admin/content/articles/${article.id}/revisions`}>История версий и сравнение</Link>
@@ -251,8 +246,6 @@ function WorkflowActions({
   if (status === "in_review" && (mayReview || mayEdit)) actions.push({ next: "draft", label: "Вернуть в черновики", icon: Undo2 });
   if (status === "approved" && (mayReview || mayPublish)) actions.push({ next: "draft", label: "Вернуть на доработку", icon: Undo2 });
   if (status === "approved" && mayPublish) actions.push({ next: "published", label: "Опубликовать", icon: Send, primary: true });
-  if (status === "scheduled" && mayPublish) actions.push({ next: "published", label: "Опубликовать сейчас", icon: Send, primary: true });
-  if (status === "scheduled" && mayPublish) actions.push({ next: "draft", label: "Вернуть на доработку", icon: Undo2 });
   if (status === "published" && mayPublish) actions.push({ next: "archived", label: "Перенести в архив", icon: Archive });
   if (status === "published" && mayPublish) actions.push({ next: "draft", label: "Снять с публикации", icon: Undo2 });
   if (status === "archived" && mayPublish) actions.push({ next: "draft", label: "Вернуть в черновики", icon: Undo2 });

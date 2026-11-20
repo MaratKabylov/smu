@@ -93,7 +93,7 @@ begin
   end loop;
   perform public.assert_restorable_article_links(p_id);
   update public.articles set deleted_at = null, status = 'draft', approved_version = null,
-    published_at = null, scheduled_at = null, scheduled_by = null,
+    published_at = null,
     content_version = content_version + 1, updated_by = v_actor where id = p_id;
   -- Existing trigger restores cover usage; inline usages need explicit recovery.
   insert into public.media_usages(media_asset_id, entity_type, entity_id, field_name)

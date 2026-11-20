@@ -9,7 +9,7 @@ export const accountRecordsCopy = {
     claim: "Найти мои заявки по email", claimIntro: "Свяжите заявки на наставничество и Research Program с подтверждённым email вашего аккаунта. Повторный поиск добавит новые заявки.", claiming: "Поиск…", claimed: "Привязано заявок", failed: "Не удалось привязать заявки. Попробуйте позже.", session: "Сессия истекла. Войдите снова.",
     kinds: { scientist: "Научный профиль", article: "Статья", project: "Проект", research: "Исследование", mentorship_application: "Заявка на наставничество", program_application: "Заявка в Research Program" },
     relationships: { owner: "Владелец", member: "Участник", applicant: "Заявитель" },
-    statuses: { draft: "Черновик", unverified: "Не проверен", pending: "На проверке", verified: "Подтверждён", rejected: "Отклонён", in_review: "На рассмотрении", changes_requested: "Нужны правки", approved: "Одобрен", scheduled: "Запланирован", published: "Опубликован", archived: "В архиве", new: "Новая", accepted: "Принята", completed: "Завершена" },
+    statuses: { draft: "Черновик", unverified: "Не проверен", pending: "На проверке", verified: "Подтверждён", rejected: "Отклонён", in_review: "На рассмотрении", changes_requested: "Нужны правки", approved: "Одобрен", published: "Опубликован", archived: "В архиве", new: "Новая", accepted: "Принята", completed: "Завершена" },
   },
   kk: {
     sections: { scientist: "Менің ғылыми профилім", articles: "Менің мақалаларым", projects: "Менің жобаларым мен зерттеулерім", applications: "Менің өтінімдерім", "research-program": "Менің Research Program бағдарламам" },
@@ -18,7 +18,7 @@ export const accountRecordsCopy = {
     claim: "Email арқылы өтінімдерімді табу", claimIntro: "Тәлімгерлік және Research Program өтінімдерін аккаунтыңыздың расталған email мекенжайымен байланыстырыңыз. Қайта іздеу жаңа өтінімдерді қосады.", claiming: "Іздеу…", claimed: "Байланыстырылған өтінімдер", failed: "Өтінімдерді байланыстыру мүмкін болмады. Кейінірек қайталап көріңіз.", session: "Сессия аяқталды. Қайта кіріңіз.",
     kinds: { scientist: "Ғылыми профиль", article: "Мақала", project: "Жоба", research: "Зерттеу", mentorship_application: "Тәлімгерлік өтінімі", program_application: "Research Program өтінімі" },
     relationships: { owner: "Иесі", member: "Қатысушы", applicant: "Өтініш беруші" },
-    statuses: { draft: "Жоба", unverified: "Тексерілмеген", pending: "Тексеруде", verified: "Расталған", rejected: "Қабылданбаған", in_review: "Қаралуда", changes_requested: "Түзету қажет", approved: "Мақұлданған", scheduled: "Жоспарланған", published: "Жарияланған", archived: "Мұрағатта", new: "Жаңа", accepted: "Қабылданған", completed: "Аяқталған" },
+    statuses: { draft: "Жоба", unverified: "Тексерілмеген", pending: "Тексеруде", verified: "Расталған", rejected: "Қабылданбаған", in_review: "Қаралуда", changes_requested: "Түзету қажет", approved: "Мақұлданған", published: "Жарияланған", archived: "Мұрағатта", new: "Жаңа", accepted: "Қабылданған", completed: "Аяқталған" },
   },
   en: {
     sections: { scientist: "My scientific profile", articles: "My articles", projects: "My projects and research", applications: "My applications", "research-program": "My Research Program" },
@@ -27,7 +27,7 @@ export const accountRecordsCopy = {
     claim: "Find my applications by email", claimIntro: "Link mentorship and Research Program applications using your verified account email. Search again to add new applications.", claiming: "Searching…", claimed: "Applications linked", failed: "Unable to link applications. Please try again later.", session: "Your session has expired. Please sign in again.",
     kinds: { scientist: "Scientific profile", article: "Article", project: "Project", research: "Research", mentorship_application: "Mentorship application", program_application: "Research Program application" },
     relationships: { owner: "Owner", member: "Participant", applicant: "Applicant" },
-    statuses: { draft: "Draft", unverified: "Unverified", pending: "Pending verification", verified: "Verified", rejected: "Rejected", in_review: "In review", changes_requested: "Changes requested", approved: "Approved", scheduled: "Scheduled", published: "Published", archived: "Archived", new: "New", accepted: "Accepted", completed: "Completed" },
+    statuses: { draft: "Draft", unverified: "Unverified", pending: "Pending verification", verified: "Verified", rejected: "Rejected", in_review: "In review", changes_requested: "Changes requested", approved: "Approved", published: "Published", archived: "Archived", new: "New", accepted: "Accepted", completed: "Completed" },
   },
 } satisfies Record<Locale, unknown>;
 

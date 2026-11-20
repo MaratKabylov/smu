@@ -106,7 +106,7 @@ it("validates allowlisted public settings and never accepts secrets or unsafe li
   await save("setting", "contact_email", 0, { value: "science@example.org" }, owner);
   await save("setting", "social_links", 0, { value: [{ label: "Science", href: "https://example.org/path?q=1" }] }, owner);
   expect((await publicContent()).settings).toEqual({ site_name: "Scientific platform", contact_email: "science@example.org", social_links: [{ label: "Science", href: "https://example.org/path?q=1" }] });
-  await expect(save("setting", "RESEND_API_KEY", 0, { value: "secret" }, owner)).rejects.toThrow("not_found");
+  await expect(save("setting", "SERVER_SECRET", 0, { value: "secret" }, owner)).rejects.toThrow("not_found");
   for (const value of ["bad\r\nBcc:x@example.org", "bad", 10, {}]) await expect(save("setting", "contact_email", 1, { value }, owner)).rejects.toThrow("invalid_input");
   for (const href of ["//evil.org", "/\\evil.org", "javascript:alert(1)", "http://example.org", "https://user:pass@example.org", "https://example.org/\npath"]) {
     await expect(save("setting", "social_links", 1, { value: [{ label: "Bad", href }] }, owner)).rejects.toThrow("invalid_input");

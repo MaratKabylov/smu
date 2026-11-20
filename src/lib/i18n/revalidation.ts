@@ -3,7 +3,7 @@ import { publicContentTag } from "@/lib/supabase/public-cache";
 import { locales, localizedPath, publicSections } from "./locales";
 
 export function invalidatePublicContent() {
-  // Expire immediately in Actions and cron: withdrawn content cannot be stale.
+  // Expire immediately after mutations: withdrawn content cannot be stale.
   revalidateTag(publicContentTag, { expire: 0 });
 }
 

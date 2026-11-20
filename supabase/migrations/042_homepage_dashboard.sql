@@ -86,8 +86,7 @@ begin
     v_metrics:=v_metrics||jsonb_build_object('publication_requests',(select count(*) from public.support_requests where kind='publication_support' and status='new'));
   end if;
   if v_global then
-    v_metrics:=v_metrics||jsonb_build_object('article_drafts',(select count(*) from public.articles where status='draft' and deleted_at is null),
-      'scheduled_articles',(select count(*) from public.articles where status='scheduled' and deleted_at is null));
+    v_metrics:=v_metrics||jsonb_build_object('article_drafts',(select count(*) from public.articles where status='draft' and deleted_at is null));
   end if;
   if v_can_review then
     v_metrics:=v_metrics||jsonb_build_object('review_articles',(select count(*) from public.articles

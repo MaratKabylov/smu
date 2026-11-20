@@ -9,7 +9,6 @@ export const articleStatusLabels: Record<ArticleStatus, string> = {
   in_review: "На рецензии",
   changes_requested: "Требуются изменения",
   approved: "Одобрено",
-  scheduled: "Запланировано",
   published: "Опубликовано",
   archived: "В архиве",
 };

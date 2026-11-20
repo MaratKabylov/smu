@@ -21,7 +21,7 @@ import type {
   TaxonomyInput, ArticleAuthorInput, TaxonomyUpdateInput,
 } from "@/lib/validation/article";
 
-type ArticleRow = Pick<Tables<"articles">, "id" | "author_id" | "scientific_reviewer_id" | "requires_scientific_review" | "content_version" | "approved_version" | "category_id" | "cover_media_id" | "content_type" | "status" | "published_at" | "scheduled_at" | "created_at" | "updated_at" | "deleted_at">;
+type ArticleRow = Pick<Tables<"articles">, "id" | "author_id" | "scientific_reviewer_id" | "requires_scientific_review" | "content_version" | "approved_version" | "category_id" | "cover_media_id" | "content_type" | "status" | "published_at" | "created_at" | "updated_at" | "deleted_at">;
 
 type TranslationRow = Pick<Tables<"article_translations">, "id" | "article_id" | "locale" | "title" | "slug" | "excerpt" | "body" | "content_json" | "seo_title" | "seo_description">;
 
@@ -174,13 +174,6 @@ export class ArticleRepository {
     await callDatabaseRpc(this.client, "restore_deleted_article", { p_id: id, p_expected_deleted_at: expectedDeletedAt });
   }
 
-  async schedule(id: string, expectedVersion: number, scheduledAt: string | null, expectedScheduledAt: string | null) {
-    await callDatabaseRpc(this.client, "schedule_article", {
-      p_id: id, p_expected_version: expectedVersion,
-      p_scheduled_at: scheduledAt, p_expected_scheduled_at: expectedScheduledAt,
-    });
-  }
-
   async createTaxonomyItem(input: TaxonomyInput) {
     return callDatabaseRpc(this.client, "create_article_taxonomy", { p_input: databaseJson(input) });
   }
@@ -325,7 +318,6 @@ export class ArticleRepository {
       contentType: row.content_type,
       status: row.status,
       publishedAt: row.published_at,
-      scheduledAt: row.scheduled_at,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       deletedAt: row.deleted_at,
