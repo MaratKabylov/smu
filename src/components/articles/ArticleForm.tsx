@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Save } from "lucide-react";
+import { Check, Eye, Image as ImageIcon, RotateCcw, Save, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { RichTextEditor } from "./RichTextEditor";
 import { ArticleRelationsEditor } from "./ArticleRelationsEditor";
 import type { ArticleRelationLink } from "@/types/domain/article-relations";
 import { ArticleAuthorsEditor } from "./ArticleAuthorsEditor";
+import { CustomSelect } from "./CustomSelect";
+import { generateSlug } from "@/lib/articles/slug";
 import { ArticleAutosave, type SaveState } from "@/lib/articles/autosave";
 import { saveArticleDraft } from "@/server/actions/article.actions";
 import {
@@ -39,13 +41,20 @@ export function ArticleForm({
   const form = useRef<HTMLFormElement>(null);
   const controller = useRef<ArticleAutosave | null>(null);
   const router = useRouter();
+  const searchInputId = useId();
   const [saveState, setSaveState] = useState<SaveState>({ status: "saved" });
   const [authors, setAuthors] = useState<ArticleAuthorLink[]>(() => article?.authors.map(item => ({ authorId: item.id, role: item.role })) ?? []);
   const [relations, setRelations] = useState<ArticleRelationLink[]>(() => article?.relations ?? []);
   const [categoryIds, setCategoryIds] = useState<string[]>(() => article?.categories.map(item => item.id) ?? []);
+  const [activeLocale, setActiveLocale] = useState<"Ru" | "Kk" | "En">("Ru");
+  const [coverMediaId, setCoverMediaId] = useState<string>(() => article?.coverMediaId ?? "");
+  const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
+  const [mediaSearchQuery, setMediaSearchQuery] = useState("");
+
   const id = article?.id;
   const version = article?.contentVersion;
   const status = article?.status;
+
   useEffect(() => {
     if (disabled) return;
     let currentId = id ?? null;
@@ -84,167 +93,596 @@ export function ArticleForm({
       document.removeEventListener("click", navigation, true);
       document.removeEventListener("submit", navigation, true);
     };
-    // A refreshed server version must not replace edits made during a save.
-    // The coordinator advances its version only from the successful response.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, disabled, router]);
+
   const changed = () => controller.current?.changed();
   const ru = article?.translations.find((translation) => translation.locale === "ru");
   const kk = article?.translations.find((translation) => translation.locale === "kk");
   const en = article?.translations.find((translation) => translation.locale === "en");
   const selectedTags = new Set(article?.tags.map((tag) => tag.id) ?? []);
 
+  const selectedCover = media.find(m => m.id === coverMediaId);
+  const filteredMedia = media.filter(asset =>
+    asset.previewUrl &&
+    asset.status === "ready" &&
+    !asset.deletedAt &&
+    (!mediaSearchQuery.trim() ||
+      asset.fileName.toLowerCase().includes(mediaSearchQuery.toLowerCase()) ||
+      (asset.altRu && asset.altRu.toLowerCase().includes(mediaSearchQuery.toLowerCase())))
+  );
+
+  const handleSelectCover = (assetId: string) => {
+    setCoverMediaId(assetId);
+    setIsMediaModalOpen(false);
+    changed();
+  };
+
+  const handleRemoveCover = () => {
+    setCoverMediaId("");
+    changed();
+  };
+
   return (
-    <form ref={form} action={action} className="article-form" onChange={event => {
+    <form ref={form} action={action} className="article-form wp-editor-form" onChange={event => {
       const target = event.target;
       if ((target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) && target.name) changed();
     }} onSubmit={event => { event.preventDefault(); void controller.current?.save(); }}>
       {version ? <input type="hidden" name="expectedVersion" value={version} /> : null}
       <input type="hidden" name="creditsVersion" value="1" />
-      {categoryIds.map(id => <input type="hidden" name="categoryIds" value={id} key={id} />)}
-      <section className="article-editor-panel">
-        <div className="panel-title">
-          <div>
-            <h2>Параметры материала</h2>
-            <p>Тип, рубрика, обложка и тематические метки.</p>
+      {categoryIds.map(catId => <input type="hidden" name="categoryIds" value={catId} key={catId} />)}
+
+      {/* Synchronized hidden select for coverMediaId to guarantee exact form-data serialization */}
+      <select name="coverMediaId" value={coverMediaId} onChange={e => { setCoverMediaId(e.target.value); changed(); }} style={{ display: "none" }}>
+        <option value="">Без обложки</option>
+        {media.map((asset) => (
+          <option value={asset.id} key={asset.id}>{asset.fileName}</option>
+        ))}
+      </select>
+
+      {/* TOPBAR: Language Tabs, Autosave indicator & Primary Action */}
+      <div className="wp-editor-topbar">
+        <div className="wp-topbar-left">
+          <div className="wp-lang-tabs" role="tablist" aria-label="Языковые версии статьи">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeLocale === "Ru"}
+              className={`wp-lang-tab ${activeLocale === "Ru" ? "is-active" : ""}`}
+              onClick={() => setActiveLocale("Ru")}
+            >
+              <span className={`wp-tab-dot ${ru?.title ? "is-filled" : ""}`} />
+              Русский
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeLocale === "Kk"}
+              className={`wp-lang-tab ${activeLocale === "Kk" ? "is-active" : ""}`}
+              onClick={() => setActiveLocale("Kk")}
+            >
+              <span className={`wp-tab-dot ${kk?.title ? "is-filled" : ""}`} />
+              Қазақша
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeLocale === "En"}
+              className={`wp-lang-tab ${activeLocale === "En" ? "is-active" : ""}`}
+              onClick={() => setActiveLocale("En")}
+            >
+              <span className={`wp-tab-dot ${en?.title ? "is-filled" : ""}`} />
+              English <small className="wp-tab-optional">необяз.</small>
+            </button>
           </div>
         </div>
-        <div className="form-three-columns">
-          <label>
-            Тип материала
-            <select name="contentType" defaultValue={article?.contentType ?? "article"} disabled={disabled}>
-              {taxonomy.contentTypes.filter(type => type.isActive || type.slug === article?.contentType).map((type) => (
-                <option value={type.slug} key={type.id}>{type.nameRu} / {type.nameKk}{type.isActive ? "" : " (неактивен)"}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Основная категория
-            <select value={categoryIds[0] ?? ""} disabled={disabled || !categoryIds.length} onChange={event => {
-              setCategoryIds([event.target.value, ...categoryIds.filter(id => id !== event.target.value)]); changed();
-            }}>
-              {!categoryIds.length ? <option value="">Без категории</option> : null}
-              {taxonomy.categories.filter(item => categoryIds.includes(item.id)).map((category) => (
-                <option value={category.id} key={category.id}>
-                  {category.nameRu} / {category.nameKk}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Обложка из медиатеки
-            <select name="coverMediaId" defaultValue={article?.coverMediaId ?? ""} disabled={disabled}>
-              <option value="">Без обложки</option>
-              {media.map((asset) => (
-                <option value={asset.id} key={asset.id}>{asset.fileName}</option>
-              ))}
-            </select>
-          </label>
-        </div>
 
-        <fieldset className="tag-fieldset" disabled={disabled}>
-          <legend>Категории · до 20</legend>
-          <div className="tag-options">
-            {taxonomy.categories.filter(item => item.isActive || categoryIds.includes(item.id)).map(category => <label key={category.id}>
-              <input type="checkbox" checked={categoryIds.includes(category.id)} disabled={!categoryIds.includes(category.id) && categoryIds.length >= 20} onChange={event => {
-                setCategoryIds(event.target.checked ? [...categoryIds, category.id] : categoryIds.filter(id => id !== category.id)); changed();
-              }} />
-              <span>{category.nameRu}{category.isActive ? "" : " (неактивна)"}</span>
-            </label>)}
+        <div className="wp-topbar-right">
+          <div className="wp-save-indicator" role="status" aria-live="polite">
+            {saveState.status === "saving" && <span className="wp-indicator is-saving">Сохранение…</span>}
+            {saveState.status === "dirty" && <span className="wp-indicator is-dirty">Есть несохранённые правки</span>}
+            {saveState.status === "saved" && (
+              <span className="wp-indicator is-saved">
+                <Check aria-hidden="true" /> {article ? "Сохранено" : "Черновик готов"}
+              </span>
+            )}
+            {saveState.status === "error" && (
+              <span className="wp-indicator is-error" title={saveErrorMessages[saveState.error ?? ""]}>
+                {saveErrorMessages[saveState.error ?? ""] ?? "Ошибка сохранения"}
+              </span>
+            )}
           </div>
-        </fieldset>
-        <ArticleAuthorsEditor authors={taxonomy.authors} value={authors} disabled={disabled} onChange={value => { setAuthors(value); changed(); }} />
-        <p className="field-hint"><Link href="/admin/content/articles/taxonomy">Авторы и справочники журнала</Link></p>
 
-        <fieldset className="tag-fieldset" disabled={disabled}>
-          <legend>Теги</legend>
-          {taxonomy.tags.length > 0 ? (
-            <div className="tag-options">
-              {taxonomy.tags.map((tag) => (
-                <label key={tag.id}>
-                  <input type="checkbox" name="tagIds" value={tag.id} defaultChecked={selectedTags.has(tag.id)} />
-                  <span>{tag.nameRu}</span>
-                </label>
-              ))}
+          {article && canPreview ? (
+            <div className="wp-preview-group">
+              <a
+                className="secondary-button wp-preview-link"
+                href={`/admin/content/articles/${article.id}/preview/${activeLocale.toLowerCase()}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Eye aria-hidden="true" /> Предпросмотр ({activeLocale.toUpperCase()})
+              </a>
             </div>
-          ) : (
-            <p className="field-hint">
-              Тегов пока нет. Создайте их в разделе{" "}
-              <Link href="/admin/content/articles/taxonomy">«Авторы и справочники»</Link>.
-            </p>
-          )}
-        </fieldset>
-      </section>
+          ) : null}
 
-      <ArticleRelationsEditor value={relations} disabled={disabled} onChange={value => { setRelations(value); changed(); }} />
-      <div className="translation-grid">
-        <TranslationFields locale="Ru" language="Русская версия" value={ru} disabled={disabled} media={media} onChange={changed} />
-        <TranslationFields locale="Kk" language="Қазақша нұсқа" value={kk} disabled={disabled} media={media} onChange={changed} />
-        <TranslationFields locale="En" language="English version (optional)" value={en} disabled={disabled} media={media} onChange={changed} optional />
+          {!disabled ? (
+            <button
+              className="primary-button wp-submit-btn"
+              type="submit"
+              disabled={saveState.status === "saving" || saveState.error === "stale_version"}
+            >
+              <Save aria-hidden="true" />
+              {submitLabel}
+            </button>
+          ) : null}
+        </div>
       </div>
 
-      {!disabled ? (
-        <div className="article-form-actions">
-          <button className="primary-button" type="submit" disabled={saveState.status === "saving" || saveState.error === "stale_version"}>
-            <Save aria-hidden="true" />
-            {submitLabel}
-          </button>
-          <span role="status" aria-live="polite">{saveState.status === "saving" ? "Сохранение…" : saveState.status === "dirty" ? "Есть несохранённые изменения" : saveState.status === "saved" ? (article ? "Сохранено" : "Черновик ещё не создан") : saveErrorMessages[saveState.error ?? ""] ?? "Не удалось сохранить. Правки остаются в редакторе; попробуйте снова."}</span>
-          {saveState.error === "stale_version" && id ? <a className="secondary-button" href={`/admin/content/articles/${id}`} target="_blank" rel="noopener noreferrer">Открыть актуальную версию</a> : null}
+      {saveState.error === "stale_version" && id ? (
+        <div className="notice error-notice" style={{ marginBottom: "16px" }}>
+          Материал был изменён в другой вкладке. Ваши правки сохранены здесь.{" "}
+          <a className="secondary-button" href={`/admin/content/articles/${id}`} target="_blank" rel="noopener noreferrer">
+            Открыть актуальную версию
+          </a>
         </div>
       ) : null}
-      {article && canPreview ? <div className="preview-links">
-        {(["ru", "kk"] as const).map(locale => <a className="secondary-button" key={locale} href={`/admin/content/articles/${article.id}/preview/${locale}`} target="_blank" rel="noopener noreferrer">Предпросмотр {locale.toUpperCase()}</a>)}
-        <small>Предпросмотр показывает последнюю сохранённую версию.</small>
-      </div> : null}
+
+      {/* MAIN 2-COLUMN LAYOUT: Content Editor on Left, Inspector Sidebar on Right */}
+      <div className="wp-editor-workspace">
+        {/* LEFT COLUMN: Active Language Title, Excerpt, Content & SEO */}
+        <div className="wp-editor-main">
+          <TranslationWorkspace
+            locale="Ru"
+            languageLabel="Русская версия"
+            value={ru}
+            active={activeLocale === "Ru"}
+            disabled={disabled}
+            media={media}
+            onChange={changed}
+          />
+          <TranslationWorkspace
+            locale="Kk"
+            languageLabel="Қазақша нұсқа"
+            value={kk}
+            active={activeLocale === "Kk"}
+            disabled={disabled}
+            media={media}
+            onChange={changed}
+          />
+          <TranslationWorkspace
+            locale="En"
+            languageLabel="English version (optional)"
+            value={en}
+            active={activeLocale === "En"}
+            disabled={disabled}
+            media={media}
+            onChange={changed}
+            optional
+          />
+
+          {/* Collapsible Related Scientific Objects Box */}
+          <details className="wp-metabox-card" open>
+            <summary className="wp-metabox-header">Связанные научные объекты и авторы</summary>
+            <div className="wp-metabox-content">
+              <ArticleRelationsEditor value={relations} disabled={disabled} onChange={value => { setRelations(value); changed(); }} />
+            </div>
+          </details>
+        </div>
+
+        {/* RIGHT SIDEBAR: WordPress-style inspector */}
+        <aside className="wp-editor-sidebar">
+          {/* Card: Status & Publication */}
+          <details className="wp-sidebar-card" open>
+            <summary className="wp-sidebar-card-header">Параметры материала</summary>
+            <div className="wp-sidebar-card-body">
+              <div className="wp-field-group">
+                <span className="wp-field-label">Тип материала</span>
+                <CustomSelect
+                  name="contentType"
+                  defaultValue={article?.contentType ?? "article"}
+                  disabled={disabled}
+                  options={taxonomy.contentTypes
+                    .filter((type) => type.isActive || type.slug === article?.contentType)
+                    .map((type) => ({
+                      value: type.slug,
+                      label: `${type.nameRu} / ${type.nameKk}${type.isActive ? "" : " (неактивен)"}`,
+                    }))}
+                  onChange={changed}
+                />
+              </div>
+              {article ? (
+                <div className="wp-sidebar-meta-row">
+                  <span>Статус:</span>
+                  <strong>{article.status}</strong>
+                </div>
+              ) : null}
+            </div>
+          </details>
+
+          {/* Card: Featured Image / Cover Image with Visual Preview */}
+          <details className="wp-sidebar-card" open>
+            <summary className="wp-sidebar-card-header">Изображение записи (обложка)</summary>
+            <div className="wp-sidebar-card-body">
+              {selectedCover ? (
+                <div className="wp-cover-preview-card">
+                  <div className="wp-cover-thumbnail-box">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={selectedCover.previewUrl ?? ""}
+                      alt={selectedCover.altRu ?? selectedCover.fileName}
+                      className="wp-cover-image"
+                    />
+                  </div>
+                  <div className="wp-cover-info">
+                    <p className="wp-cover-filename" title={selectedCover.fileName}>{selectedCover.fileName}</p>
+                    {selectedCover.width && selectedCover.height ? (
+                      <small className="wp-cover-dimensions">{selectedCover.width} × {selectedCover.height} px</small>
+                    ) : null}
+                  </div>
+                  <div className="wp-cover-actions">
+                    <button
+                      type="button"
+                      className="secondary-button wp-cover-btn"
+                      onClick={() => setIsMediaModalOpen(true)}
+                      disabled={disabled}
+                    >
+                      Заменить обложку
+                    </button>
+                    <button
+                      type="button"
+                      className="danger-button wp-cover-btn wp-cover-remove"
+                      onClick={handleRemoveCover}
+                      disabled={disabled}
+                      title="Удалить обложку"
+                    >
+                      <Trash2 aria-hidden="true" /> Удалить
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="wp-cover-empty-dropzone"
+                  onClick={() => setIsMediaModalOpen(true)}
+                  disabled={disabled}
+                >
+                  <ImageIcon className="wp-cover-icon" aria-hidden="true" />
+                  <span>Выбрать обложку из медиатеки</span>
+                  <small>Рекомендуемый размер 1200 × 630 px</small>
+                </button>
+              )}
+            </div>
+          </details>
+
+          {/* Card: Categories */}
+          <details className="wp-sidebar-card" open>
+            <summary className="wp-sidebar-card-header">
+              Рубрики и категории ({categoryIds.length})
+            </summary>
+            <div className="wp-sidebar-card-body">
+              <div className="wp-field-group">
+                <span className="wp-field-label">Основная категория</span>
+                <CustomSelect
+                  value={categoryIds[0] ?? ""}
+                  disabled={disabled || !categoryIds.length}
+                  options={[
+                    ...(!categoryIds.length ? [{ value: "", label: "Без категории" }] : []),
+                    ...taxonomy.categories
+                      .filter((item) => categoryIds.includes(item.id))
+                      .map((category) => ({
+                        value: category.id,
+                        label: `${category.nameRu} / ${category.nameKk}`,
+                      })),
+                  ]}
+                  onChange={(val) => {
+                    if (val) {
+                      setCategoryIds([val, ...categoryIds.filter((catId) => catId !== val)]);
+                    }
+                    changed();
+                  }}
+                />
+              </div>
+
+              <fieldset className="tag-fieldset" disabled={disabled} style={{ margin: "8px 0 0" }}>
+                <legend style={{ fontSize: "11px", fontWeight: "700", color: "#64748b" }}>Все категории (до 20)</legend>
+                <div className="wp-category-checklist">
+                  {taxonomy.categories.filter(item => item.isActive || categoryIds.includes(item.id)).map(category => (
+                    <label key={category.id} className="wp-checklist-item">
+                      <input
+                        type="checkbox"
+                        checked={categoryIds.includes(category.id)}
+                        disabled={!categoryIds.includes(category.id) && categoryIds.length >= 20}
+                        onChange={event => {
+                          setCategoryIds(event.target.checked ? [...categoryIds, category.id] : categoryIds.filter(catId => catId !== category.id));
+                          changed();
+                        }}
+                      />
+                      <span>{category.nameRu}{category.isActive ? "" : " (неактивна)"}</span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            </div>
+          </details>
+
+          {/* Card: Authors */}
+          <details className="wp-sidebar-card" open>
+            <summary className="wp-sidebar-card-header">Авторы материала ({authors.length})</summary>
+            <div className="wp-sidebar-card-body">
+              <ArticleAuthorsEditor
+                authors={taxonomy.authors}
+                value={authors}
+                disabled={disabled}
+                onChange={value => { setAuthors(value); changed(); }}
+              />
+              <p className="field-hint" style={{ marginTop: "6px" }}>
+                <Link href="/admin/content/articles/taxonomy" target="_blank">Справочник авторов ↗</Link>
+              </p>
+            </div>
+          </details>
+
+          {/* Card: Tags */}
+          <details className="wp-sidebar-card" open>
+            <summary className="wp-sidebar-card-header">Теги</summary>
+            <div className="wp-sidebar-card-body">
+              {taxonomy.tags.length > 0 ? (
+                <div className="tag-options">
+                  {taxonomy.tags.map((tag) => (
+                    <label key={tag.id}>
+                      <input type="checkbox" name="tagIds" value={tag.id} defaultChecked={selectedTags.has(tag.id)} />
+                      <span>{tag.nameRu}</span>
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <p className="field-hint">
+                  Тегов пока нет. Создайте их в{" "}
+                  <Link href="/admin/content/articles/taxonomy" target="_blank">«Авторы и справочники» ↗</Link>.
+                </p>
+              )}
+            </div>
+          </details>
+        </aside>
+      </div>
+
+      {/* MEDIA PICKER MODAL */}
+      {isMediaModalOpen ? (
+        <div className="wp-modal-backdrop" onClick={() => setIsMediaModalOpen(false)}>
+          <div className="wp-modal-box" onClick={e => e.stopPropagation()}>
+            <div className="wp-modal-header">
+              <h3>Выбор обложки из медиатеки</h3>
+              <button
+                type="button"
+                className="wp-modal-close-btn"
+                onClick={() => setIsMediaModalOpen(false)}
+                aria-label="Закрыть"
+              >
+                <X aria-hidden="true" />
+              </button>
+            </div>
+
+            <div className="wp-modal-toolbar">
+              <label htmlFor={searchInputId} className="visually-hidden">Поиск по названию файла</label>
+              <input
+                id={searchInputId}
+                type="search"
+                value={mediaSearchQuery}
+                onChange={e => setMediaSearchQuery(e.target.value)}
+                placeholder="Поиск по названию файла или описанию..."
+                className="wp-modal-search-input"
+              />
+              <Link href="/admin/content/media" target="_blank" className="secondary-button wp-modal-upload-link">
+                Медиатека ↗
+              </Link>
+            </div>
+
+            <div className="wp-modal-grid">
+              {filteredMedia.length > 0 ? (
+                filteredMedia.map(asset => (
+                  <div
+                    key={asset.id}
+                    className={`wp-modal-item ${asset.id === coverMediaId ? "is-selected" : ""}`}
+                    onClick={() => handleSelectCover(asset.id)}
+                  >
+                    <div className="wp-modal-thumb">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={asset.previewUrl ?? ""} alt={asset.fileName} loading="lazy" />
+                    </div>
+                    <span className="wp-modal-filename" title={asset.fileName}>{asset.fileName}</span>
+                    {asset.id === coverMediaId ? <span className="wp-modal-tag">Выбрано</span> : null}
+                  </div>
+                ))
+              ) : (
+                <div className="wp-modal-empty">
+                  {media.length === 0 ? "В медиатеке пока нет готовых изображений." : "Изображения по запросу не найдены."}
+                </div>
+              )}
+            </div>
+
+            <div className="wp-modal-footer">
+              <button type="button" className="secondary-button" onClick={() => setIsMediaModalOpen(false)}>
+                Отмена
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </form>
   );
 }
 
-type TranslationFieldsProps = {
+type TranslationWorkspaceProps = {
   locale: "Ru" | "Kk" | "En";
-  language: string;
+  languageLabel: string;
   value?: Article["translations"][number];
+  active: boolean;
   disabled: boolean;
   media: MediaAsset[];
   onChange: () => void;
   optional?: boolean;
 };
 
-function TranslationFields({ locale, language, value, disabled, media, onChange, optional = false }: TranslationFieldsProps) {
+function TranslationWorkspace({
+  locale,
+  value,
+  active,
+  disabled,
+  media,
+  onChange,
+  optional = false,
+}: TranslationWorkspaceProps) {
+  const [title, setTitle] = useState(value?.title ?? "");
+  const [slug, setSlug] = useState(value?.slug ?? "");
+  const [isSlugTouched, setIsSlugTouched] = useState(Boolean(value?.slug));
+  const [excerpt, setExcerpt] = useState(value?.excerpt ?? "");
+  const [seoTitle, setSeoTitle] = useState(value?.seoTitle ?? "");
+  const [seoDescription, setSeoDescription] = useState(value?.seoDescription ?? "");
+
+  const handleTitleChange = (newTitle: string) => {
+    setTitle(newTitle);
+    if (!isSlugTouched) {
+      setSlug(generateSlug(newTitle));
+    }
+    onChange();
+  };
+
+  const handleSlugChange = (newSlug: string) => {
+    setSlug(newSlug);
+    setIsSlugTouched(true);
+    onChange();
+  };
+
+  const handleRegenerateSlug = () => {
+    const autoSlug = generateSlug(title);
+    setSlug(autoSlug);
+    setIsSlugTouched(false);
+    onChange();
+  };
+
   return (
-    <section className="article-editor-panel translation-panel">
-      <div className="panel-title">
-        <div>
-          <h2>{language}</h2>
-          <p>Публикация требует заполнения обеих языковых версий.</p>
-        </div>
-        <span className="locale-badge">{locale.toUpperCase()}</span>
+    <div className={`wp-locale-pane ${active ? "is-active" : ""}`} style={{ display: active ? "flex" : "none" }}>
+      {/* Title Field (WordPress-like large H1 input) */}
+      <div className="wp-title-section">
+        <label className="visually-hidden" htmlFor={`title-field-${locale}`}>Заголовок ({locale})</label>
+        <input
+          id={`title-field-${locale}`}
+          name={`title${locale}`}
+          defaultValue={value?.title ?? ""}
+          minLength={3}
+          maxLength={240}
+          required={!optional}
+          disabled={disabled}
+          className="wp-title-input"
+          placeholder={locale === "Ru" ? "Добавьте заголовок материала..." : locale === "Kk" ? "Материал тақырыбын енгізіңіз..." : "Add article title..."}
+          onChange={e => handleTitleChange(e.target.value)}
+        />
       </div>
-      <div className="translation-fields">
+
+      {/* Permalink / Slug bar */}
+      <div className="wp-permalink-bar">
+        <span className="wp-permalink-prefix">Постоянная ссылка: smu.kz/articles/</span>
+        <input
+          name={`slug${locale}`}
+          value={slug}
+          pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
+          placeholder="latin-slug-url"
+          required={!optional}
+          disabled={disabled}
+          className="wp-permalink-input"
+          onChange={e => handleSlugChange(e.target.value)}
+        />
+        {title.trim() ? (
+          <button
+            type="button"
+            className="wp-permalink-refresh-btn"
+            onClick={handleRegenerateSlug}
+            title="Сгенерировать ссылку из заголовка"
+            aria-label="Сгенерировать ссылку из заголовка"
+          >
+            <RotateCcw size={12} aria-hidden="true" />
+            <span>Обновить</span>
+          </button>
+        ) : null}
+      </div>
+
+      {/* Excerpt / Lead */}
+      <div className="wp-excerpt-section">
         <label>
-          Заголовок
-          <input name={`title${locale}`} defaultValue={value?.title ?? ""} minLength={3} maxLength={240} required={!optional} disabled={disabled} />
+          <span className="wp-field-label">Краткое описание (лид статьи)</span>
+          <textarea
+            name={`excerpt${locale}`}
+            defaultValue={value?.excerpt ?? ""}
+            minLength={10}
+            maxLength={1000}
+            rows={3}
+            required={!optional}
+            disabled={disabled}
+            className="wp-excerpt-textarea"
+            placeholder="Вводный абзац статьи для карточек и анонсов на главной странице..."
+            onChange={e => { setExcerpt(e.target.value); onChange(); }}
+          />
         </label>
-        <label>
-          URL slug
-          <input name={`slug${locale}`} defaultValue={value?.slug ?? ""} pattern="[a-z0-9]+(?:-[a-z0-9]+)*" placeholder="science-in-region" required={!optional} disabled={disabled} />
-        </label>
-        <label>
-          Краткое описание
-          <textarea name={`excerpt${locale}`} defaultValue={value?.excerpt ?? ""} minLength={10} maxLength={1000} rows={4} required={!optional} disabled={disabled} />
-        </label>
+      </div>
+
+      {/* Rich Text Editor */}
+      <div className="wp-editor-content-box">
         <RichTextEditor locale={locale} value={value} disabled={disabled} media={media} onChange={onChange} />
-        <label>
-          SEO title
-          <input name={`seoTitle${locale}`} defaultValue={value?.seoTitle ?? ""} maxLength={70} disabled={disabled} />
-        </label>
-        <label>
-          SEO description
-          <textarea name={`seoDescription${locale}`} defaultValue={value?.seoDescription ?? ""} maxLength={170} rows={3} disabled={disabled} />
-        </label>
       </div>
-    </section>
+
+      {/* Collapsible SEO Box */}
+      <details className="wp-metabox-card wp-seo-card" open>
+        <summary className="wp-metabox-header">
+          Поисковая оптимизация (SEO · {locale.toUpperCase()})
+        </summary>
+        <div className="wp-metabox-content">
+          <div className="wp-seo-preview">
+            <span className="wp-seo-preview-label">Предпросмотр в поисковой выдаче Google</span>
+            <div className="wp-seo-preview-snippet">
+              <span className="wp-seo-preview-url">https://smu.kz › articles › {slug || "primer-slug"}</span>
+              <h4 className="wp-seo-preview-title">{seoTitle || title || "Заголовок статьи в поиске"}</h4>
+              <p className="wp-seo-preview-desc">
+                {seoDescription || excerpt || "Краткое описание статьи будет отображаться в поисковой выдаче для привлечения читателей."}
+              </p>
+            </div>
+          </div>
+
+          <div className="wp-seo-fields">
+            <label>
+              <div className="wp-seo-field-label">
+                <span>SEO Title</span>
+                <small className="wp-char-counter">{seoTitle.length} / 70</small>
+              </div>
+              <input
+                name={`seoTitle${locale}`}
+                defaultValue={value?.seoTitle ?? ""}
+                maxLength={70}
+                disabled={disabled}
+                className="wp-seo-input"
+                placeholder="Заголовок для поисковиков (если отличается от основного)"
+                onChange={e => { setSeoTitle(e.target.value); onChange(); }}
+              />
+            </label>
+            <label>
+              <div className="wp-seo-field-label">
+                <span>SEO Description</span>
+                <small className="wp-char-counter">{seoDescription.length} / 170</small>
+              </div>
+              <textarea
+                name={`seoDescription${locale}`}
+                defaultValue={value?.seoDescription ?? ""}
+                maxLength={170}
+                rows={3}
+                disabled={disabled}
+                className="wp-seo-textarea"
+                placeholder="Краткое описание для поисковой выдачи"
+                onChange={e => { setSeoDescription(e.target.value); onChange(); }}
+              />
+            </label>
+          </div>
+        </div>
+      </details>
+    </div>
   );
 }
 
