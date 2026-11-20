@@ -216,6 +216,22 @@ textarea {
   font: inherit;
 }
 
+input[type="checkbox"],
+input[type="radio"] {
+  box-sizing: border-box;
+  width: 16px;
+  min-width: 16px;
+  max-width: 16px;
+  height: 16px;
+  min-height: 16px;
+  max-height: 16px;
+  padding: 0;
+  margin: 0;
+  flex-shrink: 0;
+  accent-color: var(--forest-bright, #0098b6);
+  cursor: pointer;
+}
+
 button,
 a {
   -webkit-tap-highlight-color: transparent;
@@ -1211,7 +1227,7 @@ th {
   gap: 13px;
 }
 
-.metadata-form label {
+.metadata-form label:not(.confirm-check) {
   display: grid;
   gap: 7px;
   color: #46504c;
@@ -1219,7 +1235,7 @@ th {
   font-weight: 800;
 }
 
-.metadata-form input,
+.metadata-form input:not([type="checkbox"]):not([type="radio"]),
 .metadata-form textarea {
   width: 100%;
   border: 1px solid #cfd7d2;
@@ -1231,7 +1247,7 @@ th {
   font-size: 13px;
 }
 
-.metadata-form input {
+.metadata-form input:not([type="checkbox"]):not([type="radio"]) {
   height: 42px;
 }
 
@@ -1240,7 +1256,7 @@ th {
   resize: vertical;
 }
 
-.metadata-form input:focus,
+.metadata-form input:not([type="checkbox"]):not([type="radio"]):focus,
 .metadata-form textarea:focus {
   border-color: var(--forest-bright);
   box-shadow: 0 0 0 3px rgb(31 100 76 / 10%);
@@ -1320,11 +1336,35 @@ th {
 }
 
 .confirm-check {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+  width: fit-content;
+}
+
+.confirm-check input[type="checkbox"],
+.confirm-check input {
+  box-sizing: border-box;
+  width: 16px;
+  min-width: 16px;
+  max-width: 16px;
+  height: 16px;
+  min-height: 16px;
+  max-height: 16px;
+  flex: 0 0 16px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid #cbd5ce;
+  border-radius: 4px;
+  accent-color: var(--forest-bright, #0098b6);
+  cursor: pointer;
+  background: #fff;
+  box-shadow: none;
 }
 
 .danger-button {
@@ -2167,8 +2207,8 @@ th {
   padding: 20px;
 }
 
-.article-editor-panel label,
-.taxonomy-form label {
+.article-editor-panel label:not(.confirm-check),
+.taxonomy-form label:not(.confirm-check) {
   display: grid;
   gap: 7px;
   color: #46504c;
@@ -2176,10 +2216,10 @@ th {
   font-weight: 800;
 }
 
-.article-editor-panel input,
+.article-editor-panel input:not([type="checkbox"]):not([type="radio"]),
 .article-editor-panel textarea,
 .article-editor-panel select,
-.taxonomy-form input,
+.taxonomy-form input:not([type="checkbox"]):not([type="radio"]),
 .taxonomy-form select {
   width: 100%;
   border: 1px solid #cfd7d2;
@@ -2192,9 +2232,9 @@ th {
   font-size: 13px;
 }
 
-.article-editor-panel input,
+.article-editor-panel input:not([type="checkbox"]):not([type="radio"]),
 .article-editor-panel select,
-.taxonomy-form input,
+.taxonomy-form input:not([type="checkbox"]):not([type="radio"]),
 .taxonomy-form select {
   min-height: 42px;
 }
@@ -2204,13 +2244,52 @@ th {
   line-height: 1.55;
 }
 
-.article-editor-panel input:focus,
+.article-editor-panel input:not([type="checkbox"]):not([type="radio"]):focus,
 .article-editor-panel textarea:focus,
 .article-editor-panel select:focus,
-.taxonomy-form input:focus,
+.taxonomy-form input:not([type="checkbox"]):not([type="radio"]):focus,
 .taxonomy-form select:focus {
   border-color: var(--forest-bright);
   box-shadow: 0 0 0 3px rgb(31 100 76 / 10%);
+}
+
+.article-editor-panel label.confirm-check,
+.taxonomy-form label.confirm-check,
+.metadata-form label.confirm-check,
+.admin-shell label.confirm-check {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.article-editor-panel label.confirm-check input,
+.taxonomy-form label.confirm-check input,
+.metadata-form label.confirm-check input,
+.admin-shell label.confirm-check input,
+.article-editor-panel input[type="checkbox"],
+.taxonomy-form input[type="checkbox"],
+.metadata-form input[type="checkbox"],
+.admin-shell input[type="checkbox"] {
+  box-sizing: border-box;
+  width: 16px;
+  min-width: 16px;
+  max-width: 16px;
+  height: 16px;
+  min-height: 16px;
+  max-height: 16px;
+  flex: 0 0 16px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid #cbd5ce;
+  border-radius: 4px;
+  accent-color: var(--forest-bright, #0098b6);
+  cursor: pointer;
+  background: #fff;
+  box-shadow: none;
 }
 
 .article-editor-panel :disabled {
@@ -3362,7 +3441,22 @@ fieldset.article-editor-panel { min-width: 0; }
 .relation-options li { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border, #e5e7eb); }
 .relation-options li > span:first-child { flex: 1 1 220px; overflow-wrap: anywhere; }
 .relation-options small { display: block; color: #64748b; }
-.relation-options label { display: grid; gap: 4px; }
+.relation-options label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.relation-options input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  min-height: 16px;
+  margin: 0;
+  padding: 0;
+  flex: 0 0 16px;
+}
 .relation-options li > a { overflow-wrap: anywhere; }
 
 /* Access management */
@@ -4656,10 +4750,10 @@ body:has(.public-header) {
   outline: none;
 }
 
-.admin-shell .article-editor-panel label,
-.admin-shell .taxonomy-form label,
-.admin-shell .metadata-form label,
-.admin-shell .site-content-form label {
+.admin-shell .article-editor-panel label:not(.confirm-check),
+.admin-shell .taxonomy-form label:not(.confirm-check),
+.admin-shell .metadata-form label:not(.confirm-check),
+.admin-shell .site-content-form label:not(.confirm-check) {
   color: #31506a;
   font-weight: 600;
 }
