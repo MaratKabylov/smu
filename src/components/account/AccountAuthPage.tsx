@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { LockKeyhole } from "lucide-react";
 import { accountCopy } from "@/lib/i18n/account";
 import { requireLocale, type LocaleParams } from "@/lib/i18n/server";
 import type { AccountMode } from "@/lib/validation/account";
@@ -17,7 +18,8 @@ export async function AccountAuthPage({ params, searchParams, mode }: AccountPag
   const { error } = await searchParams;
   const notice = error === "confirm" || error === "unconfirmed" || error === "session" ? copy.messages[error] : null;
   const intro = mode === "login" ? copy.loginIntro : mode === "register" ? copy.registerIntro : mode === "recover" ? copy.recoverIntro : copy.updateIntro;
-  return <section className="login-card account-card">
+  return <section className="login-card account-card account-auth-card">
+    <span className="account-auth-icon" aria-hidden="true"><LockKeyhole /></span>
     <p className="login-kicker">{copy.account}</p><h1>{copy[mode]}</h1><p>{intro}</p>
     {notice && <div className="form-error" role="alert">{notice}</div>}
     {access.state === "setup" ? <p role="status">{copy.setup}</p> : <AccountForm locale={locale} mode={mode} />}

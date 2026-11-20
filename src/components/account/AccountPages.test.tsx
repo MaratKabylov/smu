@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ access: vi.fn() }));
-vi.mock("next/navigation", () => ({ redirect: (url: string) => { throw new Error("redirect:" + url); }, notFound: () => { throw new Error("not_found"); } }));
+vi.mock("next/navigation", () => ({ redirect: (url: string) => { throw new Error("redirect:" + url); }, notFound: () => { throw new Error("not_found"); }, usePathname: () => "/ru/account" }));
 vi.mock("@/server/services/account.service", () => ({ getAccountAccess: mocks.access }));
 vi.mock("@/server/actions/account.actions", () => ({ logoutAccount: vi.fn(), submitAccountForm: vi.fn() }));
 vi.mock("./AccountForm", () => ({ AccountForm: ({ mode }: { mode: string }) => <form data-mode={mode} /> }));

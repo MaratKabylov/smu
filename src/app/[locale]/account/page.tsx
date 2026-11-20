@@ -7,9 +7,9 @@ import { accountRecordsCopy } from "@/lib/i18n/account-records";
 import { accountSections } from "@/lib/validation/account-records";
 import { requireLocale } from "@/lib/i18n/server";
 import { getAccountAccess } from "@/server/services/account.service";
-import { logoutAccount } from "@/server/actions/account.actions";
 import type { AccountPageProps } from "@/components/account/AccountAuthPage";
 import { notificationCopy } from "@/lib/i18n/notifications";
+import { ArrowRight, Bell, BookOpenText, FileClock, FileText, FlaskConical, FolderKanban, Headphones, ShieldCheck, UserRound } from "lucide-react";
 
 export default async function AccountPage({ params, searchParams }: AccountPageProps) {
   const locale = requireLocale((await params).locale);
@@ -18,13 +18,10 @@ export default async function AccountPage({ params, searchParams }: AccountPageP
   if (access.state === "setup") return <section className="login-card account-card"><h1>{copy.account}</h1><p role="status">{copy.setup}</p></section>;
   if (access.state !== "allowed") redirect(`/${locale}/account/login${access.state === "unconfirmed" ? "?error=unconfirmed" : ""}`);
   const { error } = await searchParams;
-  return <section className="login-card account-card"><p className="login-kicker">{copy.profile}</p><h1>{copy.account}</h1>
-    {access.displayName && <p>{access.displayName}</p>}<p>{access.email}</p><p className="account-notice">{copy.verified}</p>
+  const sectionIcons = [UserRound, FileText, FolderKanban, FileClock, FlaskConical];
+  return <section className="login-card account-card account-dashboard"><header className="account-dashboard-heading"><div><p className="login-kicker">{copy.profile}</p><h1>{copy.account}</h1>{access.displayName && <p className="account-dashboard-name">{access.displayName}</p>}<p className="account-dashboard-email">{access.email}</p></div><span className="account-verified-badge">{copy.verified}</span></header>
     {error === "logout" && <div className="form-error" role="alert">{copy.messages.logout}</div>}
-    <nav className="account-sections" aria-label={copy.account}>{accountSections.map(section => <Link key={section} href={`/${locale}/account/${section}`}>{accountRecordsCopy[locale].sections[section]}</Link>)}<Link href={`/${locale}/account/legacy`}>{legacyCopy[locale].title}</Link></nav>
-    <Link href={`/${locale}/account/support`}>{supportCopy[locale].own}</Link>
-    <Link href={`/${locale}/account/notifications`}>{notificationCopy[locale].title}</Link>
-    <nav className="account-links" aria-label={copy.account}><Link href={`/${locale}/account/update-password`}>{copy["update-password"]}</Link>{access.admin && <Link href="/admin">{copy.admin}</Link>}</nav>
-    <form action={logoutAccount.bind(null, locale)} className="login-form"><button type="submit">{copy.logout}</button></form>
+    <nav className="account-sections" aria-label={copy.account}>{accountSections.map((section, index) => { const Icon = sectionIcons[index]; return <Link key={section} href={`/${locale}/account/${section}`}><span><Icon aria-hidden="true" /></span><strong>{accountRecordsCopy[locale].sections[section]}</strong><ArrowRight aria-hidden="true" /></Link>; })}<Link href={`/${locale}/account/legacy`}><span><BookOpenText aria-hidden="true" /></span><strong>{legacyCopy[locale].title}</strong><ArrowRight aria-hidden="true" /></Link><Link href={`/${locale}/account/support`}><span><Headphones aria-hidden="true" /></span><strong>{supportCopy[locale].own}</strong><ArrowRight aria-hidden="true" /></Link><Link href={`/${locale}/account/notifications`}><span><Bell aria-hidden="true" /></span><strong>{notificationCopy[locale].title}</strong><ArrowRight aria-hidden="true" /></Link></nav>
+    {access.admin && <Link className="account-dashboard-admin" href="/admin"><ShieldCheck aria-hidden="true" />{copy.admin}</Link>}
   </section>;
 }
