@@ -2144,6 +2144,39 @@ th {
   color: #525957;
 }
 
+/* Stage Badges for Research and Projects */
+.stage-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  border: 1px solid #d7ddd9;
+  border-radius: 999px;
+  background: #f4f6f4;
+  color: #56615c;
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.stage-planned {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  color: #475569;
+}
+
+.stage-active {
+  border-color: #bae6fd;
+  background: #f0f9ff;
+  color: #0284c7;
+}
+
+.stage-completed {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
 .article-detail-heading .status-badge {
   padding: 8px 13px;
   font-size: 11px;
