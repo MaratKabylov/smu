@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { generateSlug, transliterate } from "./slug";
+import { generateSlug } from "./slug";
 
 describe("transliterate and generateSlug", () => {
   it("transliterates Russian titles correctly", () => {

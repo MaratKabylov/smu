@@ -35,6 +35,17 @@ it("renders published cards safely and omits disabled sections", async () => {
   const html = renderToStaticMarkup(await Home({ params: Promise.resolve({ locale: "ru" }) }));
   expect(html).toContain('href="/ru/journal/article"'); expect(html).toContain("&lt;img onerror=alert(1)&gt;");
   expect(html).not.toContain('<img onerror'); expect(html).not.toContain('id="home-events"'); expect(html).not.toContain('id="home-hero"');
+  expect(html).not.toContain('id="home-opportunities"');
+});
+it("renders published opportunities cards safely just like articles", async () => {
+  mocks.home.mockResolvedValue({ settings, stats: { scientists: 42, researchProjects: 17, partners: 9 }, sections: [{ key: "opportunities", title: "Актуальные возможности", display_limit: 2, sort_order: 1,
+    items: [{ id: "opp", title: "<script>grant</script>", summary: "<b>details</b>", href: "/ru/opportunities/science-grant" }] }] });
+  const html = renderToStaticMarkup(await Home({ params: Promise.resolve({ locale: "ru" }) }));
+  expect(html).toContain('id="home-opportunities"');
+  expect(html).toContain('Актуальные возможности');
+  expect(html).toContain('href="/ru/opportunities/science-grant"');
+  expect(html).toContain("&lt;script&gt;grant&lt;/script&gt;");
+  expect(html).not.toContain('<script>');
 });
 it("rejects unknown locales before reads and gives home its canonical and all language alternates", async () => {
   const props = { params: Promise.resolve({ locale: "de" }) };

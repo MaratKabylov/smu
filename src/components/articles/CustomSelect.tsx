@@ -43,13 +43,6 @@ export function CustomSelect({
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Sync internal state when controlled value prop changes
-  useEffect(() => {
-    if (value !== undefined) {
-      setInternalValue(value);
-    }
-  }, [value]);
-
   const currentValue = value !== undefined ? value : internalValue;
   const selectedOption = options.find((opt) => opt.value === currentValue);
 

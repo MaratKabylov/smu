@@ -34,11 +34,9 @@ import {
 import { articleEditorExtensions } from "@/lib/articles/editor-extensions";
 import {
   plainTextDocument,
-  referenceUrl,
   richTextDocumentSchema,
   richTextToPlainText,
   safeLink,
-  validDoi,
   videoEmbedUrl,
   type RichTextNode,
 } from "@/lib/articles/rich-text";

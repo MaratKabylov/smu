@@ -39,3 +39,16 @@ it("guards admin editors and lists, renders versioned workflow and no missing ro
   await expect(OpportunityAdminEditor({id:"bad",searchParams:Promise.resolve({})})).rejects.toThrow("not_found");
   mocks.adminList.mockResolvedValueOnce({items:[]});await expect(OpportunityAdminEditor({id:record.id,searchParams:Promise.resolve({})})).rejects.toThrow("not_found");
 });
+it("renders styled admin list with toolbar, breadcrumbs, table and empty state",async()=>{
+  const html=renderToStaticMarkup(await OpportunityAdminList({searchParams:Promise.resolve({})}));
+  expect(html).toContain("breadcrumbs");
+  expect(html).toContain("media-toolbar");
+  expect(html).toContain("search-field");
+  expect(html).toContain("Все материалы");
+  expect(html).toContain("status-badge status-published");
+
+  mocks.adminList.mockResolvedValueOnce({total:0,page:1,pageSize:12,items:[]});
+  const emptyHtml=renderToStaticMarkup(await OpportunityAdminList({searchParams:Promise.resolve({q:"test"})}));
+  expect(emptyHtml).toContain("Ничего не найдено");
+  expect(emptyHtml).toContain("empty-icon");
+});
