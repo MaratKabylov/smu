@@ -15,42 +15,51 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const { error } = await searchParams;
 
   return (
-    <main className="login-page">
-      <section className="login-card">
-        <div className="login-mark">СМУ</div>
-        <p className="login-kicker">Защищенная зона</p>
-        <h1>Вход в SMU Admin</h1>
-        <p>
-          Управление учеными, материалами и исследовательскими программами.
-        </p>
+    <main className="login-page admin-login-page">
+      <div className="admin-login-shell">
+        <section className="admin-login-intro" aria-label="Административная панель СМУ">
+          <div className="login-mark">СМУ</div>
+          <p>Административная панель</p>
+          <h1>Управление научной платформой</h1>
+          <span>
+            Контент, профили ученых, исследовательские программы и доступы — в единой рабочей среде.
+          </span>
+          <div className="admin-login-orbit" aria-hidden="true" />
+        </section>
 
-        {error ? (
-          <div className="form-error" role="alert">
-            {errorMessages[error] ?? "Произошла ошибка входа."}
-          </div>
-        ) : null}
+        <section className="login-card admin-login-card">
+          <p className="login-kicker">Защищенная зона</p>
+          <h2>Вход в SMU Admin</h2>
+          <p>Используйте учетную запись с доступом к панели управления.</p>
 
-        <form action={login} className="login-form">
-          <label>
-            Email
-            <input name="email" type="email" autoComplete="email" required />
-          </label>
-          <label>
-            Пароль
-            <input
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              minLength={8}
-              required
-            />
-          </label>
-          <button type="submit">
-            <LockKeyhole aria-hidden="true" />
-            Войти
-          </button>
-        </form>
-      </section>
+          {error ? (
+            <div className="form-error" role="alert">
+              {errorMessages[error] ?? "Произошла ошибка входа."}
+            </div>
+          ) : null}
+
+          <form action={login} className="login-form">
+            <label>
+              Email
+              <input name="email" type="email" autoComplete="email" required />
+            </label>
+            <label>
+              Пароль
+              <input
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                minLength={8}
+                required
+              />
+            </label>
+            <button type="submit">
+              <LockKeyhole aria-hidden="true" />
+              Войти
+            </button>
+          </form>
+        </section>
+      </div>
     </main>
   );
 }

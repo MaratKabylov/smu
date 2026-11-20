@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { Bell, LogOut } from "lucide-react";
+import { Bell, ExternalLink, LogOut, Search } from "lucide-react";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { logout } from "@/server/actions/auth.actions";
 
@@ -15,10 +15,19 @@ export function AdminShell({ children, email }: AdminShellProps) {
       <AdminSidebar />
       <div className="admin-workspace">
         <header className="admin-topbar">
-          <div>
-            <span className="environment-dot" aria-hidden="true" />
-            <span>Рабочая среда</span>
-            <Link href="/admin/search">Поиск</Link>
+          <div className="admin-topbar-navigation">
+            <span className="admin-environment">
+              <span className="environment-dot" aria-hidden="true" />
+              <span>Рабочая среда</span>
+            </span>
+            <Link className="admin-topbar-link" href="/admin/search">
+              <Search aria-hidden="true" />
+              <span>Поиск</span>
+            </Link>
+            <Link className="admin-topbar-link" href="/ru">
+              <ExternalLink aria-hidden="true" />
+              <span>На сайт</span>
+            </Link>
           </div>
           <div className="admin-account">
             <Link className="icon-button" href="/ru/account/notifications" aria-label="Уведомления"><Bell aria-hidden="true" /></Link>
