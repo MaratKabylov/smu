@@ -8,6 +8,7 @@ import {
   canEditMedia,
   canViewMedia,
 } from "@/lib/permissions/permissions";
+import type { DatabaseClient } from "@/lib/supabase/database";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/service-role";
 import {
@@ -71,7 +72,7 @@ export class MediaService {
     const userClient = await createServerSupabaseClient();
     const assets = await new MediaRepository(userClient).list(filters);
 
-    return this.addPreviewUrls(assets);
+    return this.addPreviewUrls(userClient, assets);
   }
 
   async getById(access: AccessContext, id: string) {
@@ -83,7 +84,7 @@ export class MediaService {
 
     if (!asset) return null;
 
-    const [withPreview] = await this.addPreviewUrls([asset]);
+    const [withPreview] = await this.addPreviewUrls(userClient, [asset]);
     const usages = await repository.listUsages(id);
 
     return { asset: withPreview, usages };
@@ -283,14 +284,12 @@ export class MediaService {
     });
   }
 
-  private async addPreviewUrls(assets: MediaAsset[]) {
-    const serviceClient = createServiceRoleSupabaseClient();
-
+  private async addPreviewUrls(client: DatabaseClient, assets: MediaAsset[]) {
     return Promise.all(
       assets.map(async (asset) => {
         if (asset.status !== "ready" || asset.deletedAt) return { ...asset, previewUrl: null };
         if (publicBuckets.has(asset.storageBucket)) {
-          const { data } = serviceClient.storage
+          const { data } = client.storage
             .from(asset.storageBucket)
             .getPublicUrl(asset.storagePath);
           return { ...asset, previewUrl: data.publicUrl };

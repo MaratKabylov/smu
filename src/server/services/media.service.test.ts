@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
-  client: vi.fn(), asset: vi.fn(), usages: vi.fn(), update: vi.fn(), remove: vi.fn(), ready: vi.fn(),
-  audit: vi.fn(), invalidate: vi.fn(), objects: vi.fn(), download: vi.fn(), store: vi.fn(), storageRemove: vi.fn(), failed: vi.fn(), inspect: vi.fn(), server: vi.fn(), signed: vi.fn(), create: vi.fn(), ticket: vi.fn(),
+  client: vi.fn(), asset: vi.fn(), list: vi.fn(), usages: vi.fn(), update: vi.fn(), remove: vi.fn(), ready: vi.fn(),
+  audit: vi.fn(), invalidate: vi.fn(), objects: vi.fn(), download: vi.fn(), store: vi.fn(), storageRemove: vi.fn(), failed: vi.fn(), inspect: vi.fn(), server: vi.fn(), signed: vi.fn(), create: vi.fn(), ticket: vi.fn(), publicUrl: vi.fn(),
 }));
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase/service-role", () => ({ createServiceRoleSupabaseClient: mocks.client }));
@@ -9,7 +9,7 @@ vi.mock("@/lib/supabase/server", () => ({ createServerSupabaseClient: mocks.serv
 vi.mock("@/lib/media/inspect-file", () => ({ inspectMediaFile: mocks.inspect }));
 vi.mock("@/lib/i18n/revalidation", () => ({ invalidatePublicContent: mocks.invalidate }));
 vi.mock("@/server/repositories/media.repository", () => ({ MediaRepository: class {
-  getById = mocks.asset; listUsages = mocks.usages; updateMetadata = mocks.update;
+  getById = mocks.asset; list = mocks.list; listUsages = mocks.usages; updateMetadata = mocks.update;
   softDelete = mocks.remove; finalizeUpload = mocks.ready; markFailed = mocks.failed; createUploading = mocks.create;
 } }));
 vi.mock("@/server/repositories/audit.repository", () => ({ AuditRepository: class { create = mocks.audit; } }));
@@ -28,8 +28,28 @@ beforeEach(() => {
   mocks.storageRemove.mockResolvedValue({ error: null });
   mocks.inspect.mockResolvedValue({ width: 32, height: 24 });
   mocks.signed.mockResolvedValue({ data: { signedUrl: "https://storage.test/private" }, error: null });
+  mocks.publicUrl.mockReturnValue({ data: { publicUrl: "https://storage.test/public/image.png" } });
   mocks.create.mockResolvedValue({ id: "media" }); mocks.ticket.mockResolvedValue({ data: { token: "ticket" }, error: null });
   mocks.client.mockReturnValue({ storage: { from: () => ({ list: mocks.objects, download: mocks.download, upload: mocks.store, remove: mocks.storageRemove, createSignedUrl: mocks.signed, createSignedUploadUrl: mocks.ticket }) } });
+  mocks.server.mockResolvedValue({ storage: { from: () => ({ getPublicUrl: mocks.publicUrl }) } });
+});
+describe("media previews", () => {
+  it("uses the session client for public preview URLs without requiring service-role credentials", async () => {
+    const viewer = { ...access, permissions: new Set(["media.view" as const]) };
+    mocks.list.mockResolvedValueOnce([{
+      id: "media",
+      status: "ready",
+      storageBucket: "article-media",
+      storagePath: "2026/10/image.png",
+      deletedAt: null,
+    }]);
+
+    await expect(new MediaService().list(viewer, { query: "", type: "image" })).resolves.toEqual([
+      expect.objectContaining({ previewUrl: "https://storage.test/public/image.png" }),
+    ]);
+    expect(mocks.publicUrl).toHaveBeenCalledWith("2026/10/image.png");
+    expect(mocks.client).not.toHaveBeenCalled();
+  });
 });
 describe("verified uploads and private downloads", () => {
   it("issues a private staging ticket and validates rules even when called directly", async () => {
