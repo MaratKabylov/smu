@@ -45,7 +45,11 @@ create table public.research_output_files (
 );
 -- Never expose the storage path through public metadata or direct Storage RLS.
 insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types)
-values('result-files','result-files',false,4194304,array['application/pdf','text/csv','application/zip']);
+values('result-files','result-files',false,4194304,array['application/pdf','text/csv','application/zip'])
+on conflict(id) do update set
+  public=excluded.public,
+  file_size_limit=excluded.file_size_limit,
+  allowed_mime_types=excluded.allowed_mime_types;
 insert into public.permissions(code,name) values
   ('outputs.create','Создание собственных научных результатов'),
   ('outputs.manage','Управление всеми научными результатами')

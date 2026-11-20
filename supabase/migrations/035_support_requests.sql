@@ -43,7 +43,11 @@ alter table public.support_requests enable row level security;
 alter table public.support_request_files enable row level security;
 revoke all on public.support_requests,public.support_request_files from public,anon,authenticated,service_role;
 insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types)
- values('support-request-files','support-request-files',false,1048576,array['application/pdf']);
+ values('support-request-files','support-request-files',false,1048576,array['application/pdf'])
+ on conflict(id) do update set
+  public=excluded.public,
+  file_size_limit=excluded.file_size_limit,
+  allowed_mime_types=excluded.allowed_mime_types;
 
 create function public.smu_support_permission(p_kind text) returns text
  language sql immutable set search_path='' as $$ select case p_kind
