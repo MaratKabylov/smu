@@ -55,7 +55,7 @@ describe("migration readiness", () => {
     expect(rows[0].super_admin_permissions).toBeGreaterThan(0);
   }, 30_000);
 
-  it("upgrades a populated 008 database through 042 without losing legacy content", async () => {
+  it("upgrades a populated 008 database through 043 without losing legacy content", async () => {
     db = await createMigrationDatabase({ through: 8 });
     await seed(db);
     await db.query(

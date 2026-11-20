@@ -91,6 +91,21 @@ it("edits non-system permission sets with audit while preserving the admin bound
   ] as const) await expect(run(superOne, "select public.set_role_permissions($1,$2)", [role, permissions])).rejects.toThrow(error);
 });
 
+it("keeps the protected super-admin role authoritative when permission rows drift", async () => {
+  await db.exec("begin");
+  try {
+    await db.exec("delete from public.role_permissions where role_id in (select id from public.roles where code='super_admin')");
+    expect((await run<{ allowed: boolean }>(superOne, "select public.has_permission('articles.create') allowed")).rows[0])
+      .toEqual({ allowed: true });
+    expect((await run<{ allowed: boolean }>(superOne, "select public.has_permission('missing.permission') allowed")).rows[0])
+      .toEqual({ allowed: false });
+    expect((await run<{ allowed: boolean }>(admin, "select public.has_permission('roles.manage') allowed")).rows[0])
+      .toEqual({ allowed: false });
+  } finally {
+    await db.exec("rollback");
+  }
+});
+
 it("automatically gives newly created accounts only the inert user role", async () => {
   const id = "00000000-0000-4000-a000-000000000205";
   await db.query("insert into auth.users(id,email,raw_user_meta_data) values($1,'new@example.org','{}')", [id]);

@@ -69,6 +69,13 @@ export class AccessRepository {
       if (knownRoles.has(row.code)) roles.add(row.code as RoleCode);
     }
 
+    // super_admin is a protected platform role and is defined as having every
+    // application permission. Keep that invariant at the authorization
+    // boundary even if an upgraded database has stale role_permissions rows.
+    if (roles.has("super_admin")) {
+      for (const permission of permissionCodes) permissions.add(permission);
+    }
+
     return { userId, roles, permissions };
   }
 }
