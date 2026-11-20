@@ -3313,7 +3313,7 @@ details[open].wp-sidebar-card > .wp-sidebar-card-header {
   padding-left: 2px;
 }
 
-.wp-sidebar-card-body label:not(.wp-checklist-item):not(.confirm-check) {
+.wp-sidebar-card-body label:not(.wp-checklist-item):not(.confirm-check):not(.wp-chip-label) {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -3878,6 +3878,152 @@ details[open].wp-sidebar-card > .wp-sidebar-card-header {
   .wp-editor-sidebar {
     position: static;
   }
+}
+
+/* Chips and Interactive Tags for Editor */
+.wp-chip-group {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 7px !important;
+}
+
+.wp-sidebar-card-body label.wp-chip-label,
+.wp-chip-label {
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 7px !important;
+  padding: 5px 11px !important;
+  border-radius: 9999px !important;
+  border: 1px solid #cbd5e1 !important;
+  background: #f8fafc !important;
+  color: #334155 !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  line-height: 1.3 !important;
+  letter-spacing: normal !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+  user-select: none !important;
+  width: fit-content !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.wp-sidebar-card-body label.wp-chip-label:hover,
+.wp-chip-label:hover {
+  background: #f1f5f9 !important;
+  border-color: #94a3b8 !important;
+  color: #0f172a !important;
+}
+
+.wp-sidebar-card-body label.wp-chip-label input[type="checkbox"],
+.wp-chip-label input[type="checkbox"] {
+  box-sizing: border-box !important;
+  width: 15px !important;
+  min-width: 15px !important;
+  max-width: 15px !important;
+  height: 15px !important;
+  min-height: 15px !important;
+  max-height: 15px !important;
+  flex: 0 0 15px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 1px solid #cbd5ce !important;
+  border-radius: 3px !important;
+  accent-color: var(--forest-bright, #0098b6) !important;
+  cursor: pointer !important;
+  background: #fff !important;
+}
+
+.wp-sidebar-card-body label.wp-chip-label.is-checked,
+.wp-sidebar-card-body label.wp-chip-label:has(input[type="checkbox"]:checked),
+.wp-chip-label.is-checked,
+.wp-chip-label:has(input[type="checkbox"]:checked) {
+  background: #e6f7fa !important;
+  border-color: var(--forest-bright, #0098b6) !important;
+  color: #006073 !important;
+  font-weight: 600 !important;
+  box-shadow: 0 1px 2px rgba(0, 152, 182, 0.12) !important;
+}
+
+/* Public / Private Profile Toggle Card */
+.wp-public-toggle-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.wp-public-toggle-card:hover {
+  border-color: #94a3b8;
+}
+
+.wp-public-toggle-card.is-public {
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+
+.wp-public-toggle-card.is-private {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.wp-public-toggle-indicator {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  background: #cbd5e1;
+  border-radius: 9999px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  transition: background-color 0.2s ease;
+}
+
+.wp-public-toggle-card.is-public .wp-public-toggle-indicator {
+  background: #10b981;
+}
+
+.wp-public-toggle-indicator::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: #ffffff;
+  border-radius: 50%;
+  transition: transform 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.wp-public-toggle-card.is-public .wp-public-toggle-indicator::after {
+  transform: translateX(16px);
+}
+
+.wp-public-toggle-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.wp-public-toggle-text strong {
+  font-size: 13px;
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.wp-public-toggle-text small {
+  font-size: 11.5px;
+  color: #64748b;
+  line-height: 1.4;
 }
 
 .taxonomy-create-panel {
