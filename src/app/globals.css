@@ -3464,8 +3464,8 @@ body:has(.public-header) {
 .public-header .public-information-navigation > summary {
   position: relative;
   color: #264e70;
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 600;
   white-space: nowrap;
 }
 
@@ -3512,8 +3512,8 @@ body:has(.public-header) {
   min-height: 36px;
   border-radius: 8px;
   color: #264e70;
-  font-size: 11px;
-  font-weight: 800;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
   list-style: none;
 }
@@ -3548,8 +3548,8 @@ body:has(.public-header) {
   border-radius: 8px;
   color: var(--public-text);
   padding: 10px 11px;
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 500;
   text-decoration: none;
 }
 
@@ -3559,6 +3559,7 @@ body:has(.public-header) {
 .public-mobile-menu a[aria-current="page"] {
   background: #edf8fa;
   color: var(--public-blue);
+  font-weight: 600;
 }
 
 .public-mobile-languages {
@@ -3588,6 +3589,8 @@ body:has(.public-header) {
   border-radius: 7px;
   color: #7890a4;
   padding: 6px;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .public-header .journal-language a.is-active {
@@ -3604,8 +3607,8 @@ body:has(.public-header) {
   box-shadow: 0 8px 20px rgb(5 72 124 / 22%);
   color: #fff;
   padding: 0 16px;
-  font-size: 11px;
-  font-weight: 800;
+  font-size: 13px;
+  font-weight: 600;
   text-decoration: none;
   white-space: nowrap;
 }
@@ -4053,9 +4056,9 @@ body:has(.public-header) {
     grid-template-columns: 190px minmax(0, 1fr) auto;
     gap: 16px;
   }
-  .public-header .journal-nav { gap: 15px; }
+  .public-header .journal-nav { gap: 12px; }
   .public-header .journal-nav > a,
-  .public-header .public-information-navigation > summary { font-size: 11px; }
+  .public-header .public-information-navigation > summary { font-size: 13px; }
   .public-header-cta { display: none; }
 }
 
