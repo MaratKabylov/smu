@@ -3,15 +3,45 @@ export type PublicationType = (typeof publicationTypes)[number];
 export type PublicationCoauthor = { scientistId: string | null; name: string; affiliation: string };
 export type PublicPublicationAuthor = PublicationCoauthor & { href: string | null };
 export type PublicPublicationWork = { id: string; kind: "research" | "project"; title: string; href: string };
+
+export type PublicationTranslation = {
+  locale: "ru" | "kk" | "en";
+  slug: string;
+  title: string;
+  summary: string;
+};
+
 export type Publication = {
-  id: string; scientistId: string; title: string; year: number; journal: string;
-  doi: string | null; url: string | null; publicationType: PublicationType;
-  status: "draft" | "published" | "archived"; updatedAt: string;
-  coauthors: PublicationCoauthor[]; workIds: string[];
+  id: string;
+  scientistId: string;
+  title: string;
+  year: number;
+  journal: string;
+  doi: string | null;
+  url: string | null;
+  publicationType: PublicationType;
+  status: "draft" | "published" | "archived";
+  updatedAt: string;
+  fileMediaId: string | null;
+  fileName?: string | null;
+  fileUrl?: string | null;
+  translations: PublicationTranslation[];
+  coauthors: PublicationCoauthor[];
+  workIds: string[];
 };
-export type PublicPublication = Omit<Publication, "status" | "updatedAt" | "coauthors" | "workIds"> & {
-  scientistName: string; scientistHref: string; authors: PublicPublicationAuthor[]; works: PublicPublicationWork[];
+
+export type PublicPublication = Omit<Publication, "status" | "updatedAt" | "coauthors" | "workIds" | "translations"> & {
+  scientistName: string;
+  scientistHref: string;
+  summary: string;
+  slug: string;
+  fileMediaId: string | null;
+  fileName: string | null;
+  fileUrl: string | null;
+  authors: PublicPublicationAuthor[];
+  works: PublicPublicationWork[];
 };
+
 export const publicationTypeLabels = {
   ru: { article: "Научная статья", conference: "Материал конференции", book: "Книга", chapter: "Глава книги", other: "Другое" },
   kk: { article: "Ғылыми мақала", conference: "Конференция материалы", book: "Кітап", chapter: "Кітап тарауы", other: "Басқа" },
