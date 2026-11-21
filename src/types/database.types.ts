@@ -1457,6 +1457,7 @@ export type Database = {
           "updated_at": string;
           "published_at": string | null;
           "deleted_at": string | null;
+          "file_media_id": string | null;
           "search_document": string | null;
         };
         Insert: {
@@ -1474,6 +1475,7 @@ export type Database = {
           "updated_at"?: string;
           "published_at"?: string | null;
           "deleted_at"?: string | null;
+          "file_media_id"?: string | null;
           "search_document"?: never;
         };
         Update: {
@@ -1491,11 +1493,45 @@ export type Database = {
           "updated_at"?: string;
           "published_at"?: string | null;
           "deleted_at"?: string | null;
+          "file_media_id"?: string | null;
           "search_document"?: never;
         };
         Relationships: [
           { foreignKeyName: "publications_created_by_fkey"; columns: ["created_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
           { foreignKeyName: "publications_scientist_id_fkey"; columns: ["scientist_id"]; isOneToOne: false; referencedRelation: "scientist_profiles"; referencedColumns: ["id"] },
+          { foreignKeyName: "publications_file_media_id_fkey"; columns: ["file_media_id"]; isOneToOne: false; referencedRelation: "media_assets"; referencedColumns: ["id"] },
+        ];
+      };
+      "publication_translations": {
+        Row: {
+          "publication_id": string;
+          "locale": "ru" | "kk" | "en";
+          "slug": string;
+          "title": string;
+          "summary": string;
+          "created_at": string;
+          "updated_at": string;
+        };
+        Insert: {
+          "publication_id": string;
+          "locale": "ru" | "kk" | "en";
+          "slug": string;
+          "title": string;
+          "summary"?: string;
+          "created_at"?: string;
+          "updated_at"?: string;
+        };
+        Update: {
+          "publication_id"?: string;
+          "locale"?: "ru" | "kk" | "en";
+          "slug"?: string;
+          "title"?: string;
+          "summary"?: string;
+          "created_at"?: string;
+          "updated_at"?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "publication_translations_publication_id_fkey"; columns: ["publication_id"]; isOneToOne: false; referencedRelation: "publications"; referencedColumns: ["id"] },
         ];
       };
       "research_output_files": {
