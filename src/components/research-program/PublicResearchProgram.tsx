@@ -16,76 +16,505 @@ import { researchProgramFormats, type ResearchProgramTranslation } from "@/types
 import type { ScientistLocale } from "@/types/domain/scientist";
 import { scientistTaxonomyName } from "@/lib/i18n/scientist-taxonomy";
 
-export type ResearchProgramCatalogSearch = Promise<{ page?: string; lang?: string; q?: string; field?: string; format?: string }>;
+export type ResearchProgramCatalogSearch = Promise<{
+  page?: string;
+  lang?: string;
+  q?: string;
+  field?: string;
+  format?: string;
+}>;
+
 export type ResearchProgramDetailParams = Promise<{ locale: string; slug: string }>;
-function Header({ locale, translations }: { locale: ScientistLocale; translations?: ResearchProgramTranslation[] }) {
+
+function Header({
+  locale,
+  translations,
+}: {
+  locale: ScientistLocale;
+  translations?: ResearchProgramTranslation[];
+}) {
   return <PublicHeader locale={locale} section="research-program" translations={translations} />;
 }
 
-export async function researchProgramCatalogMetadata(params: LocaleParams, searchParams: Promise<PublicQuery> = Promise.resolve({})): Promise<Metadata> {
+export async function researchProgramCatalogMetadata(
+  params: LocaleParams,
+  searchParams: Promise<PublicQuery> = Promise.resolve({})
+): Promise<Metadata> {
   const locale = requireLocale((await params).locale);
-  return catalogMetadata(locale, "research-program", locale === "en" ? "Research Program" : (locale === "ru" ? "Research Program — СМУ" : "Зерттеу бағдарламасы — СМУ"), locale === "en" ? "Research programs from the scientific community of the Aktobe region. Choose a field and apply." : (locale === "ru" ? "Программы научного сообщества Актюбинской области. Выберите направление и подайте заявку на участие." : "Ақтөбе облысының ғылыми қауымдастық зерттеу бағдарламалары. Бағытты таңдап, қатысуға өтінім беріңіз."), await searchParams);
+  return catalogMetadata(
+    locale,
+    "research-program",
+    locale === "en"
+      ? "Research Programs — SMU"
+      : locale === "ru"
+      ? "Research Program — СМУ"
+      : "Зерттеу бағдарламасы — СМУ",
+    locale === "en"
+      ? "Research programs from the scientific community of Aktobe region. Choose a field and apply."
+      : locale === "ru"
+      ? "Программы научного сообщества Актюбинской области. Выберите направление и подайте заявку на участие."
+      : "Ақтөбе облысының ғылыми қауымдастық зерттеу бағдарламалары. Бағытты таңдап, қатысуға өтінім беріңіз.",
+    await searchParams
+  );
 }
-export async function PublicResearchProgramCatalog({ searchParams, params }: { searchParams: ResearchProgramCatalogSearch; params: LocaleParams }) {
+
+export async function PublicResearchProgramCatalog({
+  searchParams,
+  params,
+}: {
+  searchParams: ResearchProgramCatalogSearch;
+  params: LocaleParams;
+}) {
   const state = await searchParams;
   const locale = requireLocale((await params).locale);
-  const parsed = researchProgramFiltersSchema.safeParse({ locale, query: state.q ?? "", field: state.field ?? "", format: state.format ?? "all" });
+  const parsed = researchProgramFiltersSchema.safeParse({
+    locale,
+    query: state.q ?? "",
+    field: state.field ?? "",
+    format: state.format ?? "all",
+  });
   const filters = parsed.success ? parsed.data : researchProgramFiltersSchema.parse({ locale });
-  const { programs, taxonomy, pagination } = await new PublicResearchProgramService().listPage(filters, readPage(state.page));
-  return <><Header locale={locale} /><main lang={locale}><section className="journal-hero"><div className="journal-hero-inner"><p className="journal-eyebrow">{locale === "ru" ? "Научное сообщество · СМУ" : "Ғылыми қауымдастық · СМУ"}</p><h1>{locale === "ru" ? "От идеи к исследованию" : "Идеядан зерттеуге"}</h1><p className="journal-hero-description">{locale === "ru" ? "Исследовательские программы для молодых учёных: изучайте методы, работайте над проектом и представляйте результаты." : "Жас ғалымдарға арналған зерттеу бағдарламалары: әдістерді үйреніңіз, жобамен жұмыс істеңіз және нәтижелерді ұсыныңыз."}</p></div></section>
-    <section className="journal-catalog"><form className="science-filters mentorship-filters" action={"/" + locale + "/research-program"}><label><span className="visually-hidden">{locale === "ru" ? "Поиск по названию" : "Атауы бойынша іздеу"}</span><input type="search" name="q" defaultValue={filters.query} maxLength={120} placeholder={locale === "ru" ? "Поиск по названию" : "Атауы бойынша іздеу"} /></label>
-      <select name="field" defaultValue={filters.field} aria-label={locale === "ru" ? "Направление" : "Бағыт"}><option value="">{locale === "ru" ? "Все направления" : "Барлық бағыттар"}</option>{taxonomy.fields.map(item => <option key={item.id} value={item.slug}>{scientistTaxonomyName(item, locale)}</option>)}</select>
-      <select name="format" defaultValue={filters.format} aria-label={locale === "ru" ? "Формат" : "Формат"}><option value="all">{locale === "ru" ? "Все форматы" : "Барлық форматтар"}</option>{researchProgramFormats.map(format => <option key={format} value={format}>{researchProgramFormatLabels[locale][format]}</option>)}</select><button>{locale === "ru" ? "Найти" : "Іздеу"}</button>
-    </form><p className="science-count">{locale === "ru" ? `${pagination.total} программ` : `${pagination.total} бағдарлама`}</p>
-      {programs.length ? <div className="public-article-grid">{programs.map(program => {
-        const t = program.translations.find(item => item.locale === locale)!;
-        const coordinator = program.coordinator.find(item => item.locale === locale)!;
-        return <article className="public-article-card mentorship-card" key={program.id}><div className="public-card-content"><p className="science-card-field">{program.field ? scientistTaxonomyName(program.field, locale) : null} · {researchProgramFormatLabels[locale][program.format]}</p><h2><Link href={"/" + locale + "/research-program/" + t.slug}>{t.title}</Link></h2><p>{t.summary}</p>
-          <p className="program-dates">{programDate(program.startsOn, locale)} — {programDate(program.endsOn, locale)}</p>
-          <p className="program-intake">{programApplicationsOpen(program) ? (locale === "ru" ? "Набор открыт" : "Қабылдау ашық") : (locale === "ru" ? "Приём заявок закрыт" : "Өтінім қабылдау жабық")} · {locale === "ru" ? "Заявки до " : "Өтінім мерзімі: "}{programDate(program.applicationDeadline, locale)}</p>
-          <p className="mentorship-mentor"><Link href={"/" + locale + "/scientists/" + coordinator.slug}>{coordinator.fullName}</Link></p><Link className="mentorship-card-link" href={"/" + locale + "/research-program/" + t.slug}>{locale === "ru" ? "Программа и заявка →" : "Бағдарлама мен өтінім →"}</Link></div></article>;
-      })}</div> : <div className="journal-empty"><h2>{locale === "ru" ? "Программы не найдены" : "Бағдарламалар табылмады"}</h2><p>{locale === "ru" ? "Попробуйте изменить фильтры. Новые программы появятся после публикации координатором." : "Сүзгілерді өзгертіп көріңіз. Жаңа бағдарламалар үйлестіруші жариялағаннан кейін пайда болады."}</p><Link href={"/" + locale + "/research-program"}>{locale === "ru" ? "Сбросить фильтры" : "Сүзгілерді қалпына келтіру"}</Link></div>}
-    <Pagination {...pagination} path={`/${locale}/research-program`} query={state} locale={locale} />
-      </section></main></>;
+  const { programs, taxonomy, pagination } = await new PublicResearchProgramService().listPage(
+    filters,
+    readPage(state.page)
+  );
+
+  return (
+    <>
+      <Header locale={locale} />
+      <main lang={locale}>
+        <section className="journal-hero">
+          <div className="journal-hero-inner">
+            <p className="journal-eyebrow">
+              {locale === "en"
+                ? "Scientific Community · SMU"
+                : locale === "ru"
+                ? "Научное сообщество · СМУ"
+                : "Ғылыми қауымдастық · СМУ"}
+            </p>
+            <h1>
+              {locale === "en"
+                ? "From Idea to Research"
+                : locale === "ru"
+                ? "От идеи к исследованию"
+                : "Идеядан зерттеуге"}
+            </h1>
+            <p className="journal-hero-description">
+              {locale === "en"
+                ? "Research programs for young scientists: learn methodology, work on projects, and present scientific outcomes."
+                : locale === "ru"
+                ? "Исследовательские программы для молодых учёных: изучайте методы, работайте над проектом и представляйте результаты."
+                : "Жас ғалымдарға арналған зерттеу бағдарламалары: әдістерді үйреніңіз, жобамен жұмыс істеңіз және нәтижелерді ұсыныңыз."}
+            </p>
+          </div>
+        </section>
+
+        <section className="journal-catalog">
+          <form className="science-filters mentorship-filters" action={"/" + locale + "/research-program"}>
+            <label>
+              <span className="visually-hidden">
+                {locale === "en"
+                  ? "Search by title"
+                  : locale === "ru"
+                  ? "Поиск по названию"
+                  : "Атауы бойынша іздеу"}
+              </span>
+              <input
+                type="search"
+                name="q"
+                defaultValue={filters.query}
+                maxLength={120}
+                placeholder={
+                  locale === "en"
+                    ? "Search by title"
+                    : locale === "ru"
+                    ? "Поиск по названию"
+                    : "Атауы бойынша іздеу"
+                }
+              />
+            </label>
+            <select
+              name="field"
+              defaultValue={filters.field}
+              aria-label={locale === "en" ? "Field" : locale === "ru" ? "Направление" : "Бағыт"}
+            >
+              <option value="">
+                {locale === "en"
+                  ? "All fields"
+                  : locale === "ru"
+                  ? "Все направления"
+                  : "Барлық бағыттар"}
+              </option>
+              {taxonomy.fields.map((item) => (
+                <option key={item.id} value={item.slug}>
+                  {scientistTaxonomyName(item, locale)}
+                </option>
+              ))}
+            </select>
+            <select
+              name="format"
+              defaultValue={filters.format}
+              aria-label={locale === "en" ? "Format" : locale === "ru" ? "Формат" : "Формат"}
+            >
+              <option value="all">
+                {locale === "en"
+                  ? "All formats"
+                  : locale === "ru"
+                  ? "Все форматы"
+                  : "Барлық форматтар"}
+              </option>
+              {researchProgramFormats.map((format) => (
+                <option key={format} value={format}>
+                  {researchProgramFormatLabels[locale][format]}
+                </option>
+              ))}
+            </select>
+            <button type="submit">
+              {locale === "en" ? "Search" : locale === "ru" ? "Найти" : "Іздеу"}
+            </button>
+          </form>
+
+          <p className="science-count">
+            {locale === "en"
+              ? `${pagination.total} programs`
+              : locale === "ru"
+              ? `${pagination.total} программ`
+              : `${pagination.total} бағдарлама`}
+          </p>
+
+          {programs.length ? (
+            <div className="public-article-grid">
+              {programs.map((program) => {
+                const t =
+                  program.translations.find((item) => item.locale === locale) ??
+                  program.translations.find((item) => item.locale === "ru") ??
+                  program.translations[0];
+                const coordinator =
+                  program.coordinator.find((item) => item.locale === locale) ??
+                  program.coordinator.find((item) => item.locale === "ru") ??
+                  program.coordinator[0];
+
+                if (!t) return null;
+                const isOpen = programApplicationsOpen(program);
+
+                return (
+                  <article className="public-article-card mentorship-card" key={program.id}>
+                    <div className="public-card-content">
+                      <p className="science-card-field">
+                        {program.field ? scientistTaxonomyName(program.field, locale) : null} ·{" "}
+                        {researchProgramFormatLabels[locale][program.format]}
+                      </p>
+                      <h2>
+                        <Link href={"/" + locale + "/research-program/" + t.slug}>{t.title}</Link>
+                      </h2>
+                      <p>{t.summary}</p>
+                      <p className="program-dates">
+                        {programDate(program.startsOn, locale)} — {programDate(program.endsOn, locale)}
+                      </p>
+                      <p className="program-intake">
+                        {isOpen
+                          ? locale === "en"
+                            ? "Applications open"
+                            : locale === "ru"
+                            ? "Набор открыт"
+                            : "Қабылдау ашық"
+                          : locale === "en"
+                          ? "Applications closed"
+                          : locale === "ru"
+                          ? "Приём заявок закрыт"
+                          : "Өтінім қабылдау жабық"}{" "}
+                        ·{" "}
+                        {locale === "en"
+                          ? "Deadline: "
+                          : locale === "ru"
+                          ? "Заявки до "
+                          : "Өтінім мерзімі: "}
+                        {programDate(program.applicationDeadline, locale)}
+                      </p>
+                      {coordinator ? (
+                        <p className="mentorship-mentor">
+                          <Link href={"/" + locale + "/scientists/" + coordinator.slug}>
+                            {coordinator.fullName}
+                          </Link>
+                        </p>
+                      ) : null}
+                      <Link
+                        className="mentorship-card-link"
+                        href={"/" + locale + "/research-program/" + t.slug}
+                      >
+                        {locale === "en"
+                          ? "Program & Apply →"
+                          : locale === "ru"
+                          ? "Программа и заявка →"
+                          : "Бағдарлама мен өтінім →"}
+                      </Link>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="journal-empty">
+              <h2>
+                {locale === "en"
+                  ? "No programs found"
+                  : locale === "ru"
+                  ? "Программы не найдены"
+                  : "Бағдарламалар табылмады"}
+              </h2>
+              <p>
+                {locale === "en"
+                  ? "Try changing filters. New programs will appear once published by coordinators."
+                  : locale === "ru"
+                  ? "Попробуйте изменить фильтры. Новые программы появятся после публикации координатором."
+                  : "Сүзгілерді өзгертіп көріңіз. Жаңа бағдарламалар үйлестіруші жариялағаннан кейін пайда болады."}
+              </p>
+              <Link href={"/" + locale + "/research-program"}>
+                {locale === "en"
+                  ? "Reset filters"
+                  : locale === "ru"
+                  ? "Сбросить фильтры"
+                  : "Сүзгілерді қалпына келтіру"}
+              </Link>
+            </div>
+          )}
+
+          <Pagination
+            {...pagination}
+            path={`/${locale}/research-program`}
+            query={state}
+            locale={locale}
+          />
+        </section>
+      </main>
+    </>
+  );
 }
+
 async function detail(params: ResearchProgramDetailParams) {
   const value = await params;
   const locale = requireLocale(value.locale);
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value.slug) || value.slug.length > 160) notFound();
   const program = await getPublicResearchProgram(locale, value.slug);
-  const translation = program?.translations.find(item => item.locale === locale);
+  const translation = program?.translations.find((item) => item.locale === locale);
   if (!program || !translation) notFound();
-  return { locale: locale, program, translation };
+  return { locale, program, translation };
 }
-export async function researchProgramDetailMetadata(params: ResearchProgramDetailParams): Promise<Metadata> {
+
+export async function researchProgramDetailMetadata(
+  params: ResearchProgramDetailParams
+): Promise<Metadata> {
   const { locale, program, translation } = await detail(params);
-  const translations = program.translations.filter(t => program.coordinator.some(person => person.locale === t.locale));
+  const translations = program.translations.filter((t) =>
+    program.coordinator.some((person) => person.locale === t.locale)
+  );
   const alternates = pageAlternates(locale, "research-program", translations);
-  return { title: translation.title + " — СМУ", description: translation.summary,
+  return {
+    title: translation.title + " — СМУ",
+    description: translation.summary,
     alternates,
-    openGraph: { type: "website", title: translation.title, description: translation.summary, url: alternates.canonical, locale: openGraphLocale[locale] } };
+    openGraph: {
+      type: "website",
+      title: translation.title,
+      description: translation.summary,
+      url: alternates.canonical,
+      locale: openGraphLocale[locale],
+    },
+  };
 }
-export async function PublicResearchProgramDetail({ params }: { params: ResearchProgramDetailParams }) {
+
+export async function PublicResearchProgramDetail({
+  params,
+}: {
+  params: ResearchProgramDetailParams;
+}) {
   const { locale, program, translation } = await detail(params);
-  const coordinator = program.coordinator.find(item => item.locale === locale)!;
-  return <><Header locale={locale} translations={program.translations.filter(t => program.coordinator.some(person => person.locale === t.locale))} /><main className="public-article-shell" lang={locale}>
-    <nav className="public-breadcrumbs" aria-label={locale === "ru" ? "Хлебные крошки" : "Навигация"}><Link href={"/" + locale + "/research-program"}>{locale === "ru" ? "Research Program" : "Зерттеу бағдарламасы"}</Link><span>/</span><span>{translation.title}</span></nav>
-    <header className="public-article-header"><p className="science-card-field">{program.field ? scientistTaxonomyName(program.field, locale) : null}</p><h1>{translation.title}</h1><p className="public-article-lead">{translation.summary}</p></header>
-    <div className="public-article-layout"><div className="science-work-body">
-      <h2>{locale === "ru" ? "О программе" : "Бағдарлама туралы"}</h2><p>{translation.description}</p>
-      <h2>{locale === "ru" ? "План и этапы" : "Жоспар мен кезеңдер"}</h2><p>{translation.curriculum}</p>
-      <h2>{locale === "ru" ? "Кто может участвовать" : "Кім қатыса алады"}</h2><p>{translation.eligibility}</p>
-      <h2>{locale === "ru" ? "Ожидаемые результаты" : "Күтілетін нәтижелер"}</h2><p>{translation.outcomes}</p>
-      {programApplicationsOpen(program) ? <ApplicationForm programId={program.id} locale={locale} /> : <div className="notice" role="status">{locale === "ru" ? "Приём заявок доступен с " : "Өтінім қабылдау мерзімі: "}{programDate(program.applicationsOpenOn, locale)} — {programDate(program.applicationDeadline, locale)}.</div>}
-      <PublicProgramProjects programId={program.id} locale={locale} />
-    </div>
-      <aside className="public-article-aside science-work-aside">
-        <section><h2>{locale === "ru" ? "Координатор" : "Үйлестіруші"}</h2><Link href={"/" + locale + "/scientists/" + coordinator.slug}>{coordinator.fullName}</Link></section>
-        <section><h2>{locale === "ru" ? "Формат" : "Формат"}</h2><p>{researchProgramFormatLabels[locale][program.format]}</p></section>
-        <section><h2>{locale === "ru" ? "Сроки проведения" : "Өткізу мерзімі"}</h2><p>{programDate(program.startsOn, locale)} — {programDate(program.endsOn, locale)}</p></section>
-        <section><h2>{locale === "ru" ? "Приём заявок" : "Өтінім қабылдау"}</h2><p>{programDate(program.applicationsOpenOn, locale)} — {programDate(program.applicationDeadline, locale)}</p><p>{locale === "ru" ? "Последний день включён. Время Актобе (UTC+5)." : "Соңғы күн қоса есептеледі. Ақтөбе уақыты (UTC+5)."}</p></section>
-        <section><h2>{locale === "ru" ? "Участие" : "Қатысу"}</h2><p>{locale === "ru" ? `${program.capacity} мест в наборе. Заявка проходит отбор; отправка не гарантирует место.` : `Қабылдауда ${program.capacity} орын. Өтінім іріктеуден өтеді; жіберу орынға кепілдік бермейді.`}</p></section>
-      </aside>
-    </div><div className="science-return"><Link href={"/" + locale + "/research-program"}>{locale === "ru" ? "← Все программы" : "← Барлық бағдарламалар"}</Link></div>
-  </main></>;
+  const coordinator =
+    program.coordinator.find((item) => item.locale === locale) ??
+    program.coordinator.find((item) => item.locale === "ru") ??
+    program.coordinator[0];
+
+  return (
+    <>
+      <Header
+        locale={locale}
+        translations={program.translations.filter((t) =>
+          program.coordinator.some((person) => person.locale === t.locale)
+        )}
+      />
+      <main className="public-article-shell" lang={locale}>
+        <nav
+          className="public-breadcrumbs"
+          aria-label={
+            locale === "en"
+              ? "Breadcrumbs"
+              : locale === "ru"
+              ? "Хлебные крошки"
+              : "Навигация"
+          }
+        >
+          <Link href={"/" + locale + "/research-program"}>
+            {locale === "en"
+              ? "Research Program"
+              : locale === "ru"
+              ? "Research Program"
+              : "Зерттеу бағдарламасы"}
+          </Link>
+          <span>/</span>
+          <span>{translation.title}</span>
+        </nav>
+
+        <header className="public-article-header">
+          <p className="science-card-field">
+            {program.field ? scientistTaxonomyName(program.field, locale) : null}
+          </p>
+          <h1>{translation.title}</h1>
+          <p className="public-article-lead">{translation.summary}</p>
+        </header>
+
+        <div className="public-article-layout">
+          <div className="science-work-body">
+            <h2>
+              {locale === "en"
+                ? "About the Program"
+                : locale === "ru"
+                ? "О программе"
+                : "Бағдарлама туралы"}
+            </h2>
+            <p>{translation.description}</p>
+
+            <h2>
+              {locale === "en"
+                ? "Curriculum & Stages"
+                : locale === "ru"
+                ? "План и этапы"
+                : "Жоспар мен кезеңдер"}
+            </h2>
+            <p>{translation.curriculum}</p>
+
+            <h2>
+              {locale === "en"
+                ? "Eligibility Requirements"
+                : locale === "ru"
+                ? "Кто может участвовать"
+                : "Кім қатыса алады"}
+            </h2>
+            <p>{translation.eligibility}</p>
+
+            <h2>
+              {locale === "en"
+                ? "Expected Outcomes"
+                : locale === "ru"
+                ? "Ожидаемые результаты"
+                : "Күтілетін нәтижелер"}
+            </h2>
+            <p>{translation.outcomes}</p>
+
+            {programApplicationsOpen(program) ? (
+              <ApplicationForm programId={program.id} locale={locale} />
+            ) : (
+              <div className="notice" role="status">
+                {locale === "en"
+                  ? "Applications open from "
+                  : locale === "ru"
+                  ? "Приём заявок доступен с "
+                  : "Өтінім қабылдау мерзімі: "}
+                {programDate(program.applicationsOpenOn, locale)} —{" "}
+                {programDate(program.applicationDeadline, locale)}.
+              </div>
+            )}
+
+            <PublicProgramProjects programId={program.id} locale={locale} />
+          </div>
+
+          <aside className="public-article-aside science-work-aside">
+            <section>
+              <h2>
+                {locale === "en"
+                  ? "Coordinator"
+                  : locale === "ru"
+                  ? "Координатор"
+                  : "Үйлестіруші"}
+              </h2>
+              {coordinator ? (
+                <Link href={"/" + locale + "/scientists/" + coordinator.slug}>
+                  {coordinator.fullName}
+                </Link>
+              ) : (
+                <p>—</p>
+              )}
+            </section>
+            <section>
+              <h2>
+                {locale === "en"
+                  ? "Format"
+                  : locale === "ru"
+                  ? "Формат"
+                  : "Формат"}
+              </h2>
+              <p>{researchProgramFormatLabels[locale][program.format]}</p>
+            </section>
+            <section>
+              <h2>
+                {locale === "en"
+                  ? "Duration"
+                  : locale === "ru"
+                  ? "Сроки проведения"
+                  : "Өткізу мерзімі"}
+              </h2>
+              <p>
+                {programDate(program.startsOn, locale)} — {programDate(program.endsOn, locale)}
+              </p>
+            </section>
+            <section>
+              <h2>
+                {locale === "en"
+                  ? "Applications Period"
+                  : locale === "ru"
+                  ? "Приём заявок"
+                  : "Өтінім қабылдау"}
+              </h2>
+              <p>
+                {programDate(program.applicationsOpenOn, locale)} —{" "}
+                {programDate(program.applicationDeadline, locale)}
+              </p>
+              <p>
+                {locale === "en"
+                  ? "Last day included. Aktobe time (UTC+5)."
+                  : locale === "ru"
+                  ? "Последний день включён. Время Актобе (UTC+5)."
+                  : "Соңғы күн қоса есептеледі. Ақтөбе уақыты (UTC+5)."}
+              </p>
+            </section>
+            <section>
+              <h2>
+                {locale === "en"
+                  ? "Capacity"
+                  : locale === "ru"
+                  ? "Участие"
+                  : "Қатысу"}
+              </h2>
+              <p>
+                {locale === "en"
+                  ? `${program.capacity} places in intake. Applications are reviewed; submission does not guarantee admission.`
+                  : locale === "ru"
+                  ? `${program.capacity} мест в наборе. Заявка проходит отбор; отправка не гарантирует место.`
+                  : `Қабылдауда ${program.capacity} орын. Өтінім іріктеуден өтеді; жіберу орынға кепілдік бермейді.`}
+              </p>
+            </section>
+          </aside>
+        </div>
+
+        <div className="science-return">
+          <Link href={"/" + locale + "/research-program"}>
+            {locale === "en"
+              ? "← All programs"
+              : locale === "ru"
+              ? "← Все программы"
+              : "← Барлық бағдарламалар"}
+          </Link>
+        </div>
+      </main>
+    </>
+  );
 }
