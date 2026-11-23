@@ -21,7 +21,7 @@ const headerCopy = {
 } as const;
 
 const primarySections = ["scientists", "research", "projects", "opportunities"] as const;
-const secondarySections = ["journal", "publications", "mentorship", "research-program", "events"] as const;
+const secondarySections = ["journal", "publications", "results", "mentorship", "research-program", "events"] as const;
 
 function Brand({ locale, label }: { locale: Locale; label: string }) {
   const russian = locale === "ru";

@@ -4,10 +4,12 @@ import { createPublicSupabaseClient } from "@/lib/supabase/public";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/service-role";
 import { isSupabaseConfigured } from "@/lib/env";
 import { hasPermission } from "@/lib/permissions/permissions";
+import { emptySearchPage } from "@/lib/search";
 import { OUTPUT_FILE_MAX_BYTES, validateOutputFile, outputFileMimeSchema, researchOutputInputSchema, type ResearchOutputInput } from "@/lib/validation/research-output";
 import { ResearchOutputRepository } from "@/server/repositories/research-output.repository";
 import type { AccessContext } from "@/types/domain/auth";
 import type { ArticleLocale } from "@/types/domain/article";
+import type { PublicResearchOutputItem } from "@/types/domain/research-output";
 
 export function canEditOutputs(access: AccessContext) {
   return hasPermission(access, "outputs.create") || hasPermission(access, "outputs.manage");
@@ -42,6 +44,47 @@ export class ResearchOutputService {
   async publicByWork(locale: ArticleLocale, workId: string) {
     if (!isSupabaseConfigured()) return [];
     return new ResearchOutputRepository(createPublicSupabaseClient()).publicByWork(locale, workId);
+  }
+  async listPublic(locale: ArticleLocale, id: string | null = null, workId: string | null = null): Promise<PublicResearchOutputItem[]> {
+    if (!isSupabaseConfigured()) return [];
+    return new ResearchOutputRepository(createPublicSupabaseClient()).listPublic(locale, id, workId);
+  }
+  async listPublicPage(locale: ArticleLocale, query = "", page = 1, kind = "all") {
+    if (!isSupabaseConfigured()) {
+      return { outputs: [] as PublicResearchOutputItem[], pagination: emptySearchPage(page) };
+    }
+    const all = await this.listPublic(locale);
+    const q = query.trim().toLowerCase();
+    const filtered = all.filter(item => {
+      if (kind !== "all" && item.kind !== kind) return false;
+      if (q) {
+        const matchTitle = item.title.toLowerCase().includes(q);
+        const matchDesc = item.description.toLowerCase().includes(q);
+        const matchWorks = (item.works ?? []).some(w => w.title.toLowerCase().includes(q));
+        if (!matchTitle && !matchDesc && !matchWorks) return false;
+      }
+      return true;
+    });
+
+    const pageSize = 12;
+    const total = filtered.length;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    const safePage = Math.min(Math.max(1, page), totalPages);
+    const start = (safePage - 1) * pageSize;
+    const items = filtered.slice(start, start + pageSize);
+
+    return {
+      outputs: items,
+      pagination: {
+        total,
+        page: safePage,
+        pageSize,
+        totalPages,
+        hasPrevious: safePage > 1,
+        hasNext: safePage < totalPages,
+        items: items.map(i => ({ id: i.id, score: 1 })),
+      },
+    };
   }
   async upload(access: AccessContext, file: File) {
     assertAccess(access);

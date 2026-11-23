@@ -13,8 +13,17 @@ export const researchOutputInputSchema = z.object({
 });
 export type ResearchOutputInput = z.infer<typeof researchOutputInputSchema>;
 export const publicResearchOutputSchema = z.object({
-  id: z.uuid(), kind: z.enum(researchOutputKinds), version: z.number().int().positive(),
-  versionLabel: z.string(), license: z.string(), title: z.string(), description: z.string(), externalUrl: z.string(),
+  id: z.uuid(),
+  kind: z.enum(researchOutputKinds),
+  version: z.number().int().positive(),
+  versionLabel: z.string(),
+  license: z.string(),
+  title: z.string(),
+  description: z.string(),
+  externalUrl: z.string(),
+  publishedAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+  works: z.array(z.object({ id: z.uuid(), kind: z.enum(["research", "project"]), title: z.string() })).optional(),
   files: z.array(z.object({ id: z.uuid(), name: z.string(), size: z.number(), mimeType: z.string() })),
 });
 export type PublicResearchOutput = z.infer<typeof publicResearchOutputSchema>;

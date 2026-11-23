@@ -31,6 +31,6 @@ export async function saveResearchOutput(form: FormData) {
   let saved: string;
   try { saved = await new ResearchOutputService().save(access.access, id?.success ? id.data : null, input.data); }
   catch (error) { redirect(`${path}?${id?.success ? `edit=${id.data}&` : ""}error=${databaseErrorCode(error) ?? "action_failed"}`); }
-  for (const target of [path, "/research", "/projects"]) revalidateLocalizedPath(target, "layout");
+  for (const target of [path, "/research", "/projects", "/results"]) revalidateLocalizedPath(target, "layout");
   redirect(`${path}?edit=${saved}&saved=1`);
 }

@@ -13,19 +13,44 @@ export class ResearchOutputRepository {
     if (error) throw error;
     return (data ?? []).map(row => {
       const snapshot = row.research_output_versions.find(v => v.version === row.version)?.snapshot;
-      return { id: row.id, ownerId: row.owner_id, version: row.version, input: researchOutputInputSchema.parse({
-        ...(snapshot && typeof snapshot === "object" && !Array.isArray(snapshot) ? snapshot : {}), status: row.status, expectedVersion: row.version,
-      }) };
+      return {
+        id: row.id,
+        ownerId: row.owner_id,
+        kind: row.kind,
+        status: row.status,
+        version: row.version,
+        updatedAt: row.updated_at,
+        input: researchOutputInputSchema.parse({
+          ...(snapshot && typeof snapshot === "object" && !Array.isArray(snapshot) ? snapshot : {}),
+          status: row.status,
+          expectedVersion: row.version,
+        }),
+      };
     });
   }
   async get(id: string) {
     const { data, error } = await this.client.from("research_outputs")
-      .select("id,owner_id,status,version,research_output_versions(version,snapshot,created_at)").eq("id", id).maybeSingle();
+      .select("id,owner_id,status,version,kind,updated_at,research_output_versions(version,snapshot,created_at)").eq("id", id).maybeSingle();
     if (error) throw error;
     if (!data) return null;
-    return { id: data.id, ownerId: data.owner_id, version: data.version, versions: data.research_output_versions
-      .sort((a, b) => b.version - a.version).map(v => ({ version: v.version, createdAt: v.created_at,
-        input: researchOutputInputSchema.parse({ ...(v.snapshot as Record<string, unknown>), status: data.status, expectedVersion: data.version }) })) };
+    return {
+      id: data.id,
+      ownerId: data.owner_id,
+      kind: data.kind,
+      status: data.status,
+      version: data.version,
+      updatedAt: data.updated_at,
+      versions: data.research_output_versions
+        .sort((a, b) => b.version - a.version).map(v => ({
+          version: v.version,
+          createdAt: v.created_at,
+          input: researchOutputInputSchema.parse({
+            ...(v.snapshot as Record<string, unknown>),
+            status: data.status,
+            expectedVersion: data.version,
+          }),
+        })),
+    };
   }
   async save(id: string | null, input: ResearchOutputInput) {
     const { data, error } = await this.client.rpc("save_research_output", { p_id: id, p_input: input });
@@ -46,6 +71,11 @@ export class ResearchOutputRepository {
     const { data, error } = await this.client.rpc("research_output_work_options", { p_query: query, p_ids: ids });
     if (error) throw error;
     return z.array(z.object({ id: z.uuid(), title: z.string(), kind: z.enum(["research", "project"]), status: z.enum(["draft", "published", "archived"]) })).parse(data ?? []);
+  }
+  async listPublic(locale: ArticleLocale, id: string | null = null, workId: string | null = null) {
+    const { data, error } = await this.client.rpc("list_all_public_research_outputs", { p_locale: locale, p_id: id, p_work_id: workId });
+    if (error) throw error;
+    return z.array(publicResearchOutputSchema).parse(data ?? []);
   }
   async publicByWork(locale: ArticleLocale, workId: string) {
     const { data, error } = await this.client.rpc("list_public_research_outputs", { p_locale: locale, p_work_id: workId });

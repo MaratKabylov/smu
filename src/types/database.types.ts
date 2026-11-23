@@ -1423,6 +1423,38 @@ export type Database = {
           { foreignKeyName: "publication_coauthors_scientist_id_fkey"; columns: ["scientist_id"]; isOneToOne: false; referencedRelation: "scientist_profiles"; referencedColumns: ["id"] },
         ];
       };
+      "publication_translations": {
+        Row: {
+          "publication_id": string;
+          "locale": "ru" | "kk" | "en";
+          "slug": string;
+          "title": string;
+          "summary": string;
+          "created_at": string;
+          "updated_at": string;
+        };
+        Insert: {
+          "publication_id": string;
+          "locale": "ru" | "kk" | "en";
+          "slug": string;
+          "title": string;
+          "summary"?: string;
+          "created_at"?: string;
+          "updated_at"?: string;
+        };
+        Update: {
+          "publication_id"?: string;
+          "locale"?: "ru" | "kk" | "en";
+          "slug"?: string;
+          "title"?: string;
+          "summary"?: string;
+          "created_at"?: string;
+          "updated_at"?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "publication_translations_publication_id_fkey"; columns: ["publication_id"]; isOneToOne: false; referencedRelation: "publications"; referencedColumns: ["id"] },
+        ];
+      };
       "publication_works": {
         Row: {
           "publication_id": string;
@@ -1457,8 +1489,8 @@ export type Database = {
           "updated_at": string;
           "published_at": string | null;
           "deleted_at": string | null;
-          "file_media_id": string | null;
           "search_document": string | null;
+          "file_media_id": string | null;
         };
         Insert: {
           "id"?: string;
@@ -1475,8 +1507,8 @@ export type Database = {
           "updated_at"?: string;
           "published_at"?: string | null;
           "deleted_at"?: string | null;
-          "file_media_id"?: string | null;
           "search_document"?: never;
+          "file_media_id"?: string | null;
         };
         Update: {
           "id"?: string;
@@ -1493,45 +1525,13 @@ export type Database = {
           "updated_at"?: string;
           "published_at"?: string | null;
           "deleted_at"?: string | null;
-          "file_media_id"?: string | null;
           "search_document"?: never;
+          "file_media_id"?: string | null;
         };
         Relationships: [
           { foreignKeyName: "publications_created_by_fkey"; columns: ["created_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
-          { foreignKeyName: "publications_scientist_id_fkey"; columns: ["scientist_id"]; isOneToOne: false; referencedRelation: "scientist_profiles"; referencedColumns: ["id"] },
           { foreignKeyName: "publications_file_media_id_fkey"; columns: ["file_media_id"]; isOneToOne: false; referencedRelation: "media_assets"; referencedColumns: ["id"] },
-        ];
-      };
-      "publication_translations": {
-        Row: {
-          "publication_id": string;
-          "locale": "ru" | "kk" | "en";
-          "slug": string;
-          "title": string;
-          "summary": string;
-          "created_at": string;
-          "updated_at": string;
-        };
-        Insert: {
-          "publication_id": string;
-          "locale": "ru" | "kk" | "en";
-          "slug": string;
-          "title": string;
-          "summary"?: string;
-          "created_at"?: string;
-          "updated_at"?: string;
-        };
-        Update: {
-          "publication_id"?: string;
-          "locale"?: "ru" | "kk" | "en";
-          "slug"?: string;
-          "title"?: string;
-          "summary"?: string;
-          "created_at"?: string;
-          "updated_at"?: string;
-        };
-        Relationships: [
-          { foreignKeyName: "publication_translations_publication_id_fkey"; columns: ["publication_id"]; isOneToOne: false; referencedRelation: "publications"; referencedColumns: ["id"] },
+          { foreignKeyName: "publications_scientist_id_fkey"; columns: ["scientist_id"]; isOneToOne: false; referencedRelation: "scientist_profiles"; referencedColumns: ["id"] },
         ];
       };
       "research_output_files": {
@@ -1554,7 +1554,7 @@ export type Database = {
           "is_public"?: boolean;
         };
         Relationships: [
-          { foreignKeyName: "research_output_files_output_id_version_fkey"; columns: ["output_id","version"]; isOneToOne: false; referencedRelation: "research_output_versions"; referencedColumns: ["output_id","version"] },
+          { foreignKeyName: "research_output_files_output_id_version_fkey"; columns: ["output_id", "version"]; isOneToOne: false; referencedRelation: "research_output_versions"; referencedColumns: ["output_id", "version"] },
           { foreignKeyName: "research_output_files_upload_id_fkey"; columns: ["upload_id"]; isOneToOne: false; referencedRelation: "research_output_uploads"; referencedColumns: ["id"] },
         ];
       };
@@ -1781,7 +1781,7 @@ export type Database = {
         };
         Relationships: [
           { foreignKeyName: "research_program_project_participants_application_id_fkey"; columns: ["application_id"]; isOneToOne: false; referencedRelation: "research_program_applications"; referencedColumns: ["id"] },
-          { foreignKeyName: "research_program_project_participants_program_id_work_id_fkey"; columns: ["program_id","work_id"]; isOneToOne: false; referencedRelation: "research_program_projects"; referencedColumns: ["program_id","work_id"] },
+          { foreignKeyName: "research_program_project_participants_program_id_work_id_fkey"; columns: ["program_id", "work_id"]; isOneToOne: false; referencedRelation: "research_program_projects"; referencedColumns: ["program_id", "work_id"] },
           { foreignKeyName: "research_program_project_participants_scientist_id_fkey"; columns: ["scientist_id"]; isOneToOne: false; referencedRelation: "scientist_profiles"; referencedColumns: ["id"] },
         ];
       };
@@ -2896,6 +2896,14 @@ export type Database = {
         };
         Returns: Json;
       };
+      "list_all_public_research_outputs": {
+        Args: {
+          "p_locale": string | null;
+          "p_id"?: string | null;
+          "p_work_id"?: string | null;
+        };
+        Returns: Json;
+      };
       "list_article_author_profiles": {
         Args: Record<string, never>;
         Returns: ({ "id": string | null; "display_name": string | null })[];
@@ -2972,7 +2980,7 @@ export type Database = {
           "p_id"?: string | null;
           "p_scientist"?: string | null;
         };
-        Returns: ({ "id": string | null; "scientist_id": string | null; "title": string | null; "year": number | null; "journal": string | null; "doi": string | null; "url": string | null; "publication_type": string | null; "scientist_name": string | null; "scientist_href": string | null; "authors": Json | null; "works": Json | null })[];
+        Returns: ({ "id": string | null; "scientist_id": string | null; "title": string | null; "year": number | null; "journal": string | null; "doi": string | null; "url": string | null; "publication_type": string | null; "scientist_name": string | null; "scientist_href": string | null; "summary": string | null; "slug": string | null; "file_media_id": string | null; "file_name": string | null; "authors": Json | null; "works": Json | null })[];
       };
       "list_public_research_outputs": {
         Args: {
@@ -2993,7 +3001,7 @@ export type Database = {
           "p_locale": string | null;
           "p_work": string | null;
         };
-        Returns: ({ "id": string | null; "scientist_id": string | null; "title": string | null; "year": number | null; "journal": string | null; "doi": string | null; "url": string | null; "publication_type": string | null; "scientist_name": string | null; "scientist_href": string | null; "authors": Json | null; "works": Json | null })[];
+        Returns: ({ "id": string | null; "scientist_id": string | null; "title": string | null; "year": number | null; "journal": string | null; "doi": string | null; "url": string | null; "publication_type": string | null; "scientist_name": string | null; "scientist_href": string | null; "summary": string | null; "slug": string | null; "file_media_id": string | null; "file_name": string | null; "authors": Json | null; "works": Json | null })[];
       };
       "list_scientific_legacy": {
         Args: {
