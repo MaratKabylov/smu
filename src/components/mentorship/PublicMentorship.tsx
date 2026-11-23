@@ -15,60 +15,393 @@ import { mentorshipFormats, type MentorshipTranslation } from "@/types/domain/me
 import type { ScientistLocale } from "@/types/domain/scientist";
 import { scientistTaxonomyName } from "@/lib/i18n/scientist-taxonomy";
 
-export type MentorshipCatalogSearch = Promise<{ page?: string; lang?: string; q?: string; field?: string; format?: string }>;
+export type MentorshipCatalogSearch = Promise<{
+  page?: string;
+  lang?: string;
+  q?: string;
+  field?: string;
+  format?: string;
+}>;
+
 export type MentorshipDetailParams = Promise<{ locale: string; slug: string }>;
-function Header({ locale, translations }: { locale: ScientistLocale; translations?: MentorshipTranslation[] }) {
+
+function Header({
+  locale,
+  translations,
+}: {
+  locale: ScientistLocale;
+  translations?: MentorshipTranslation[];
+}) {
   return <PublicHeader locale={locale} section="mentorship" translations={translations} />;
 }
 
-export async function mentorshipCatalogMetadata(params: LocaleParams, searchParams: Promise<PublicQuery> = Promise.resolve({})): Promise<Metadata> {
+export async function mentorshipCatalogMetadata(
+  params: LocaleParams,
+  searchParams: Promise<PublicQuery> = Promise.resolve({})
+): Promise<Metadata> {
   const locale = requireLocale((await params).locale);
-  return catalogMetadata(locale, "mentorship", locale === "en" ? "Mentorship" : (locale === "ru" ? "Наставничество — СМУ" : "Тәлімгерлік — СМУ"), locale === "en" ? "Mentors from the scientific community of the Aktobe region. Choose a field and apply." : (locale === "ru" ? "Наставники научного сообщества Актюбинской области. Выберите направление и подайте заявку на участие." : "Ақтөбе облысының ғылыми қауымдастық тәлімгерлері. Бағытты таңдап, қатысуға өтінім беріңіз."), await searchParams);
+  return catalogMetadata(
+    locale,
+    "mentorship",
+    locale === "en"
+      ? "Mentorship — SMU"
+      : locale === "ru"
+      ? "Наставничество — СМУ"
+      : "Тәлімгерлік — СМУ",
+    locale === "en"
+      ? "Mentors from the scientific community of Aktobe region. Choose a field and apply."
+      : locale === "ru"
+      ? "Наставники научного сообщества Актюбинской области. Выберите направление и подайте заявку на участие."
+      : "Ақтөбе облысының ғылыми қауымдастық тәлімгерлері. Бағытты таңдап, қатысуға өтінім беріңіз.",
+    await searchParams
+  );
 }
-export async function PublicMentorshipCatalog({ searchParams, params }: { searchParams: MentorshipCatalogSearch; params: LocaleParams }) {
+
+export async function PublicMentorshipCatalog({
+  searchParams,
+  params,
+}: {
+  searchParams: MentorshipCatalogSearch;
+  params: LocaleParams;
+}) {
   const state = await searchParams;
   const locale = requireLocale((await params).locale);
-  const parsed = mentorshipFiltersSchema.safeParse({ locale, query: state.q ?? "", field: state.field ?? "", format: state.format ?? "all" });
+  const parsed = mentorshipFiltersSchema.safeParse({
+    locale,
+    query: state.q ?? "",
+    field: state.field ?? "",
+    format: state.format ?? "all",
+  });
   const filters = parsed.success ? parsed.data : mentorshipFiltersSchema.parse({ locale });
-  const { offers, taxonomy, pagination } = await new PublicMentorshipService().listPage(filters, readPage(state.page));
-  return <><Header locale={locale} /><main lang={locale}><section className="journal-hero"><div className="journal-hero-inner"><p className="journal-eyebrow">{locale === "ru" ? "Научное сообщество · СМУ" : "Ғылыми қауымдастық · СМУ"}</p><h1>{locale === "ru" ? "Развивайтесь вместе с наставником" : "Тәлімгермен бірге дамыңыз"}</h1><p className="journal-hero-description">{locale === "ru" ? "Получите поддержку опытных учёных: от выбора темы до первых научных результатов." : "Тақырып таңдаудан алғашқы ғылыми нәтижелерге дейін тәжірибелі ғалымдардың қолдауын алыңыз."}</p></div></section>
-    <section className="journal-catalog"><form className="science-filters mentorship-filters" action={"/" + locale + "/mentorship"}><label><span className="visually-hidden">{locale === "ru" ? "Поиск по названию" : "Атауы бойынша іздеу"}</span><input type="search" name="q" defaultValue={filters.query} maxLength={120} placeholder={locale === "ru" ? "Поиск по названию" : "Атауы бойынша іздеу"} /></label>
-      <select name="field" defaultValue={filters.field} aria-label={locale === "ru" ? "Направление" : "Бағыт"}><option value="">{locale === "ru" ? "Все направления" : "Барлық бағыттар"}</option>{taxonomy.fields.map(item => <option key={item.id} value={item.slug}>{scientistTaxonomyName(item, locale)}</option>)}</select>
-      <select name="format" defaultValue={filters.format} aria-label={locale === "ru" ? "Формат" : "Формат"}><option value="all">{locale === "ru" ? "Все форматы" : "Барлық форматтар"}</option>{mentorshipFormats.map(format => <option key={format} value={format}>{mentorshipFormatLabels[locale][format]}</option>)}</select><button>{locale === "ru" ? "Найти" : "Іздеу"}</button>
-    </form><p className="science-count">{locale === "ru" ? `${pagination.total} предложений` : `${pagination.total} ұсыныс`}</p>
-      {offers.length ? <div className="public-article-grid">{offers.map(offer => {
-        const t = offer.translations.find(item => item.locale === locale)!;
-        const mentor = offer.mentor.find(item => item.locale === locale)!;
-        return <article className="public-article-card mentorship-card" key={offer.id}><div className="public-card-content"><p className="science-card-field">{offer.field ? scientistTaxonomyName(offer.field, locale) : null} · {mentorshipFormatLabels[locale][offer.format]}</p><h2><Link href={"/" + locale + "/mentorship/" + t.slug}>{t.title}</Link></h2><p>{t.summary}</p><p className="mentorship-mentor"><Link href={"/" + locale + "/scientists/" + mentor.slug}>{mentor.fullName}</Link></p><Link className="mentorship-card-link" href={"/" + locale + "/mentorship/" + t.slug}>{locale === "ru" ? "Условия и заявка →" : "Шарттар мен өтінім →"}</Link></div></article>;
-      })}</div> : <div className="journal-empty"><h2>{locale === "ru" ? "Предложения не найдены" : "Ұсыныстар табылмады"}</h2><p>{locale === "ru" ? "Попробуйте изменить фильтры. Новые предложения появятся после публикации координатором." : "Сүзгілерді өзгертіп көріңіз. Жаңа ұсыныстар үйлестіруші жариялағаннан кейін пайда болады."}</p><Link href={"/" + locale + "/mentorship"}>{locale === "ru" ? "Сбросить фильтры" : "Сүзгілерді қалпына келтіру"}</Link></div>}
-    <Pagination {...pagination} path={`/${locale}/mentorship`} query={state} locale={locale} />
-      </section></main></>;
+  const { offers, taxonomy, pagination } = await new PublicMentorshipService().listPage(
+    filters,
+    readPage(state.page)
+  );
+
+  return (
+    <>
+      <Header locale={locale} />
+      <main lang={locale}>
+        <section className="journal-hero">
+          <div className="journal-hero-inner">
+            <p className="journal-eyebrow">
+              {locale === "en"
+                ? "Scientific Community · SMU"
+                : locale === "ru"
+                ? "Научное сообщество · СМУ"
+                : "Ғылыми қауымдастық · СМУ"}
+            </p>
+            <h1>
+              {locale === "en"
+                ? "Grow Together with a Mentor"
+                : locale === "ru"
+                ? "Развивайтесь вместе с наставником"
+                : "Тәлімгермен бірге дамыңыз"}
+            </h1>
+            <p className="journal-hero-description">
+              {locale === "en"
+                ? "Receive guidance from experienced scientists: from choosing a topic to achieving your first scientific results."
+                : locale === "ru"
+                ? "Получите поддержку опытных учёных: от выбора темы до первых научных результатов."
+                : "Тақырып таңдаудан алғашқы ғылыми нәтижелерге дейін тәжірибелі ғалымдардың қолдауын алыңыз."}
+            </p>
+          </div>
+        </section>
+
+        <section className="journal-catalog">
+          <form className="science-filters mentorship-filters" action={"/" + locale + "/mentorship"}>
+            <label>
+              <span className="visually-hidden">
+                {locale === "en"
+                  ? "Search by title"
+                  : locale === "ru"
+                  ? "Поиск по названию"
+                  : "Атауы бойынша іздеу"}
+              </span>
+              <input
+                type="search"
+                name="q"
+                defaultValue={filters.query}
+                maxLength={120}
+                placeholder={
+                  locale === "en"
+                    ? "Search by title"
+                    : locale === "ru"
+                    ? "Поиск по названию"
+                    : "Атауы бойынша іздеу"
+                }
+              />
+            </label>
+            <select
+              name="field"
+              defaultValue={filters.field}
+              aria-label={locale === "en" ? "Field" : locale === "ru" ? "Направление" : "Бағыт"}
+            >
+              <option value="">
+                {locale === "en"
+                  ? "All fields"
+                  : locale === "ru"
+                  ? "Все направления"
+                  : "Барлық бағыттар"}
+              </option>
+              {taxonomy.fields.map((item) => (
+                <option key={item.id} value={item.slug}>
+                  {scientistTaxonomyName(item, locale)}
+                </option>
+              ))}
+            </select>
+            <select
+              name="format"
+              defaultValue={filters.format}
+              aria-label={locale === "en" ? "Format" : locale === "ru" ? "Формат" : "Формат"}
+            >
+              <option value="all">
+                {locale === "en"
+                  ? "All formats"
+                  : locale === "ru"
+                  ? "Все форматы"
+                  : "Барлық форматтар"}
+              </option>
+              {mentorshipFormats.map((format) => (
+                <option key={format} value={format}>
+                  {mentorshipFormatLabels[locale][format]}
+                </option>
+              ))}
+            </select>
+            <button type="submit">
+              {locale === "en" ? "Search" : locale === "ru" ? "Найти" : "Іздеу"}
+            </button>
+          </form>
+
+          <p className="science-count">
+            {locale === "en"
+              ? `${pagination.total} offers`
+              : locale === "ru"
+              ? `${pagination.total} предложений`
+              : `${pagination.total} ұсыныс`}
+          </p>
+
+          {offers.length ? (
+            <div className="public-article-grid">
+              {offers.map((offer) => {
+                const t =
+                  offer.translations.find((item) => item.locale === locale) ??
+                  offer.translations.find((item) => item.locale === "ru") ??
+                  offer.translations[0];
+                const mentor =
+                  offer.mentor.find((item) => item.locale === locale) ??
+                  offer.mentor.find((item) => item.locale === "ru") ??
+                  offer.mentor[0];
+
+                if (!t) return null;
+
+                return (
+                  <article className="public-article-card mentorship-card" key={offer.id}>
+                    <div className="public-card-content">
+                      <p className="science-card-field">
+                        {offer.field ? scientistTaxonomyName(offer.field, locale) : null} ·{" "}
+                        {mentorshipFormatLabels[locale][offer.format]}
+                      </p>
+                      <h2>
+                        <Link href={"/" + locale + "/mentorship/" + t.slug}>{t.title}</Link>
+                      </h2>
+                      <p>{t.summary}</p>
+                      {mentor ? (
+                        <p className="mentorship-mentor">
+                          <Link href={"/" + locale + "/scientists/" + mentor.slug}>
+                            {mentor.fullName}
+                          </Link>
+                        </p>
+                      ) : null}
+                      <Link className="mentorship-card-link" href={"/" + locale + "/mentorship/" + t.slug}>
+                        {locale === "en"
+                          ? "Conditions & Apply →"
+                          : locale === "ru"
+                          ? "Условия и заявка →"
+                          : "Шарттар мен өтінім →"}
+                      </Link>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="journal-empty">
+              <h2>
+                {locale === "en"
+                  ? "No offers found"
+                  : locale === "ru"
+                  ? "Предложения не найдены"
+                  : "Ұсыныстар табылмады"}
+              </h2>
+              <p>
+                {locale === "en"
+                  ? "Try changing filters. New offers will appear once published by coordinators."
+                  : locale === "ru"
+                  ? "Попробуйте изменить фильтры. Новые предложения появятся после публикации координатором."
+                  : "Сүзгілерді өзгертіп көріңіз. Жаңа ұсыныстар үйлестіруші жариялағаннан кейін пайда болады."}
+              </p>
+              <Link href={"/" + locale + "/mentorship"}>
+                {locale === "en"
+                  ? "Reset filters"
+                  : locale === "ru"
+                  ? "Сбросить фильтры"
+                  : "Сүзгілерді қалпына келтіру"}
+              </Link>
+            </div>
+          )}
+
+          <Pagination {...pagination} path={`/${locale}/mentorship`} query={state} locale={locale} />
+        </section>
+      </main>
+    </>
+  );
 }
+
 async function detail(params: MentorshipDetailParams) {
   const value = await params;
   const locale = requireLocale(value.locale);
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value.slug) || value.slug.length > 160) notFound();
   const offer = await getPublicMentorship(locale, value.slug);
-  const translation = offer?.translations.find(item => item.locale === locale);
+  const translation = offer?.translations.find((item) => item.locale === locale);
   if (!offer || !translation) notFound();
-  return { locale: locale, offer, translation };
+  return { locale, offer, translation };
 }
+
 export async function mentorshipDetailMetadata(params: MentorshipDetailParams): Promise<Metadata> {
   const { locale, offer, translation } = await detail(params);
-  const translations = offer.translations.filter(t => offer.mentor.some(person => person.locale === t.locale));
+  const translations = offer.translations.filter((t) =>
+    offer.mentor.some((person) => person.locale === t.locale)
+  );
   const alternates = pageAlternates(locale, "mentorship", translations);
-  return { title: translation.title + " — СМУ", description: translation.summary,
+  return {
+    title: translation.title + " — СМУ",
+    description: translation.summary,
     alternates,
-    openGraph: { type: "website", title: translation.title, description: translation.summary, url: alternates.canonical, locale: openGraphLocale[locale] } };
+    openGraph: {
+      type: "website",
+      title: translation.title,
+      description: translation.summary,
+      url: alternates.canonical,
+      locale: openGraphLocale[locale],
+    },
+  };
 }
+
 export async function PublicMentorshipDetail({ params }: { params: MentorshipDetailParams }) {
   const { locale, offer, translation } = await detail(params);
-  const mentor = offer.mentor.find(item => item.locale === locale)!;
-  return <><Header locale={locale} translations={offer.translations.filter(t => offer.mentor.some(person => person.locale === t.locale))} /><main className="public-article-shell" lang={locale}>
-    <nav className="public-breadcrumbs" aria-label={locale === "ru" ? "Хлебные крошки" : "Навигация"}><Link href={"/" + locale + "/mentorship"}>{locale === "ru" ? "Наставничество" : "Тәлімгерлік"}</Link><span>/</span><span>{translation.title}</span></nav>
-    <header className="public-article-header"><p className="science-card-field">{offer.field ? scientistTaxonomyName(offer.field, locale) : null}</p><h1>{translation.title}</h1><p className="public-article-lead">{translation.summary}</p></header>
-    <div className="public-article-layout"><div className="science-work-body"><h2>{locale === "ru" ? "О наставничестве" : "Тәлімгерлік туралы"}</h2><p>{translation.description}</p><ApplicationForm offerId={offer.id} locale={locale} /></div>
-      <aside className="public-article-aside science-work-aside"><section><h2>{locale === "ru" ? "Наставник" : "Тәлімгер"}</h2><Link href={"/" + locale + "/scientists/" + mentor.slug}>{mentor.fullName}</Link></section><section><h2>{locale === "ru" ? "Формат" : "Формат"}</h2><p>{mentorshipFormatLabels[locale][offer.format]}</p></section><section><h2>{locale === "ru" ? "Участие" : "Қатысу"}</h2><p>{locale === "ru" ? `До ${offer.capacity} участников одновременно. Заявка проходит рассмотрение; отправка не гарантирует место.` : `Бір уақытта ${offer.capacity} қатысушыға дейін. Өтінім қарастырылады; жіберу орынға кепілдік бермейді.`}</p></section></aside>
-    </div><div className="science-return"><Link href={"/" + locale + "/mentorship"}>{locale === "ru" ? "← Все предложения" : "← Барлық ұсыныстар"}</Link></div>
-  </main></>;
+  const mentor =
+    offer.mentor.find((item) => item.locale === locale) ??
+    offer.mentor.find((item) => item.locale === "ru") ??
+    offer.mentor[0];
+
+  return (
+    <>
+      <Header
+        locale={locale}
+        translations={offer.translations.filter((t) =>
+          offer.mentor.some((person) => person.locale === t.locale)
+        )}
+      />
+      <main className="public-article-shell" lang={locale}>
+        <nav
+          className="public-breadcrumbs"
+          aria-label={
+            locale === "en"
+              ? "Breadcrumbs"
+              : locale === "ru"
+              ? "Хлебные крошки"
+              : "Навигация"
+          }
+        >
+          <Link href={"/" + locale + "/mentorship"}>
+            {locale === "en"
+              ? "Mentorship"
+              : locale === "ru"
+              ? "Наставничество"
+              : "Тәлімгерлік"}
+          </Link>
+          <span>/</span>
+          <span>{translation.title}</span>
+        </nav>
+
+        <header className="public-article-header">
+          <p className="science-card-field">
+            {offer.field ? scientistTaxonomyName(offer.field, locale) : null}
+          </p>
+          <h1>{translation.title}</h1>
+          <p className="public-article-lead">{translation.summary}</p>
+        </header>
+
+        <div className="public-article-layout">
+          <div className="science-work-body">
+            <h2>
+              {locale === "en"
+                ? "About Mentorship"
+                : locale === "ru"
+                ? "О наставничестве"
+                : "Тәлімгерлік туралы"}
+            </h2>
+            <p>{translation.description}</p>
+            <ApplicationForm offerId={offer.id} locale={locale} />
+          </div>
+
+          <aside className="public-article-aside science-work-aside">
+            <section>
+              <h2>
+                {locale === "en"
+                  ? "Mentor"
+                  : locale === "ru"
+                  ? "Наставник"
+                  : "Тәлімгер"}
+              </h2>
+              {mentor ? (
+                <Link href={"/" + locale + "/scientists/" + mentor.slug}>
+                  {mentor.fullName}
+                </Link>
+              ) : (
+                <p>—</p>
+              )}
+            </section>
+            <section>
+              <h2>
+                {locale === "en"
+                  ? "Format"
+                  : locale === "ru"
+                  ? "Формат"
+                  : "Формат"}
+              </h2>
+              <p>{mentorshipFormatLabels[locale][offer.format]}</p>
+            </section>
+            <section>
+              <h2>
+                {locale === "en"
+                  ? "Participation"
+                  : locale === "ru"
+                  ? "Участие"
+                  : "Қатысу"}
+              </h2>
+              <p>
+                {locale === "en"
+                  ? `Up to ${offer.capacity} participants concurrently. Application is reviewed; submission does not guarantee admission.`
+                  : locale === "ru"
+                  ? `До ${offer.capacity} участников одновременно. Заявка проходит рассмотрение; отправка не гарантирует место.`
+                  : `Бір уақытта ${offer.capacity} қатысушыға дейін. Өтінім қарастырылады; жіберу орынға кепілдік бермейді.`}
+              </p>
+            </section>
+          </aside>
+        </div>
+
+        <div className="science-return">
+          <Link href={"/" + locale + "/mentorship"}>
+            {locale === "en"
+              ? "← All offers"
+              : locale === "ru"
+              ? "← Все предложения"
+              : "← Барлық ұсыныстар"}
+          </Link>
+        </div>
+      </main>
+    </>
+  );
 }

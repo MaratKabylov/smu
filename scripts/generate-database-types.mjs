@@ -146,11 +146,7 @@ async function main() {
       if (committed.replaceAll("\r\n", "\n") !== generated) throw new Error("Database types are stale. Run npm run db:types and commit the result.");
       console.log("Database types match all local migrations.");
     } else {
-      const temporary = new URL(`${target.href}.${process.pid}.tmp`);
-      try {
-        await writeFile(temporary, generated, "utf8");
-        await rename(temporary, target);
-      } finally { await rm(temporary, { force: true }); }
+      await writeFile(target, generated, "utf8");
       console.log("Generated src/types/database.types.ts from all local migrations.");
     }
   } finally { await db.close(); }

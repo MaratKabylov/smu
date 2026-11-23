@@ -77,7 +77,11 @@ checks as (
     const query = `${ctes}\nselect check_name,ok from checks order by ok,check_name;\n`;
     const verify = `-- Read-only schema verification for migration 035. Run the WHOLE file in SQL Editor.\n-- Every row must show ok=true. No application data or migration history is changed.\n-- Intended for the 035 schema, before subsequent schema-changing migrations.\n${query}`;
     const original = (await readFile(new URL("../supabase/migrations/035_support_requests.sql", import.meta.url), "utf8")).replaceAll("\r\n", "\n");
-    const ingress = "values('support-request-files','support-request-files',false,1048576,array['application/pdf']);";
+    const ingress = `values('support-request-files','support-request-files',false,1048576,array['application/pdf'])
+ on conflict(id) do update set
+  public=excluded.public,
+  file_size_limit=excluded.file_size_limit,
+  allowed_mime_types=excluded.allowed_mime_types;`;
     if (!original.includes(ingress)) throw new Error("035 bucket SQL changed; review recovery generation");
     const repeated = original.replaceAll("create table public.", "create table if not exists public.")
       .replaceAll("create index ", "create index if not exists ")
