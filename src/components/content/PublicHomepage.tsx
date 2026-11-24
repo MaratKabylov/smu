@@ -19,6 +19,8 @@ import type { Locale } from "@/lib/i18n/locales";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import { supportCopy } from "@/lib/i18n/support-request";
 import { PublicHeader } from "@/components/i18n/PublicHeader";
+import type { HomepageOpenDataPayload } from "@/types/domain/open-data";
+import { OpenDataHomepageBlock } from "@/components/open-data/OpenDataHomepageBlock";
 import styles from "./PublicHomepage.module.css";
 
 const copy = {
@@ -185,7 +187,7 @@ function GenericSection({ section, locale }: { section: Homepage["sections"][num
   </section>;
 }
 
-export function PublicHomepage({ data, locale }: { data: Homepage; locale: Locale }) {
+export function PublicHomepage({ data, openData = null, locale }: { data: Homepage; openData?: HomepageOpenDataPayload | null; locale: Locale }) {
   const text = copy[locale], fallback = homeCopy[locale];
   const byKey = new Map(data.sections.map(section => [section.key, section]));
   const hero = byKey.get("hero");
@@ -213,6 +215,8 @@ export function PublicHomepage({ data, locale }: { data: Homepage; locale: Local
       </section> : null}
 
       <section className={styles.section}><SectionHeading title={text.tasksTitle} href={`/${locale}/projects`} link={text.all} /><div className={styles.taskGrid}>{text.tasks.map((item, index) => { const Icon = taskIcons[index]; return <Link className={styles.taskCard} href={taskHrefs(locale)[index]} key={item[0]}><span className={styles.taskTop}><span className={styles.badge}>{index === 0 ? "Region" : index === 1 ? "Program" : "Community"}</span><Icon aria-hidden="true" /></span><strong>{item[0]}</strong><p>{item[1]}</p><span className={styles.cardLink}><MapPin aria-hidden="true" />{text.region}<ArrowRight aria-hidden="true" /></span></Link>; })}</div></section>
+
+      <OpenDataHomepageBlock data={openData} locale={locale} />
 
       <section className={styles.itBanner}><span className={styles.codeArt} aria-hidden="true"><Code2 /><i /><b /></span><div><h2>{text.itTitle}</h2><p>{text.itText}</p></div><Link href={`/${locale}/support/it_request`}>{text.itCta}<ArrowRight aria-hidden="true" /></Link></section>
 

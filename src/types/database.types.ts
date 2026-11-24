@@ -1226,6 +1226,233 @@ export type Database = {
           { foreignKeyName: "notifications_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
         ];
       };
+      "open_data_categories": {
+        Row: {
+          "id": string;
+          "slug": string;
+          "title_ru": string;
+          "title_kk": string;
+          "description_ru": string;
+          "description_kk": string;
+          "icon": string;
+          "dataset_count": number | null;
+          "status": "planned" | "collecting" | "processing" | "collected";
+          "sort_order": number;
+          "is_visible": boolean;
+          "show_on_homepage": boolean;
+          "created_at": string;
+          "updated_at": string;
+        };
+        Insert: {
+          "id"?: string;
+          "slug": string;
+          "title_ru": string;
+          "title_kk": string;
+          "description_ru"?: string;
+          "description_kk"?: string;
+          "icon"?: string;
+          "dataset_count"?: number | null;
+          "status"?: "planned" | "collecting" | "processing" | "collected";
+          "sort_order"?: number;
+          "is_visible"?: boolean;
+          "show_on_homepage"?: boolean;
+          "created_at"?: string;
+          "updated_at"?: string;
+        };
+        Update: {
+          "id"?: string;
+          "slug"?: string;
+          "title_ru"?: string;
+          "title_kk"?: string;
+          "description_ru"?: string;
+          "description_kk"?: string;
+          "icon"?: string;
+          "dataset_count"?: number | null;
+          "status"?: "planned" | "collecting" | "processing" | "collected";
+          "sort_order"?: number;
+          "is_visible"?: boolean;
+          "show_on_homepage"?: boolean;
+          "created_at"?: string;
+          "updated_at"?: string;
+        };
+        Relationships: [
+        ];
+      };
+      "open_data_metrics": {
+        Row: {
+          "id": string;
+          "code": string;
+          "title_ru": string;
+          "title_kk": string;
+          "value_numeric": number | null;
+          "value_text_ru": string | null;
+          "value_text_kk": string | null;
+          "unit_ru": string;
+          "unit_kk": string;
+          "icon": string;
+          "sort_order": number;
+          "is_visible": boolean;
+          "show_on_homepage": boolean;
+          "created_at": string;
+          "updated_at": string;
+        };
+        Insert: {
+          "id"?: string;
+          "code": string;
+          "title_ru": string;
+          "title_kk": string;
+          "value_numeric"?: number | null;
+          "value_text_ru"?: string | null;
+          "value_text_kk"?: string | null;
+          "unit_ru"?: string;
+          "unit_kk"?: string;
+          "icon"?: string;
+          "sort_order"?: number;
+          "is_visible"?: boolean;
+          "show_on_homepage"?: boolean;
+          "created_at"?: string;
+          "updated_at"?: string;
+        };
+        Update: {
+          "id"?: string;
+          "code"?: string;
+          "title_ru"?: string;
+          "title_kk"?: string;
+          "value_numeric"?: number | null;
+          "value_text_ru"?: string | null;
+          "value_text_kk"?: string | null;
+          "unit_ru"?: string;
+          "unit_kk"?: string;
+          "icon"?: string;
+          "sort_order"?: number;
+          "is_visible"?: boolean;
+          "show_on_homepage"?: boolean;
+          "created_at"?: string;
+          "updated_at"?: string;
+        };
+        Relationships: [
+        ];
+      };
+      "open_data_settings": {
+        Row: {
+          "id": string;
+          "title_ru": string;
+          "title_kk": string;
+          "subtitle_ru": string;
+          "subtitle_kk": string;
+          "short_description_ru": string;
+          "short_description_kk": string;
+          "description_ru": string;
+          "description_kk": string;
+          "status": string;
+          "status_text_ru": string;
+          "status_text_kk": string;
+          "collaboration_text_ru": string;
+          "collaboration_text_kk": string;
+          "is_published": boolean;
+          "show_on_homepage": boolean;
+          "data_updated_at": string;
+          "created_at": string;
+          "updated_at": string;
+        };
+        Insert: {
+          "id"?: string;
+          "title_ru"?: string;
+          "title_kk"?: string;
+          "subtitle_ru"?: string;
+          "subtitle_kk"?: string;
+          "short_description_ru"?: string;
+          "short_description_kk"?: string;
+          "description_ru"?: string;
+          "description_kk"?: string;
+          "status"?: string;
+          "status_text_ru"?: string;
+          "status_text_kk"?: string;
+          "collaboration_text_ru"?: string;
+          "collaboration_text_kk"?: string;
+          "is_published"?: boolean;
+          "show_on_homepage"?: boolean;
+          "data_updated_at"?: string;
+          "created_at"?: string;
+          "updated_at"?: string;
+        };
+        Update: {
+          "id"?: string;
+          "title_ru"?: string;
+          "title_kk"?: string;
+          "subtitle_ru"?: string;
+          "subtitle_kk"?: string;
+          "short_description_ru"?: string;
+          "short_description_kk"?: string;
+          "description_ru"?: string;
+          "description_kk"?: string;
+          "status"?: string;
+          "status_text_ru"?: string;
+          "status_text_kk"?: string;
+          "collaboration_text_ru"?: string;
+          "collaboration_text_kk"?: string;
+          "is_published"?: boolean;
+          "show_on_homepage"?: boolean;
+          "data_updated_at"?: string;
+          "created_at"?: string;
+          "updated_at"?: string;
+        };
+        Relationships: [
+        ];
+      };
+      "open_data_updates": {
+        Row: {
+          "id": string;
+          "category_id": string;
+          "title_ru": string;
+          "title_kk": string;
+          "description_ru": string;
+          "description_kk": string;
+          "source_name": string;
+          "source_url": string | null;
+          "period_start": string | null;
+          "period_end": string | null;
+          "received_at": string;
+          "is_published": boolean;
+          "created_at": string;
+          "updated_at": string;
+        };
+        Insert: {
+          "id"?: string;
+          "category_id": string;
+          "title_ru": string;
+          "title_kk": string;
+          "description_ru"?: string;
+          "description_kk"?: string;
+          "source_name": string;
+          "source_url"?: string | null;
+          "period_start"?: string | null;
+          "period_end"?: string | null;
+          "received_at"?: string;
+          "is_published"?: boolean;
+          "created_at"?: string;
+          "updated_at"?: string;
+        };
+        Update: {
+          "id"?: string;
+          "category_id"?: string;
+          "title_ru"?: string;
+          "title_kk"?: string;
+          "description_ru"?: string;
+          "description_kk"?: string;
+          "source_name"?: string;
+          "source_url"?: string | null;
+          "period_start"?: string | null;
+          "period_end"?: string | null;
+          "received_at"?: string;
+          "is_published"?: boolean;
+          "created_at"?: string;
+          "updated_at"?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "open_data_updates_category_id_fkey"; columns: ["category_id"]; isOneToOne: false; referencedRelation: "open_data_categories"; referencedColumns: ["id"] },
+        ];
+      };
       "opportunities": {
         Row: {
           "id": string;

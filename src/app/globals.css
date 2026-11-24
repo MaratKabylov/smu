@@ -7280,3 +7280,631 @@ body:has(.public-header),
 @media (prefers-reduced-motion: reduce) {
   .route-loading-spinner { animation: none; }
 }
+
+
+/* Open Data Aktobe */
+.opendata-home-block {
+  position: relative;
+  margin: 64px auto;
+  width: min(100% - 48px, 1240px);
+  padding: 48px;
+  background: linear-gradient(135deg, #ffffff 0%, #f4fafd 50%, #eaf5fa 100%);
+  border: 1px solid #d0e4ee;
+  border-radius: 24px;
+  box-shadow: 0 12px 36px rgba(7, 58, 107, 0.05);
+}
+
+@media (max-width: 768px) {
+  .opendata-home-block {
+    padding: 28px 20px;
+    margin: 40px auto;
+    width: min(100% - 32px, 1240px);
+  }
+}
+
+.opendata-home-header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.opendata-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.opendata-initiative-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: #0098b6;
+  color: #ffffff;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.opendata-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.opendata-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #0284c7;
+  animation: opendata-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes opendata-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .4; }
+}
+
+.opendata-home-title {
+  font-size: clamp(28px, 4vw, 38px);
+  font-weight: 800;
+  color: #073a6b;
+  margin: 0;
+  line-height: 1.15;
+}
+
+.opendata-home-subtitle {
+  font-size: clamp(17px, 2vw, 20px);
+  font-weight: 600;
+  color: #07558d;
+  margin: 0;
+}
+
+.opendata-home-description {
+  font-size: 16px;
+  line-height: 1.6;
+  color: #475569;
+  max-width: 850px;
+  margin: 0 0 32px;
+}
+
+.opendata-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+  margin-bottom: 36px;
+}
+
+.opendata-metric-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 4px 12px rgba(7, 58, 107, 0.03);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.opendata-metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(7, 58, 107, 0.06);
+}
+
+.opendata-metric-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #f0f9ff;
+  color: #0284c7;
+  display: grid;
+  place-items: center;
+}
+
+.opendata-metric-value {
+  font-size: clamp(24px, 3vw, 32px);
+  font-weight: 800;
+  color: #073a6b;
+  line-height: 1.1;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.opendata-metric-unit {
+  font-size: 15px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.opendata-metric-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #475569;
+  line-height: 1.35;
+}
+
+.opendata-fallback-notice {
+  padding: 18px 24px;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 14px;
+  color: #64748b;
+  font-size: 15px;
+  line-height: 1.5;
+  margin-bottom: 32px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.opendata-categories-section {
+  margin-bottom: 36px;
+}
+
+.opendata-categories-label {
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  margin-bottom: 14px;
+}
+
+.opendata-home-categories-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 12px;
+}
+
+.opendata-home-category-pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+}
+
+.opendata-home-category-icon {
+  color: #0098b6;
+  flex-shrink: 0;
+}
+
+.opendata-home-actions {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.opendata-cta-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 28px;
+  background: linear-gradient(135deg, #0871a7 0%, #043b72 100%);
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 12px;
+  text-decoration: none;
+  box-shadow: 0 8px 20px rgba(5, 72, 124, 0.2);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.opendata-cta-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 26px rgba(5, 72, 124, 0.28);
+}
+
+/* Page styles */
+.opendata-page {
+  min-height: 100vh;
+  background: #fbfdff;
+  color: #0a345d;
+}
+
+.opendata-hero {
+  position: relative;
+  background: radial-gradient(circle at 85% 30%, rgba(0, 152, 182, 0.12), transparent 45%),
+              linear-gradient(135deg, #ffffff 10%, #f4fafd 55%, #e8f5f9 100%);
+  border-bottom: 1px solid #e2edf2;
+  padding: 64px 0 54px;
+}
+
+.opendata-hero-inner {
+  width: min(100% - 48px, 1240px);
+  margin: 0 auto;
+}
+
+.opendata-hero-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.opendata-hero-title {
+  font-size: clamp(34px, 5vw, 52px);
+  font-weight: 900;
+  color: #073a6b;
+  line-height: 1.1;
+  margin: 0 0 12px;
+}
+
+.opendata-hero-subtitle {
+  font-size: clamp(19px, 2.5vw, 24px);
+  font-weight: 600;
+  color: #0098b6;
+  margin: 0 0 20px;
+}
+
+.opendata-hero-description {
+  font-size: 17px;
+  line-height: 1.7;
+  color: #334155;
+  max-width: 900px;
+  white-space: pre-line;
+  margin: 0 0 24px;
+}
+
+.opendata-hero-meta {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.opendata-content {
+  width: min(100% - 48px, 1240px);
+  margin: 0 auto;
+  padding: 56px 0 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 64px;
+}
+
+.opendata-section-header {
+  margin-bottom: 28px;
+}
+
+.opendata-section-title {
+  font-size: clamp(24px, 3vw, 30px);
+  font-weight: 800;
+  color: #073a6b;
+  margin: 0 0 8px;
+}
+
+.opendata-section-intro {
+  font-size: 16px;
+  color: #64748b;
+  margin: 0;
+  max-width: 720px;
+}
+
+.opendata-categories-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.opendata-category-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  box-shadow: 0 4px 12px rgba(7, 58, 107, 0.02);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.opendata-category-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(7, 58, 107, 0.06);
+}
+
+.opendata-category-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.opendata-category-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #f0f9ff;
+  color: #0284c7;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.opendata-category-status {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.opendata-status-collecting {
+  background: #e0f2fe;
+  color: #0284c7;
+}
+
+.opendata-status-collected {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.opendata-status-processing {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.opendata-status-planned {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.opendata-category-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 6px;
+}
+
+.opendata-category-desc {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #64748b;
+  margin: 0;
+}
+
+.opendata-category-footer {
+  padding-top: 14px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.opendata-category-stats-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.opendata-category-stats-count {
+  font-weight: 700;
+  color: #073a6b;
+}
+
+.opendata-indicator-track {
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  overflow: hidden;
+}
+
+.opendata-indicator-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #0098b6, #07558d);
+  transition: width 0.3s ease;
+}
+
+.opendata-updates-list {
+  display: grid;
+  gap: 16px;
+}
+
+.opendata-update-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 2px 8px rgba(7, 58, 107, 0.02);
+}
+
+.opendata-update-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.opendata-update-category {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0284c7;
+  background: #f0f9ff;
+  padding: 4px 10px;
+  border-radius: 8px;
+}
+
+.opendata-update-date {
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.opendata-update-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.opendata-update-desc {
+  font-size: 15px;
+  color: #475569;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.opendata-update-meta {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: #64748b;
+  padding-top: 10px;
+  border-top: 1px dashed #f1f5f9;
+}
+
+.opendata-goals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.opendata-goal-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  gap: 16px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+}
+
+.opendata-goal-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #eef8fa;
+  color: #0098b6;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.opendata-goal-card strong {
+  display: block;
+  font-size: 16px;
+  color: #073a6b;
+  margin-bottom: 4px;
+}
+
+.opendata-goal-card p {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.opendata-collab-box {
+  background: linear-gradient(135deg, #073a6b 0%, #06477d 60%, #007796 100%);
+  border-radius: 24px;
+  padding: 48px;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  box-shadow: 0 16px 40px rgba(7, 58, 107, 0.2);
+}
+
+@media (max-width: 768px) {
+  .opendata-collab-box {
+    padding: 32px 20px;
+  }
+}
+
+.opendata-collab-box h2 {
+  font-size: clamp(24px, 3.5vw, 34px);
+  font-weight: 800;
+  margin: 0;
+  color: #ffffff;
+}
+
+.opendata-collab-box p {
+  font-size: 16px;
+  line-height: 1.7;
+  color: #e0f2fe;
+  max-width: 800px;
+  white-space: pre-line;
+  margin: 0;
+}
+
+.opendata-collab-actions {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.opendata-btn-contribute {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 28px;
+  background: #0098b6;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 15px;
+  border-radius: 12px;
+  text-decoration: none;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.opendata-btn-contribute:hover {
+  background: #00b0d3;
+  transform: translateY(-2px);
+}
+
+.opendata-btn-request {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 28px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  font-weight: 600;
+  font-size: 15px;
+  border-radius: 12px;
+  text-decoration: none;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.opendata-btn-request:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}

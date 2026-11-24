@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { requireLocale, type LocaleParams } from "@/lib/i18n/server";
 import { locales, type PublicQuery } from "@/lib/i18n/locales";
 import { getPublicHomepage } from "@/server/services/homepage.service";
+import { getHomepageOpenData } from "@/server/services/open-data.service";
 import { getPublicSiteContent } from "@/server/services/site-content.service";
 import { PublicHomepage } from "@/components/content/PublicHomepage";
 import { homeCopy } from "@/lib/homepage";
@@ -16,5 +17,9 @@ export async function generateMetadata({ params }: { params: LocaleParams }): Pr
 
 export default async function Home({ params }: { params: LocaleParams; searchParams?: Promise<PublicQuery> }) {
   const locale = requireLocale((await params).locale);
-  return <PublicHomepage locale={locale} data={await getPublicHomepage(locale)} />;
+  const [data, openData] = await Promise.all([
+    getPublicHomepage(locale),
+    getHomepageOpenData(locale),
+  ]);
+  return <PublicHomepage locale={locale} data={data} openData={openData} />;
 }

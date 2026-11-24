@@ -34,11 +34,17 @@ describe("migration readiness", () => {
       page_count: number;
       section_count: number;
       super_admin_permissions: number;
+      open_data_settings: string | null;
+      open_data_metrics_count: number;
+      open_data_categories_count: number;
     }>(`
       select
         to_regprocedure('public.read_admin_dashboard()')::text dashboard,
         to_regclass('public.content_pages')::text pages,
         to_regclass('public.homepage_sections')::text sections,
+        to_regclass('public.open_data_settings')::text open_data_settings,
+        (select count(*)::int from public.open_data_metrics) open_data_metrics_count,
+        (select count(*)::int from public.open_data_categories) open_data_categories_count,
         (select count(*)::int from public.content_pages) page_count,
         (select count(*)::int from public.homepage_sections) section_count,
         (select count(*)::int from public.role_permissions rp
@@ -49,6 +55,9 @@ describe("migration readiness", () => {
       dashboard: "read_admin_dashboard()",
       pages: "content_pages",
       sections: "homepage_sections",
+      open_data_settings: "open_data_settings",
+      open_data_metrics_count: 7,
+      open_data_categories_count: 15,
       page_count: 9,
       section_count: 11,
     });

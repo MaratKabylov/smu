@@ -1,0 +1,88 @@
+import {
+  Activity,
+  Award,
+  BarChart3,
+  BookOpen,
+  Bug,
+  Building2,
+  Calendar,
+  CloudSun,
+  Database,
+  Droplets,
+  FileText,
+  Flame,
+  FlaskConical,
+  Folder,
+  Globe,
+  GraduationCap,
+  HardDrive,
+  HeartPulse,
+  Landmark,
+  Layers,
+  Leaf,
+  MapPin,
+  Mountain,
+  Sparkles,
+  Sprout,
+  TrendingUp,
+  Truck,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
+
+const icons: Record<string, LucideIcon> = {
+  database: Database,
+  layers: Layers,
+  "file-text": FileText,
+  filetext: FileText,
+  sparkles: Sparkles,
+  "hard-drive": HardDrive,
+  harddrive: HardDrive,
+  "map-pin": MapPin,
+  mappin: MapPin,
+  calendar: Calendar,
+  leaf: Leaf,
+  users: Users,
+  "cloud-sun": CloudSun,
+  cloudsun: CloudSun,
+  droplets: Droplets,
+  droplet: Droplets,
+  truck: Truck,
+  "trending-up": TrendingUp,
+  trendingup: TrendingUp,
+  mountain: Mountain,
+  "heart-pulse": HeartPulse,
+  heartpulse: HeartPulse,
+  "graduation-cap": GraduationCap,
+  graduationcap: GraduationCap,
+  sprout: Sprout,
+  bug: Bug,
+  flame: Flame,
+  "building-2": Building2,
+  building: Building2,
+  building2: Building2,
+  landmark: Landmark,
+  folder: Folder,
+  barchart: BarChart3,
+  "bar-chart": BarChart3,
+  globe: Globe,
+  activity: Activity,
+  award: Award,
+  bookopen: BookOpen,
+  "book-open": BookOpen,
+  flask: FlaskConical,
+};
+
+export function OpenDataIcon({
+  name,
+  className,
+  size = 20,
+}: {
+  name?: string;
+  className?: string;
+  size?: number;
+}) {
+  const normalized = (name ?? "").toLowerCase().trim();
+  const Icon = icons[normalized] ?? Database;
+  return <Icon className={className} size={size} aria-hidden="true" />;
+}

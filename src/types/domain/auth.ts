@@ -47,6 +47,7 @@ export const permissionCodes = [
   "content.manage",
   "audit.read",
   "audit.write",
+  "open_data.manage",
 ] as const;
 
 export type PermissionCode = (typeof permissionCodes)[number];

@@ -5,6 +5,7 @@ export default defineConfig({
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
       "next/font/google": fileURLToPath(new URL("./src/test/next-font-google.ts", import.meta.url)),
+      "server-only": fileURLToPath(new URL("./src/test/server-only.ts", import.meta.url)),
     },
   },
   test: { testTimeout: 15_000 },

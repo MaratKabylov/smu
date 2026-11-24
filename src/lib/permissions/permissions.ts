@@ -77,3 +77,6 @@ export const canManageUsers = (access: AccessContext) =>
 
 export const canManageSettings = (access: AccessContext) =>
   hasPermission(access, "settings.manage");
+
+export const canManageOpenData = (access: AccessContext) =>
+  hasPermission(access, "open_data.manage") || hasPermission(access, "admin.access");

@@ -6,6 +6,7 @@ import {
   CalendarDays,
   ChevronRight,
   CircleUserRound,
+  Database,
   FlaskConical,
   HandHeart,
   Images,
@@ -46,6 +47,7 @@ const navigation: AdminNavigationSection[] = [
       { label: "Проекты", href: "/admin/science/projects", icon: LayoutGrid },
       { label: "Научные публикации", href: "/admin/science/publications", icon: BookOpenText },
       { label: "Научные результаты", href: "/admin/science/results", icon: FlaskConical },
+      { label: "Open Data Aktobe", href: "/admin/science/open-data", icon: Database },
     ],
   },
   {
