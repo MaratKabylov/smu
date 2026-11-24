@@ -10,15 +10,15 @@ import {
   Lightbulb,
   Mail,
   MapPin,
-  Menu,
   Microscope,
   Send,
   Users,
 } from "lucide-react";
 import { homeCatalogs, homeCopy, type HomeCard, type Homepage } from "@/lib/homepage";
-import { locales, type Locale } from "@/lib/i18n/locales";
+import type { Locale } from "@/lib/i18n/locales";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import { supportCopy } from "@/lib/i18n/support-request";
+import { PublicHeader } from "@/components/i18n/PublicHeader";
 import styles from "./PublicHomepage.module.css";
 
 const copy = {
@@ -151,39 +151,6 @@ const actionHrefs = (locale: Locale) => [
 const taskIcons = [Microscope, Lightbulb, Handshake];
 const taskHrefs = (locale: Locale) => [`/${locale}/projects`, `/${locale}/research-program`, `/${locale}/mentorship`];
 
-function Brand({ locale, priority = false }: { locale: Locale; priority?: boolean }) {
-  const russian = locale === "ru";
-  return <span className={styles.brand}>
-    <Image
-      className={styles.brandLogo}
-      src={russian ? "/images/smu-logo-ru.png" : "/images/smu-logo-kk.png"}
-      width={1448}
-      height={1086}
-      sizes="(max-width: 820px) 190px, 225px"
-      alt={russian ? "Совет молодых учёных" : "Жас ғалымдар кеңесі"}
-      priority={priority}
-    />
-  </span>;
-}
-
-function HomeHeader({ locale, siteName }: { locale: Locale; siteName: string }) {
-  const text = copy[locale];
-  const links = [
-    [text.nav.scientists, `/${locale}/scientists`], [text.nav.research, `/${locale}/research`],
-    [text.nav.projects, `/${locale}/projects`], [text.nav.science, `/${locale}/support/it_request`],
-    [text.nav.opportunities, `/${locale}/opportunities`], [text.nav.about, `/${locale}/pages/about`],
-  ] as const;
-  return <header className={styles.header}><div className={styles.headerInner}>
-    <Link className={styles.brandLink} href={`/${locale}`} aria-label={siteName}><Brand locale={locale} priority /></Link>
-    <nav className={styles.desktopNav} aria-label={text.navigation}>{links.map(([label, href]) => <Link href={href} key={href}>{label}</Link>)}</nav>
-    <div className={styles.headerTools}>
-      <span className={styles.languages}>{locales.map(language => <Link key={language} href={`/${language}`} aria-current={language === locale ? "page" : undefined}>{language.toUpperCase()}</Link>)}</span>
-      <Link className={styles.headerCta} href={`/${locale}/support/research_proposal`}>{text.apply}</Link>
-      <details className={styles.mobileMenu}><summary aria-label={text.menu}><Menu aria-hidden="true" /></summary><div><nav aria-label={text.navigation}>{links.map(([label, href]) => <Link href={href} key={href}>{label}</Link>)}</nav></div></details>
-    </div>
-  </div></header>;
-}
-
 function HeroVisual() {
   return <div className={styles.heroVisual} aria-hidden="true">
     <Image
@@ -230,7 +197,7 @@ export function PublicHomepage({ data, locale }: { data: Homepage; locale: Local
   const supportLabels = supportCopy[locale].kinds;
   const dynamicActionTitles = [text.actions[0][0], supportLabels.research_proposal, supportLabels.it_request, text.actions[3][0]];
   return <div className={styles.site}>
-    <HomeHeader locale={locale} siteName={data.settings.site_name} />
+    <PublicHeader locale={locale} section="scientists" home siteName={data.settings.site_name} />
     <main>
       <section className={styles.hero} aria-labelledby="home-title"><div className={styles.heroInner}>
         <div className={styles.heroCopy}><p className={styles.eyebrow}>{getDictionary(locale).common.region}</p><h1 id="home-title">{hero?.title || text.heroTitle}</h1><p className={styles.heroIntro}>{text.heroIntro}</p>

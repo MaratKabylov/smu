@@ -21,6 +21,7 @@ it.each(["ru", "kk", "en"] as const)("renders a %s home with localized navigatio
   const html = renderToStaticMarkup(await Home({ params: Promise.resolve({ locale }) }));
   expect(mocks.home).toHaveBeenCalledWith(locale);
   expect(html).toContain(homeCopy[locale].empty); expect(html).toContain(homeCopy[locale].sections.results);
+  expect(html).toContain('class="journal-header public-header"');
   expect(html).toContain(`href="/${locale}/support/research_proposal"`); expect(html).toContain(`href="/${locale}/support/it_request"`);
   expect(html).toContain('href="/kk"'); expect(html).toContain('href="/en"');
   expect(html).toContain('>EN</a>');

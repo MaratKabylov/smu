@@ -8,19 +8,14 @@ import { LanguageSwitcher } from "./LanguageSwitcher";
 import { searchCopy } from "@/lib/search";
 import { accountCopy } from "@/lib/i18n/account";
 import { legacyCopy } from "@/lib/i18n/scientific-legacy";
-import { supportCopy } from "@/lib/i18n/support-request";
-import { homeCopy } from "@/lib/homepage";
 import type { PublicInformationPageKey } from "@/lib/i18n/site-navigation";
-import { PublicInformationMenu } from "./PublicInformationMenu";
-import { PublicInformationNavigation } from "./PublicInformationNavigation";
 
 const headerCopy = {
-  ru: { more: "Ещё", menu: "Открыть меню", apply: "Подать заявку" },
-  kk: { more: "Тағы", menu: "Мәзірді ашу", apply: "Өтінім беру" },
-  en: { more: "More", menu: "Open menu", apply: "Apply now" },
+  ru: { menu: "Открыть меню", apply: "Подать заявку", tasks: "Задачи региона", science: "IT for Science", about: "О Совете" },
+  kk: { menu: "Мәзірді ашу", apply: "Өтінім беру", tasks: "Өңір міндеттері", science: "IT for Science", about: "Кеңес туралы" },
+  en: { menu: "Open menu", apply: "Apply now", tasks: "Regional challenges", science: "IT for Science", about: "About the Council" },
 } as const;
 
-const primarySections = ["scientists", "research", "projects", "opportunities"] as const;
 const secondarySections = ["journal", "publications", "results", "mentorship", "research-program", "events"] as const;
 
 function Brand({ locale, label }: { locale: Locale; label: string }) {
@@ -40,11 +35,22 @@ function Brand({ locale, label }: { locale: Locale; label: string }) {
   </Link>;
 }
 
-function HeaderLinks({ locale, section, home, contentPage }: { locale: Locale; section: PublicSection; home: boolean; contentPage: boolean }) {
+function HeaderLinks({ locale, section, contentPage, informationPage }: {
+  locale: Locale;
+  section: PublicSection;
+  contentPage: boolean;
+  informationPage?: PublicInformationPageKey;
+}) {
   const copy = getDictionary(locale).common;
+  const text = headerCopy[locale];
+  const current = (item: PublicSection) => !contentPage && item === section ? "page" as const : undefined;
   return <>
-    <Link href={`/${locale}`} aria-current={home ? "page" : undefined}>{homeCopy[locale].home}</Link>
-    {primarySections.map(item => <Link key={item} href={localizedPath(locale, `/${item}`)} aria-current={!home && !contentPage && item === section ? "page" : undefined}>{copy.sections[item]}</Link>)}
+    <Link href={localizedPath(locale, "/scientists")} aria-current={current("scientists")}>{copy.sections.scientists}</Link>
+    <Link href={localizedPath(locale, "/research")} aria-current={current("research")}>{copy.sections.research}</Link>
+    <Link href={localizedPath(locale, "/projects")} aria-current={current("projects")}>{text.tasks}</Link>
+    <Link href={`/${locale}/support/it_request`}>{text.science}</Link>
+    <Link href={localizedPath(locale, "/opportunities")} aria-current={current("opportunities")}>{copy.sections.opportunities}</Link>
+    <Link href={`/${locale}/pages/about`} aria-current={informationPage ? "page" : undefined}>{text.about}</Link>
   </>;
 }
 
@@ -62,38 +68,25 @@ export function PublicHeader({ locale, section, translations, paths, home = fals
   return <header className="journal-header public-header"><div className="journal-header-inner">
     <Brand locale={locale} label={siteName ?? copy.footer} />
     <nav className="journal-nav public-primary-nav" aria-label={copy.navigation}>
-      <HeaderLinks locale={locale} section={section} home={home} contentPage={contentPage} />
-      <Suspense fallback={informationPage ? <PublicInformationMenu locale={locale} pages={[informationPage]} current={informationPage} /> : null}>
-        <PublicInformationNavigation locale={locale} current={informationPage} />
-      </Suspense>
+      <HeaderLinks locale={locale} section={section} contentPage={home || contentPage} informationPage={informationPage} />
     </nav>
     <div className="public-header-tools">
-      <details className="public-more-menu public-desktop-more">
-        <summary>{text.more}</summary>
-        <div>
-          {secondarySections.map(item => <Link key={item} href={localizedPath(locale, `/${item}`)} aria-current={!home && !contentPage && item === section ? "page" : undefined}>{copy.sections[item]}</Link>)}
-          {section === "mentorship" && <Link href={`/${locale}/mentorship/legacy`}>{legacyCopy[locale].title}</Link>}
-          <Link href={localizedPath(locale, "/search")}>{searchCopy[locale].find}</Link>
-          <Link href={localizedPath(locale, "/account")}>{accountCopy[locale].account}</Link>
-          <a href={localizedPath(locale, "/feed.xml")}>RSS</a>
-          <a href="/admin" target="_blank" rel="noreferrer">SMU Admin</a>
-        </div>
-      </details>
       <Suspense fallback={languageFallback}>
         <LanguageSwitcher locale={locale} section={section} paths={languagePaths} label={copy.language} />
       </Suspense>
-      <Link className="public-header-cta" href={`/${locale}/support`}>{text.apply}</Link>
+      <Link className="public-header-cta" href={`/${locale}/support/research_proposal`}>{text.apply}</Link>
       <details className="public-mobile-menu">
         <summary aria-label={text.menu}><Menu aria-hidden="true" /></summary>
         <nav aria-label={copy.navigation}>
           <div className="public-mobile-languages" aria-label={copy.language}>
             {locales.map(language => <Link key={language} href={languagePaths?.[language] ?? localizedPath(language, `/${section}`)} hrefLang={language} lang={language} aria-current={language === locale ? "page" : undefined}>{language === "ru" ? "RU" : language === "kk" ? "ҚАЗ" : "EN"}</Link>)}
           </div>
-          <HeaderLinks locale={locale} section={section} home={home} contentPage={contentPage} />
+          <HeaderLinks locale={locale} section={section} contentPage={home || contentPage} informationPage={informationPage} />
           {secondarySections.map(item => <Link key={item} href={localizedPath(locale, `/${item}`)} aria-current={!home && !contentPage && item === section ? "page" : undefined}>{copy.sections[item]}</Link>)}
+          {section === "mentorship" && <Link href={`/${locale}/mentorship/legacy`}>{legacyCopy[locale].title}</Link>}
           <Link href={localizedPath(locale, "/search")}>{searchCopy[locale].find}</Link>
           <Link href={localizedPath(locale, "/account")}>{accountCopy[locale].account}</Link>
-          <Link href={`/${locale}/support`}>{supportCopy[locale].title}</Link>
+          <Link href={`/${locale}/support/research_proposal`}>{text.apply}</Link>
         </nav>
       </details>
     </div>

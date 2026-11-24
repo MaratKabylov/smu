@@ -83,6 +83,11 @@ describe("localized public pages", () => {
   });
   it("uses translated detail slugs and preserves catalog filters in the language links", () => {
     const html = renderToStaticMarkup(<PublicHeader locale="ru" section="journal" translations={[{ locale: "ru", slug: "science" }, { locale: "kk", slug: "gylym" }]} />);
+    expect(html).toContain('href="/ru/scientists">Учёные</a>');
+    expect(html).toContain('href="/ru/projects">Задачи региона</a>');
+    expect(html).toContain('href="/ru/support/it_request">IT for Science</a>');
+    expect(html).toContain('href="/ru/pages/about">О Совете</a>');
+    expect(html).toContain('href="/ru/support/research_proposal"');
     expect(html).toContain('href="/kk/journal/gylym?q=science&amp;field=physics&amp;page=2"');
     expect(html).not.toContain('/kk/journal/science?');
     expect(renderToStaticMarkup(<PublicHeader locale="kk" section="scientists" />)).toContain('href="/ru/scientists?q=science&amp;field=physics&amp;page=2"');

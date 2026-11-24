@@ -1,8 +1,8 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ArrowLeft, LogOut, ShieldCheck } from "lucide-react";
+import { LogOut, ShieldCheck } from "lucide-react";
 import { AccountSidebarNav } from "@/components/account/AccountSidebarNav";
+import { PublicHeader } from "@/components/i18n/PublicHeader";
 import { accountCopy } from "@/lib/i18n/account";
 import { locales } from "@/lib/i18n/locales";
 import { requireLocale, type LocaleParams } from "@/lib/i18n/server";
@@ -22,15 +22,7 @@ export default async function AccountLayout({ children, params }: { children: Re
   }[locale];
 
   return <div className={`account-site ${allowed ? "is-authenticated" : "is-guest"}`}>
-    <header className="account-public-header">
-      <div className="account-public-header-inner">
-        <Link className="account-header-brand" href={`/${locale}`} aria-label={copy.home}>
-          <span className="account-logo-crop"><Image className="account-logo" src={locale === "ru" ? "/images/smu-logo-ru.png" : "/images/smu-logo-kk.png"} width={1448} height={1086} sizes="170px" alt="" priority /></span>
-        </Link>
-        <Link className="account-back-link" href={`/${locale}`}><ArrowLeft aria-hidden="true" />{copy.home}</Link>
-        <nav className="account-language-nav" aria-label={copy.languages}>{locales.map(language => <Link key={language} href={`/${language}/account`} hrefLang={language} aria-current={language === locale ? "page" : undefined}>{language.toUpperCase()}</Link>)}</nav>
-      </div>
-    </header>
+    <PublicHeader locale={locale} section="scientists" contentPage siteName={copy.home} paths={Object.fromEntries(locales.map(language => [language, `/${language}/account`]))} />
 
     {allowed ? <div className="account-portal">
       <aside className="account-sidebar">
