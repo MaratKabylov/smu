@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { LogOut, ShieldCheck } from "lucide-react";
 import { AccountSidebarNav } from "@/components/account/AccountSidebarNav";
-import { PublicHeader } from "@/components/i18n/PublicHeader";
+import { InlinePublicHeader } from "@/components/i18n/PublicHeader";
 import { accountCopy } from "@/lib/i18n/account";
 import { locales } from "@/lib/i18n/locales";
 import { requireLocale, type LocaleParams } from "@/lib/i18n/server";
@@ -22,7 +22,7 @@ export default async function AccountLayout({ children, params }: { children: Re
   }[locale];
 
   return <div className={`account-site ${allowed ? "is-authenticated" : "is-guest"}`}>
-    <PublicHeader locale={locale} section="scientists" contentPage siteName={copy.home} paths={Object.fromEntries(locales.map(language => [language, `/${language}/account`]))} />
+    <InlinePublicHeader locale={locale} section="scientists" contentPage siteName={copy.home} paths={Object.fromEntries(locales.map(language => [language, `/${language}/account`]))} />
 
     {allowed ? <div className="account-portal">
       <aside className="account-sidebar">

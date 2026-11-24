@@ -4,7 +4,7 @@ vi.mock("@/components/research-program/PublicProgramProjects", () => ({ PublicPr
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 const mocks = vi.hoisted(() => ({ articles: vi.fn(), scientists: vi.fn(), works: vi.fn(), events: vi.fn(), mentorship: vi.fn(), programs: vi.fn(), publications: vi.fn(), articleDetail: vi.fn(), scientistDetail: vi.fn(), articleRedirect: vi.fn(), scientistRedirect: vi.fn(), contentPaths: vi.fn() }));
-vi.mock("next/navigation", () => ({ notFound: () => { throw new Error("not_found"); }, redirect: (path: string) => { throw new Error(`redirect:${path}`); }, permanentRedirect: (path: string) => { throw new Error(`redirect:${path}`); }, useSearchParams: () => new URLSearchParams("q=science&field=physics&page=2") }));
+vi.mock("next/navigation", () => ({ notFound: () => { throw new Error("not_found"); }, redirect: (path: string) => { throw new Error(`redirect:${path}`); }, permanentRedirect: (path: string) => { throw new Error(`redirect:${path}`); }, usePathname: () => "/ru/journal", useSearchParams: () => new URLSearchParams("q=science&field=physics&page=2") }));
 vi.mock("@/server/services/public-article.service", () => ({ getPublishedArticleBySlug: mocks.articleDetail, PublicArticleService: class { listPage = mocks.articles; getSlugRedirect = mocks.articleRedirect; } }));
 vi.mock("@/server/services/scientist.service", () => ({ getPublicScientistBySlug: mocks.scientistDetail, PublicScientistService: class { listPage = mocks.scientists; getSlugRedirect = mocks.scientistRedirect; } }));
 vi.mock("@/server/services/science-work.service", () => ({ PublicScienceWorkService: class { listPage = mocks.works; } }));

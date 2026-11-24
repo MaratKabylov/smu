@@ -6,6 +6,7 @@ import type { Metadata } from "next";
 import { requireLocale, type LocaleParams } from "@/lib/i18n/server";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import { locales } from "@/lib/i18n/locales";
+import { PersistentPublicHeaderProvider } from "@/components/i18n/PublicHeader";
 import "../globals.css";
 
 const inter = Inter({
@@ -30,5 +31,5 @@ export function generateStaticParams() {
 
 export default async function PublicLayout({ children, params }: { children: React.ReactNode; params: LocaleParams }) {
   const locale = requireLocale((await params).locale);
-  return <html lang={locale}><body className={inter.className}><JsonLd data={organizationJsonLd(locale)} />{children}</body></html>;
+  return <html lang={locale}><body className={inter.className}><JsonLd data={organizationJsonLd(locale)} /><PersistentPublicHeaderProvider locale={locale}>{children}</PersistentPublicHeaderProvider></body></html>;
 }

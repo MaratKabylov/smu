@@ -1,14 +1,17 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
-import { Suspense } from "react";
+import { Suspense, createContext, useContext, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { Menu } from "lucide-react";
 import { getDictionary } from "@/lib/i18n/dictionaries";
-import { localizedPath, locales, translationPaths, type Locale, type PublicSection } from "@/lib/i18n/locales";
+import { localizedPath, locales, publicSections, translationPaths, type Locale, type PublicSection } from "@/lib/i18n/locales";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { searchCopy } from "@/lib/search";
 import { accountCopy } from "@/lib/i18n/account";
 import { legacyCopy } from "@/lib/i18n/scientific-legacy";
-import type { PublicInformationPageKey } from "@/lib/i18n/site-navigation";
+import { publicInformationPageKeys, type PublicInformationPageKey } from "@/lib/i18n/site-navigation";
 
 const headerCopy = {
   ru: { menu: "Открыть меню", apply: "Подать заявку", tasks: "Задачи региона", science: "IT for Science", about: "О Совете" },
@@ -17,6 +20,43 @@ const headerCopy = {
 } as const;
 
 const secondarySections = ["journal", "publications", "results", "mentorship", "research-program", "events"] as const;
+
+export type PublicHeaderProps = {
+  locale: Locale;
+  section: PublicSection;
+  translations?: readonly { locale: Locale; slug: string }[];
+  paths?: Partial<Record<Locale, string>>;
+  home?: boolean;
+  contentPage?: boolean;
+  siteName?: string;
+  informationPage?: PublicInformationPageKey;
+};
+
+type RegisteredHeader = {
+  id: symbol;
+  pathname: string;
+  props: PublicHeaderProps;
+};
+
+type PublicHeaderController = {
+  register: (header: RegisteredHeader) => void;
+  unregister: (id: symbol) => void;
+};
+
+const PublicHeaderContext = createContext<PublicHeaderController | null>(null);
+
+function inferredHeaderProps(locale: Locale, pathname: string): PublicHeaderProps | null {
+  const segments = pathname.split("/").filter(Boolean);
+  const first = segments[1];
+  if (first === "account") return null;
+  if (!first) return { locale, section: "scientists", home: true };
+  if (first === "pages") {
+    const informationPage = publicInformationPageKeys.find(key => key === segments[2]);
+    return { locale, section: "journal", contentPage: true, informationPage };
+  }
+  const section = publicSections.find(item => item === first) ?? "journal";
+  return { locale, section };
+}
 
 function Brand({ locale, label }: { locale: Locale; label: string }) {
   const russian = locale === "ru";
@@ -54,12 +94,7 @@ function HeaderLinks({ locale, section, contentPage, informationPage }: {
   </>;
 }
 
-export function PublicHeader({ locale, section, translations, paths, home = false, contentPage = false, siteName, informationPage }: {
-  locale: Locale; section: PublicSection; translations?: readonly { locale: Locale; slug: string }[];
-  paths?: Partial<Record<Locale, string>>;
-  home?: boolean; contentPage?: boolean; siteName?: string;
-  informationPage?: PublicInformationPageKey;
-}) {
+function PublicHeaderView({ locale, section, translations, paths, home = false, contentPage = false, siteName, informationPage }: PublicHeaderProps) {
   const copy = getDictionary(locale).common;
   const text = headerCopy[locale];
   const languagePaths = paths ?? (home ? Object.fromEntries(locales.map(language => [language, `/${language}`])) : translations ? translationPaths(section, translations) : undefined);
@@ -91,4 +126,43 @@ export function PublicHeader({ locale, section, translations, paths, home = fals
       </details>
     </div>
   </div></header>;
+}
+
+function PublicHeaderRegistration(props: PublicHeaderProps) {
+  const controller = useContext(PublicHeaderContext)!;
+  const pathname = usePathname();
+  const id = useRef(Symbol("public-header"));
+
+  useLayoutEffect(() => {
+    const registrationId = id.current;
+    controller.register({ id: registrationId, pathname, props });
+    return () => controller.unregister(registrationId);
+  }, [controller, pathname, props]);
+
+  return null;
+}
+
+export function PublicHeader(props: PublicHeaderProps) {
+  const controller = useContext(PublicHeaderContext);
+  return controller ? <PublicHeaderRegistration {...props} /> : <PublicHeaderView {...props} />;
+}
+
+export function InlinePublicHeader(props: PublicHeaderProps) {
+  return <PublicHeaderView {...props} />;
+}
+
+export function PersistentPublicHeaderProvider({ locale, children }: { locale: Locale; children: React.ReactNode }) {
+  const pathname = usePathname();
+  const [registered, setRegistered] = useState<RegisteredHeader | null>(null);
+  const controller = useMemo<PublicHeaderController>(() => ({
+    register: setRegistered,
+    unregister: id => setRegistered(current => current?.id === id ? null : current),
+  }), []);
+  const inferred = inferredHeaderProps(locale, pathname);
+  const active = inferred && registered?.pathname === pathname ? registered.props : inferred;
+
+  return <PublicHeaderContext.Provider value={controller}>
+    {active ? <PublicHeaderView {...active} /> : null}
+    {children}
+  </PublicHeaderContext.Provider>;
 }
