@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "plesk:install": "\"$npm_node_execpath\" \"$npm_execpath\" ci --ignore-scripts",
+    "plesk:build": "\"$npm_node_execpath\" node_modules/next/dist/bin/next build",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
