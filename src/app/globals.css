@@ -4,7 +4,7 @@
   --ink: #17231f;
   --muted: #65716c;
   --line: #dfe5e1;
-  --paper: #f4f6f3;
+  --paper: #f8fbfd;
   --surface: #ffffff;
   --forest: #123d30;
   --forest-bright: #1f644c;
@@ -1809,7 +1809,7 @@ th {
 }
 
 .scientist-profile-page {
-  background: #f7f6f0;
+  background: #f8fbfd;
 }
 
 .scientist-profile-shell {
@@ -4154,14 +4154,14 @@ details[open].wp-sidebar-card > .wp-sidebar-card-header {
 /* Public journal */
 .journal-site {
   min-height: 100vh;
-  background: #f7f6f0;
+  background: #f8fbfd;
 }
 
 .journal-header {
   position: relative;
   z-index: 20;
-  border-bottom: 1px solid rgb(18 61 48 / 12%);
-  background: rgb(250 249 244 / 94%);
+  border-bottom: 1px solid rgb(7 58 107 / 8%);
+  background: rgb(255 255 255 / 96%);
   backdrop-filter: blur(14px);
 }
 
@@ -4604,7 +4604,7 @@ details[open].wp-sidebar-card > .wp-sidebar-card-header {
 }
 
 .public-article-page {
-  background: #f7f6f0;
+  background: #f8fbfd;
 }
 
 .public-article-shell {
@@ -5281,7 +5281,7 @@ fieldset.article-editor-panel { min-width: 0; }
 .content-page-meta p { margin: 12px 0; }
 .content-social-links { display: grid; gap: 18px; }
 .content-social-link { display: grid; grid-template-columns: minmax(80px, .5fr) 1fr 2fr; gap: 12px; align-items: center; }
-.information-page { min-height: 100vh; background: #fafbf8; }
+.information-page { min-height: 100vh; background: #f8fbfd; }
 .information-footer { padding: 24px max(24px, calc((100vw - 1100px) / 2)); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 20px; border-top: 1px solid #dfe5df; }
 .information-main { max-width: 900px; margin: auto; padding: 64px 24px; }
 .information-main h1 { font-size: clamp(32px, 5vw, 60px); line-height: 1.1; margin: 16px 0 24px; overflow-wrap: anywhere; }
@@ -5294,11 +5294,13 @@ fieldset.article-editor-panel { min-width: 0; }
 @media (max-width: 640px) { .information-main { padding-top: 32px; } .information-landing .information-main > header { padding: 20px; } .content-social-link { grid-template-columns: 1fr; } }
 
 /* Unified public site — follows the visual language of the homepage. */
-body:has(.public-header) {
+body:has(.public-header),
+.journal-site {
   background: #f8fbfd;
 }
 
-.public-header + main {
+.public-header + main,
+.journal-site > main {
   background: #f8fbfd;
 }
 
