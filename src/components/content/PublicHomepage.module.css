@@ -83,13 +83,13 @@
 .sectionHeading > a svg { width: 18px; transition: transform .2s ease; }
 .sectionHeading > a:hover svg { transform: translateX(4px); }
 
-.actionGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
-.actionCard { display: flex; min-height: 220px; flex-direction: column; border: 1px solid #dce9ee; border-radius: 12px; background: #fff; padding: 26px; box-shadow: 0 8px 24px rgb(13 66 105 / 7%); color: var(--home-text); transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease; }
-.actionCard:hover { border-color: #83ccda; box-shadow: 0 16px 34px rgb(13 84 119 / 12%); transform: translateY(-4px); }
-.actionCard > svg:first-child { width: 35px; height: 35px; margin-bottom: 22px; color: #0392ad; stroke-width: 1.7; }
-.actionCard strong { font-size: 17px; }
-.actionCard p { flex: 1; margin: 11px 0 20px; color: var(--home-muted); font-size: 12px; line-height: 1.6; }
-.actionCard > svg:last-child { width: 20px; color: #075b8b; }
+.actionGrid, .opportunityGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
+.actionCard, .opportunityCard { display: flex; min-height: 220px; flex-direction: column; border: 1px solid #dce9ee; border-radius: 12px; background: #fff; padding: 26px; box-shadow: 0 8px 24px rgb(13 66 105 / 7%); color: var(--home-text); transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease; }
+.actionCard:hover, .opportunityCard:hover { border-color: #83ccda; box-shadow: 0 16px 34px rgb(13 84 119 / 12%); transform: translateY(-4px); }
+.actionCard > svg:first-child, .opportunityCard > svg:first-child { width: 35px; height: 35px; margin-bottom: 22px; color: #0392ad; stroke-width: 1.7; }
+.actionCard strong, .opportunityCard strong { font-size: 17px; }
+.actionCard p, .opportunityCard p { flex: 1; margin: 11px 0 20px; color: var(--home-muted); font-size: 12px; line-height: 1.6; }
+.actionCard > svg:last-child, .opportunityCard > svg:last-child { width: 20px; color: #075b8b; }
 
 .researchGrid, .taskGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 19px; }
 .researchCard { overflow: hidden; border: 1px solid #dce8ed; border-radius: 12px; background: #fff; box-shadow: 0 8px 22px rgb(13 66 105 / 6%); color: var(--home-text); transition: transform .2s ease, box-shadow .2s ease; }
@@ -137,14 +137,6 @@
 .itBanner > a { display: inline-flex; position: relative; z-index: 1; min-height: 54px; align-items: center; gap: 30px; border-radius: 9px; background: linear-gradient(135deg, #e8b33b, #d59613); padding: 0 28px; box-shadow: 0 8px 20px rgb(69 53 8 / 20%); color: #fff; font-size: 14px; font-weight: 650; }
 .itBanner > a svg { width: 22px; }
 
-.opportunityGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
-.opportunityCard { display: flex; min-height: 160px; gap: 15px; border: 1px solid #dce8ed; border-radius: 12px; background: #fff; padding: 22px; color: var(--home-text); box-shadow: 0 7px 19px rgb(13 66 105 / 5%); }
-.opportunityCard > svg { flex: 0 0 auto; width: 31px; color: #d69b21; stroke-width: 1.7; }
-.opportunityCard > span { display: flex; flex-direction: column; }
-.opportunityCard strong { font-size: 15px; }
-.opportunityCard p { margin: 8px 0 14px; color: var(--home-muted); font-size: 11px; line-height: 1.55; }
-.opportunityCard small { display: inline-flex; align-items: center; gap: 8px; margin-top: auto; color: #078ba7; font-size: 11px; font-weight: 600; }
-.opportunityCard small svg { width: 14px; }
 
 .secondarySection { padding-top: 46px; }
 .compactGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }

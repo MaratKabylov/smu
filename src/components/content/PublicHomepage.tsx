@@ -5,13 +5,17 @@ import {
   Award,
   BriefcaseBusiness,
   Code2,
+  Coins,
   FlaskConical,
+  GraduationCap,
   Handshake,
   Lightbulb,
   Mail,
   MapPin,
+  Mic,
   Microscope,
   Send,
+  Trophy,
   Users,
 } from "lucide-react";
 import { homeCatalogs, homeCopy, type HomeCard, type Homepage } from "@/lib/homepage";
@@ -53,6 +57,14 @@ const copy = {
     itTitle: "IT for Science",
     itText: "Бесплатно помогаем учёным создавать цифровые инструменты для исследований.",
     itCta: "Рассказать о задаче",
+    opportunitiesTitle: "Возможности для ученых",
+    opportunities: [
+      ["Гранты", "Актуальные грантовые программы для ваших идей и проектов."],
+      ["Конференции", "Участие в научных конференциях и мероприятиях."],
+      ["Конкурсы", "Конкурсы и премии для ученых и исследовательских команд."],
+      ["Стажировки", "Стажировки в ведущих научных и IT-организациях."],
+    ],
+    more: "Подробнее",
     all: "Все материалы",
     footerText: "Объединяем учёных, данные и технологии для решения задач и развития Актюбинской области.",
     footerNav: "Навигация",
@@ -92,6 +104,14 @@ const copy = {
     itTitle: "IT for Science",
     itText: "Ғалымдарға зерттеуге арналған цифрлық құралдарды тегін жасауға көмектесеміз.",
     itCta: "Міндет туралы айту",
+    opportunitiesTitle: "Ғалымдарға арналған мүмкіндіктер",
+    opportunities: [
+      ["Гранттар", "Идеялар мен жобаларыңызға арналған өзекті гранттық бағдарламалар."],
+      ["Конференциялар", "Ғылыми конференциялар мен іс-шараларға қатысу."],
+      ["Байқаулар", "Ғалымдар мен зерттеу топтарына арналған байқаулар мен сыйлықтар."],
+      ["Тағылымдамалар", "Жетекші ғылыми және IT-ұйымдардағы тағылымдамалар."],
+    ],
+    more: "Толығырақ",
     all: "Барлық материалдар",
     footerText: "Ақтөбе облысының міндеттерін шешу және дамыту үшін ғалымдарды, деректер мен технологияларды біріктіреміз.",
     footerNav: "Навигация",
@@ -131,6 +151,14 @@ const copy = {
     itTitle: "IT for Science",
     itText: "We help scientists build digital research tools free of charge.",
     itCta: "Tell us about a challenge",
+    opportunitiesTitle: "Opportunities for scientists",
+    opportunities: [
+      ["Grants", "Current grant programs for your ideas and projects."],
+      ["Conferences", "Participation in scientific conferences and events."],
+      ["Competitions", "Competitions and awards for scientists and research teams."],
+      ["Internships", "Internships at leading scientific and IT organizations."],
+    ],
+    more: "Learn more",
     all: "All materials",
     footerText: "Connecting scientists, data, and technology to solve challenges and advance the Aktobe Region.",
     footerNav: "Navigation",
@@ -150,6 +178,8 @@ const actionHrefs = (locale: Locale) => [
   `/${locale}/support/it_request`,
   `/${locale}/opportunities?type=grant`,
 ];
+const opportunityIcons = [Coins, Mic, Trophy, GraduationCap];
+const opportunityTypes = ["grant", "conference", "competition", "internship"] as const;
 const taskIcons = [Microscope, Lightbulb, Handshake];
 const taskHrefs = (locale: Locale) => [`/${locale}/projects`, `/${locale}/research-program`, `/${locale}/mentorship`];
 
@@ -195,7 +225,8 @@ export function PublicHomepage({ data, openData = null, locale }: { data: Homepa
   const support = byKey.get("scientist_support");
   const noConfiguredSections = data.sections.length === 0;
   const actionLimit = support?.display_limit ?? 4;
-  const additional = data.sections.filter(section => !["hero", "featured_research", "scientist_support", "research_program", "mentorship"].includes(section.key));
+  const opportunities = byKey.get("opportunities");
+  const additional = data.sections.filter(section => !["hero", "featured_research", "scientist_support", "research_program", "mentorship", "opportunities"].includes(section.key));
   const supportLabels = supportCopy[locale].kinds;
   const dynamicActionTitles = [text.actions[0][0], supportLabels.research_proposal, supportLabels.it_request, text.actions[3][0]];
   return <div className={styles.site}>
@@ -220,6 +251,45 @@ export function PublicHomepage({ data, openData = null, locale }: { data: Homepa
 
       <section className={styles.itBanner}><span className={styles.codeArt} aria-hidden="true"><Code2 /><i /><b /></span><div><h2>{text.itTitle}</h2><p>{text.itText}</p></div><Link href={`/${locale}/support/it_request`}>{text.itCta}<ArrowRight aria-hidden="true" /></Link></section>
 
+      {(opportunities || noConfiguredSections) ? (
+        <section className={styles.section} aria-labelledby="home-opportunities">
+          <SectionHeading
+            id="home-opportunities"
+            title={opportunities?.title || text.opportunitiesTitle}
+            href={`/${locale}/opportunities`}
+            link={text.all}
+          />
+          <div className={styles.opportunityGrid}>
+            {text.opportunities.map((item, index) => {
+              const Icon = opportunityIcons[index];
+              return (
+                <Link
+                  className={styles.opportunityCard}
+                  href={`/${locale}/opportunities?type=${opportunityTypes[index]}`}
+                  key={item[0]}
+                >
+                  <Icon aria-hidden="true" />
+                  <strong>{item[0]}</strong>
+                  <p>{item[1]}</p>
+                  <ArrowRight aria-hidden="true" />
+                </Link>
+              );
+            })}
+          </div>
+          {opportunities && opportunities.items.length > 0 ? (
+            <div className={styles.compactGrid} style={{ marginTop: 24 }}>
+              {opportunities.items.map(item => (
+                <Link className={styles.compactCard} href={item.href} key={item.id}>
+                  <span><BriefcaseBusiness aria-hidden="true" /></span>
+                  <strong>{item.title}</strong>
+                  {item.summary ? <p>{item.summary}</p> : null}
+                  <ArrowRight aria-hidden="true" />
+                </Link>
+              ))}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
 
       {additional.map(section => <GenericSection section={section} locale={locale} key={section.key} />)}
     </main>
