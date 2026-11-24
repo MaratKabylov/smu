@@ -50,3 +50,24 @@ export const supportCopy: Record<Locale, SupportCopy> = {
     fields: { importance: "Significance and expected benefit", region: "Research region", availableData: "Available data", currentProcess: "Current process", desiredSolution: "Desired IT solution", dataDescription: "Data and access restrictions", journal: "Journal or publication field", manuscriptStage: "Manuscript preparation stage", supportNeeded: "Support needed" },
   },
 };
+
+export const supportAdminMeta: Record<
+  "research_proposal" | "it_request" | "publication_support",
+  { title: string; kicker: string; description: string }
+> = {
+  research_proposal: {
+    title: "Предложения исследований",
+    kicker: "Научные инициативы",
+    description: "Инициативы, темы и запросы на проведение исследований от учёных и организаций региона.",
+  },
+  it_request: {
+    title: "IT-заявки",
+    kicker: "Цифровизация науки",
+    description: "Запросы на разработку, автоматизацию процессов, базы данных и цифровую поддержку.",
+  },
+  publication_support: {
+    title: "Поддержка публикаций",
+    kicker: "Научные публикации",
+    description: "Заявки на финансирование, редакционную помощь и сопровождение публикаций в рецензируемых изданиях.",
+  },
+};
