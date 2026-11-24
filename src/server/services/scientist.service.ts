@@ -142,9 +142,11 @@ export class PublicScientistService {
   async listPage(filters: PublicScientistFilters, page = 1) {
     if (!isSupabaseConfigured()) return { scientists: [], taxonomy: emptyTaxonomy, pagination: emptySearchPage(page) };
     const client = createPublicSupabaseClient();
-    const pagination = await new SearchRepository(client).publicPage(filters.locale, filters.query, "scientists", { organization: filters.organization, field: filters.field }, page);
     const repository = new PublicScientistRepository(client);
-    const taxonomy = await repository.listTaxonomy();
+    const [pagination, taxonomy] = await Promise.all([
+      new SearchRepository(client).publicPage(filters.locale, filters.query, "scientists", { organization: filters.organization, field: filters.field }, page),
+      repository.listTaxonomy(),
+    ]);
     const scientists = await repository.list({ ...filters, query: "", organization: "", field: "" }, taxonomy, pagination.items.map(item => item.id));
     return { scientists: orderBySearch(scientists, pagination), taxonomy, pagination };
   }

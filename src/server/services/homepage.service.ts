@@ -1,6 +1,8 @@
 import "server-only";
 import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import { createPublicSupabaseClient } from "@/lib/supabase/public";
+import { publicCacheSeconds, publicContentTag } from "@/lib/supabase/public-cache";
 import { getPublicSiteContent } from "@/server/services/site-content.service";
 import { SearchRepository } from "@/server/repositories/search.repository";
 import { HomepageRepository } from "@/server/repositories/homepage.repository";
@@ -8,7 +10,7 @@ import { homeCatalogs, type Homepage, type HomeCard } from "@/lib/homepage";
 import type { Locale } from "@/lib/i18n/locales";
 import { isSupabaseConfigured } from "@/lib/env";
 
-export const getPublicHomepage = cache(async (locale: Locale): Promise<Homepage> => {
+async function loadPublicHomepage(locale: Locale): Promise<Homepage> {
   const content = await getPublicSiteContent(locale);
   if (!isSupabaseConfigured()) return { settings: content.settings, sections: [], stats: { scientists: 0, researchProjects: 0, partners: 0 } };
   const client = createPublicSupabaseClient();
@@ -31,4 +33,12 @@ export const getPublicHomepage = cache(async (locale: Locale): Promise<Homepage>
     return { ...section, items };
   }))]);
   return { settings: content.settings, sections, stats };
-});
+}
+
+const getCachedPublicHomepage = unstable_cache(
+  loadPublicHomepage,
+  ["public-homepage"],
+  { revalidate: publicCacheSeconds, tags: [publicContentTag] },
+);
+
+export const getPublicHomepage = cache(getCachedPublicHomepage);

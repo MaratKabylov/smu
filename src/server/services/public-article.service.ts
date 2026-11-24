@@ -16,9 +16,11 @@ export class PublicArticleService {
   async listPage(filters: PublicArticleFilters, page = 1) {
     if (!isSupabaseConfigured()) return { articles: [], taxonomy: emptyTaxonomy, pagination: emptySearchPage(page) };
     const client = createPublicSupabaseClient();
-    const pagination = await new SearchRepository(client).publicPage(filters.locale, filters.query, "journal", { category: filters.category, tag: filters.tag }, page);
     const repository = new PublicArticleRepository(client);
-    const taxonomy = await repository.listTaxonomy();
+    const [pagination, taxonomy] = await Promise.all([
+      new SearchRepository(client).publicPage(filters.locale, filters.query, "journal", { category: filters.category, tag: filters.tag }, page),
+      repository.listTaxonomy(),
+    ]);
     const articles = await repository.list({ ...filters, query: "", category: "", tag: "" }, taxonomy, pagination.items.map(item => item.id));
     return { articles: orderBySearch(articles, pagination), taxonomy, pagination };
   }

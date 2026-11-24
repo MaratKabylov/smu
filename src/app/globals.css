@@ -7245,3 +7245,36 @@ body:has(.public-header) {
   font-style: italic;
   padding: 8px 4px;
 }
+.route-loading {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+  background: #f7f8f6;
+  color: #26342d;
+}
+
+.route-loading-inner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.route-loading-spinner {
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid rgb(38 52 45 / 20%);
+  border-top-color: #26342d;
+  border-radius: 50%;
+  animation: route-loading-spin 700ms linear infinite;
+}
+
+@keyframes route-loading-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .route-loading-spinner { animation: none; }
+}

@@ -33,7 +33,7 @@ describe("anonymous public Supabase cache", () => {
   it("keeps locale, filters, pagination and projections in GET cache keys", async () => {
     const url = origin + "/rest/v1/article_translations?locale=eq.en&slug=eq.water&select=title";
     await publicFetch(new URL(url), { headers: anonymous });
-    expect(mocks.fetch).toHaveBeenCalledWith(new URL(url), expect.objectContaining({ cache: "force-cache", next: { revalidate: 60, tags: [publicContentTag] } }));
+    expect(mocks.fetch).toHaveBeenCalledWith(new URL(url), expect.objectContaining({ cache: "force-cache", next: { revalidate: publicCacheSeconds, tags: [publicContentTag] } }));
   });
   it.each([
     ["/rest/v1/articles", "POST", anonymous],

@@ -1,6 +1,7 @@
 import { beforeEach, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 vi.mock("react", () => ({ cache: (fn: unknown) => fn }));
+vi.mock("next/cache", () => ({ unstable_cache: (fn: unknown) => fn }));
 const mocks = vi.hoisted(() => ({ content: vi.fn(), publicClient: vi.fn(), session: vi.fn(), configured: vi.fn(), search: vi.fn(), results: vi.fn(), events: vi.fn(), metrics: vi.fn() }));
 vi.mock("@/lib/supabase/public", () => ({ createPublicSupabaseClient: mocks.publicClient }));
 vi.mock("@/lib/supabase/server", () => ({ createServerSupabaseClient: mocks.session }));

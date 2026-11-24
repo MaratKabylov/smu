@@ -1,7 +1,7 @@
 // One dependency tag covers the connected public graph. A scientist change can
 // also hide publications, programmes, article links and SEO URLs.
 export const publicContentTag = "smu:public-content:v1";
-export const publicCacheSeconds = 60;
+export const publicCacheSeconds = 300;
 
 const publicReadRpcs = new Set([
   "search_public", "seo_public_page", "seo_public_feed",
