@@ -193,33 +193,100 @@ describe("OpenData Components", () => {
   });
 
   it("renders admin panel tabs and content", () => {
+    const settings = {
+      id: "00000000-0000-4000-a000-000000000901",
+      title_ru: "Open Data Aktobe",
+      title_kk: "Open Data Aktobe",
+      subtitle_ru: "Данные сегодня — открытия завтра.",
+      subtitle_kk: "Бүгінгі деректер — ертеңгі жаңалықтар.",
+      short_description_ru: "Коротко RU",
+      short_description_kk: "Коротко KZ",
+      description_ru: "Описание RU",
+      description_kk: "Описание KZ",
+      status: "collecting",
+      status_text_ru: "Статус RU",
+      status_text_kk: "Статус KZ",
+      collaboration_text_ru: "Сотрудничество RU",
+      collaboration_text_kk: "Сотрудничество KZ",
+      is_published: true,
+      show_on_homepage: true,
+      data_updated_at: "2026-11-24",
+      created_at: "2026-11-24T00:00:00Z",
+      updated_at: "2026-11-24T00:00:00Z",
+    };
+
+    const metrics = [
+      {
+        id: "00000000-0000-4000-a000-000000000101",
+        code: "datasets_count",
+        title_ru: "Количество наборов данных",
+        title_kk: "Деректер жиынтығының саны",
+        value_numeric: 14,
+        value_text_ru: null,
+        value_text_kk: null,
+        unit_ru: "шт.",
+        unit_kk: "дана",
+        icon: "database",
+        sort_order: 1,
+        is_visible: true,
+        show_on_homepage: true,
+        created_at: "2026-11-24T00:00:00Z",
+        updated_at: "2026-11-24T00:00:00Z",
+      },
+    ];
+
+    const categories = [
+      {
+        id: "00000000-0000-4000-a000-000000000201",
+        slug: "ecology",
+        title_ru: "Экология",
+        title_kk: "Экология",
+        description_ru: "Мониторинг",
+        description_kk: "Бақылау",
+        icon: "leaf",
+        dataset_count: 8,
+        status: "collecting" as const,
+        sort_order: 1,
+        is_visible: true,
+        show_on_homepage: true,
+        created_at: "2026-11-24T00:00:00Z",
+        updated_at: "2026-11-24T00:00:00Z",
+      },
+    ];
+
+    const updates = [
+      {
+        id: "00000000-0000-4000-a000-000000000301",
+        category_id: categories[0].id,
+        title_ru: "Мониторинг воздуха",
+        title_kk: "Ауа мониторингі",
+        description_ru: "Описание",
+        description_kk: "Сипаттама",
+        source_name: "Казгидромет",
+        source_url: "https://kazhydromet.kz",
+        period_start: "2024",
+        period_end: "2026",
+        received_at: "2026-11-20",
+        is_published: true,
+        created_at: "2026-11-24T00:00:00Z",
+        updated_at: "2026-11-24T00:00:00Z",
+        category: {
+          id: categories[0].id,
+          slug: "ecology",
+          title_ru: "Экология",
+          title_kk: "Экология",
+          icon: "leaf",
+        },
+      },
+    ];
+
     const html = renderToStaticMarkup(
       <OpenDataAdmin
         tab="settings"
-        settings={{
-          id: "00000000-0000-4000-a000-000000000901",
-          title_ru: "Open Data Aktobe",
-          title_kk: "Open Data Aktobe",
-          subtitle_ru: "Данные сегодня — открытия завтра.",
-          subtitle_kk: "Бүгінгі деректер — ертеңгі жаңалықтар.",
-          short_description_ru: "Коротко RU",
-          short_description_kk: "Коротко KZ",
-          description_ru: "Описание RU",
-          description_kk: "Описание KZ",
-          status: "collecting",
-          status_text_ru: "Статус RU",
-          status_text_kk: "Статус KZ",
-          collaboration_text_ru: "Сотрудничество RU",
-          collaboration_text_kk: "Сотрудничество KZ",
-          is_published: true,
-          show_on_homepage: true,
-          data_updated_at: "2026-11-24",
-          created_at: "2026-11-24T00:00:00Z",
-          updated_at: "2026-11-24T00:00:00Z",
-        }}
-        metrics={[]}
-        categories={[]}
-        updates={[]}
+        settings={settings}
+        metrics={metrics}
+        categories={categories}
+        updates={updates}
       />
     );
 
@@ -230,5 +297,51 @@ describe("OpenData Components", () => {
     expect(html).toContain('href="/admin/science/open-data?tab=updates"');
     expect(html).toContain("Публикация страницы /open-data");
     expect(html).toContain("Отображать блок на главной странице");
+    expect(html).toContain("wp-editor-form");
+    expect(html).toContain("wp-editor-workspace");
+    expect(html).toContain("primary-button");
+    expect(html).not.toContain("На сайт (RU)");
+    expect(html).not.toContain("На сайт (KZ)");
+
+    const metricsHtml = renderToStaticMarkup(
+      <OpenDataAdmin
+        tab="metrics"
+        settings={settings}
+        metrics={metrics}
+        categories={categories}
+        updates={updates}
+      />
+    );
+    expect(metricsHtml).toContain("media-toolbar");
+    expect(metricsHtml).toContain("data-panel");
+    expect(metricsHtml).toContain("secondary-button");
+    expect(metricsHtml).toContain('href="/admin/science/open-data/metrics/new"');
+    expect(metricsHtml).toContain(`href="/admin/science/open-data/metrics/${metrics[0].id}"`);
+
+    const categoriesHtml = renderToStaticMarkup(
+      <OpenDataAdmin
+        tab="categories"
+        settings={settings}
+        metrics={metrics}
+        categories={categories}
+        updates={updates}
+      />
+    );
+    expect(categoriesHtml).toContain('href="/admin/science/open-data/categories/new"');
+    expect(categoriesHtml).toContain(`href="/admin/science/open-data/categories/${categories[0].id}"`);
+    expect(categoriesHtml).toContain("opendata-badge-collecting");
+
+    const updatesHtml = renderToStaticMarkup(
+      <OpenDataAdmin
+        tab="updates"
+        settings={settings}
+        metrics={metrics}
+        categories={categories}
+        updates={updates}
+      />
+    );
+    expect(updatesHtml).toContain('href="/admin/science/open-data/updates/new"');
+    expect(updatesHtml).toContain(`href="/admin/science/open-data/updates/${updates[0].id}"`);
+    expect(updatesHtml).toContain("Казгидромет");
   });
 });

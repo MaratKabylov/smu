@@ -11,12 +11,15 @@ const mocks = vi.hoisted(() => ({
   getSettings: vi.fn(),
   updateSettings: vi.fn(),
   listMetrics: vi.fn(),
+  getMetricById: vi.fn(),
   saveMetric: vi.fn(),
   deleteMetric: vi.fn(),
   listCategories: vi.fn(),
+  getCategoryById: vi.fn(),
   saveCategory: vi.fn(),
   deleteCategory: vi.fn(),
   listUpdates: vi.fn(),
+  getUpdateById: vi.fn(),
   saveUpdate: vi.fn(),
   deleteUpdate: vi.fn(),
   getPublicOverview: vi.fn(),
@@ -32,12 +35,15 @@ vi.mock("@/server/repositories/open-data.repository", () => ({
     getSettings = mocks.getSettings;
     updateSettings = mocks.updateSettings;
     listMetrics = mocks.listMetrics;
+    getMetricById = mocks.getMetricById;
     saveMetric = mocks.saveMetric;
     deleteMetric = mocks.deleteMetric;
     listCategories = mocks.listCategories;
+    getCategoryById = mocks.getCategoryById;
     saveCategory = mocks.saveCategory;
     deleteCategory = mocks.deleteCategory;
     listUpdates = mocks.listUpdates;
+    getUpdateById = mocks.getUpdateById;
     saveUpdate = mocks.saveUpdate;
     deleteUpdate = mocks.deleteUpdate;
     getPublicOverview = mocks.getPublicOverview;
@@ -72,10 +78,15 @@ describe("OpenDataService", () => {
     const service = new OpenDataService();
     await expect(service.getAdminData(unauthorizedAccess)).rejects.toThrow("forbidden");
     await expect(service.updateSettings(unauthorizedAccess, {})).rejects.toThrow("forbidden");
+    await expect(service.getMetricById(unauthorizedAccess, "1")).rejects.toThrow("forbidden");
+    await expect(service.listMetrics(unauthorizedAccess)).rejects.toThrow("forbidden");
     await expect(service.saveMetric(unauthorizedAccess, {})).rejects.toThrow("forbidden");
     await expect(service.deleteMetric(unauthorizedAccess, "1")).rejects.toThrow("forbidden");
+    await expect(service.getCategoryById(unauthorizedAccess, "1")).rejects.toThrow("forbidden");
+    await expect(service.listCategories(unauthorizedAccess)).rejects.toThrow("forbidden");
     await expect(service.saveCategory(unauthorizedAccess, {})).rejects.toThrow("forbidden");
     await expect(service.deleteCategory(unauthorizedAccess, "1")).rejects.toThrow("forbidden");
+    await expect(service.getUpdateById(unauthorizedAccess, "1")).rejects.toThrow("forbidden");
     await expect(service.saveUpdate(unauthorizedAccess, {})).rejects.toThrow("forbidden");
     await expect(service.deleteUpdate(unauthorizedAccess, "1")).rejects.toThrow("forbidden");
   });

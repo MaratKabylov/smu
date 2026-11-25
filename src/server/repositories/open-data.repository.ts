@@ -114,6 +114,17 @@ export class OpenDataRepository {
     return data ?? [];
   }
 
+  async getMetricById(id: string): Promise<OpenDataMetricRow | null> {
+    const { data, error } = await this.client
+      .from("open_data_metrics")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data;
+  }
+
   async saveMetric(input: OpenDataMetricInput): Promise<OpenDataMetricRow> {
     if (input.id) {
       const { data, error } = await this.client
@@ -179,6 +190,17 @@ export class OpenDataRepository {
 
     if (error) throw error;
     return data ?? [];
+  }
+
+  async getCategoryById(id: string): Promise<OpenDataCategoryRow | null> {
+    const { data, error } = await this.client
+      .from("open_data_categories")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data;
   }
 
   async saveCategory(input: OpenDataCategoryInput): Promise<OpenDataCategoryRow> {
@@ -247,6 +269,22 @@ export class OpenDataRepository {
       ...row,
       category: row.open_data_categories,
     }));
+  }
+
+  async getUpdateById(id: string): Promise<OpenDataUpdateWithCategory | null> {
+    const { data, error } = await this.client
+      .from("open_data_updates")
+      .select("*, open_data_categories(id, slug, title_ru, title_kk, icon)")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!data) return null;
+    const row = data as unknown as JoinedUpdateRow;
+    return {
+      ...row,
+      category: row.open_data_categories,
+    };
   }
 
   async saveUpdate(input: OpenDataUpdateInput): Promise<OpenDataUpdateRow> {

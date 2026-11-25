@@ -1,359 +1,240 @@
-"use client";
-
-import { useState, useTransition } from "react";
-import type { OpenDataCategoryRow, OpenDataUpdateWithCategory } from "@/types/domain/open-data";
-import {
-  saveOpenDataUpdateAction,
-  deleteOpenDataUpdateAction,
-} from "@/server/actions/open-data.actions";
-import { Edit2, Plus, Trash2, X } from "lucide-react";
+import Link from "next/link";
+import { ExternalLink, FileSpreadsheet, Plus, Search } from "lucide-react";
+import type {
+  OpenDataCategoryRow,
+  OpenDataUpdateWithCategory,
+} from "@/types/domain/open-data";
+import { OpenDataIcon } from "@/components/open-data/OpenDataIcon";
+import type { OpenDataAdminSearchState } from "./OpenDataAdmin";
 
 type Props = {
   updates: OpenDataUpdateWithCategory[];
   categories: OpenDataCategoryRow[];
+  filters?: OpenDataAdminSearchState;
 };
 
-export function OpenDataUpdatesManager({ updates, categories }: Props) {
-  const [editingUpdate, setEditingUpdate] = useState<Partial<OpenDataUpdateWithCategory> | null>(null);
-  const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
+const basePath = "/admin/science/open-data";
+const dateFormatter = new Intl.DateTimeFormat("ru-RU", {
+  dateStyle: "medium",
+  timeZone: "UTC",
+});
 
-  const handleOpenAdd = () => {
-    setEditingUpdate({
-      category_id: categories[0]?.id ?? "",
-      title_ru: "",
-      title_kk: "",
-      description_ru: "",
-      description_kk: "",
-      source_name: "",
-      source_url: null,
-      period_start: null,
-      period_end: null,
-      received_at: new Date().toISOString().split("T")[0],
-      is_published: true,
-    });
-    setError(null);
-  };
+function formatReceivedDate(dateStr: string): string {
+  try {
+    return dateFormatter.format(new Date(`${dateStr}T00:00:00Z`));
+  } catch {
+    return dateStr;
+  }
+}
 
-  const handleSave = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setError(null);
-    const form = new FormData(e.currentTarget);
+function pluralUpdates(count: number): string {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+  if (mod10 === 1 && mod100 !== 11) return "запись";
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return "записи";
+  return "записей";
+}
 
-    const sourceUrl = String(form.get("source_url") ?? "").trim();
-    const periodStart = String(form.get("period_start") ?? "").trim();
-    const periodEnd = String(form.get("period_end") ?? "").trim();
+export function OpenDataUpdatesManager({
+  updates,
+  categories,
+  filters = {},
+}: Props) {
+  const query = (filters.q ?? "").trim().toLowerCase();
+  const categoryFilter = filters.category ?? "all";
+  const statusFilter = filters.status ?? "all";
 
-    const data = {
-      id: editingUpdate?.id,
-      category_id: String(form.get("category_id") ?? ""),
-      title_ru: String(form.get("title_ru") ?? "").trim(),
-      title_kk: String(form.get("title_kk") ?? "").trim(),
-      description_ru: String(form.get("description_ru") ?? "").trim(),
-      description_kk: String(form.get("description_kk") ?? "").trim(),
-      source_name: String(form.get("source_name") ?? "").trim(),
-      source_url: sourceUrl || null,
-      period_start: periodStart || null,
-      period_end: periodEnd || null,
-      received_at: String(form.get("received_at") ?? new Date().toISOString().split("T")[0]),
-      is_published: form.get("is_published") === "on",
-    };
+  const filtered = updates.filter((item) => {
+    if (categoryFilter !== "all" && item.category_id !== categoryFilter) return false;
+    if (statusFilter === "published" && !item.is_published) return false;
+    if (statusFilter === "draft" && item.is_published) return false;
+    if (query) {
+      const hay = [
+        item.title_ru,
+        item.title_kk,
+        item.description_ru,
+        item.source_name,
+        item.category?.title_ru ?? "",
+      ]
+        .join(" ")
+        .toLowerCase();
+      if (!hay.includes(query)) return false;
+    }
+    return true;
+  });
 
-    startTransition(async () => {
-      const res = await saveOpenDataUpdateAction(data);
-      if (res.error) {
-        setError(res.error);
-      } else {
-        setEditingUpdate(null);
-      }
-    });
-  };
-
-  const handleDelete = (id: string, name: string) => {
-    if (!confirm(`Вы уверены, что хотите удалить запись о поступлении "${name}"?`)) return;
-    setError(null);
-    startTransition(async () => {
-      const res = await deleteOpenDataUpdateAction(id);
-      if (res.error) {
-        setError(res.error);
-      }
-    });
-  };
+  const hasFilters = Boolean(
+    query || categoryFilter !== "all" || statusFilter !== "all"
+  );
 
   return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-        <div>
-          <h2 style={{ margin: "0 0 4px" }}>Последние поступления данных</h2>
-          <p style={{ margin: 0, color: "#64748b", fontSize: "14px" }}>
-            Информационные записи о новых наборах данных (до 5 последних опубликованных отображаются на странице /open-data).
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={handleOpenAdd}
-          className="button-primary"
-          style={{ display: "flex", alignItems: "center", gap: "6px" }}
-          disabled={categories.length === 0}
-        >
-          <Plus size={16} /> Добавить запись
-        </button>
-      </div>
-
+    <>
       {categories.length === 0 ? (
-        <p className="notice" style={{ marginBottom: "16px" }}>
-          Сначала создайте хотя бы одну категорию во вкладке &laquo;Категории&raquo;.
-        </p>
-      ) : null}
-
-      {error ? (
-        <p role="alert" className="notice error-notice" style={{ marginBottom: "16px" }}>
-          {error}
-        </p>
-      ) : null}
-
-      {editingUpdate ? (
-        <div
-          style={{
-            background: "#f8fafc",
-            border: "1px solid #cbd5e1",
-            borderRadius: "8px",
-            padding: "20px",
-            marginBottom: "24px",
-          }}
-        >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-            <h3 style={{ margin: 0 }}>
-              {editingUpdate.id ? "Редактирование записи о поступлении" : "Новое поступление данных"}
-            </h3>
-            <button
-              type="button"
-              onClick={() => setEditingUpdate(null)}
-              style={{ background: "none", border: "none", cursor: "pointer", color: "#64748b" }}
-            >
-              <X size={20} />
-            </button>
-          </div>
-
-          <form onSubmit={handleSave}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
-              <label>
-                <strong>Категория данных *</strong>
-                <select
-                  name="category_id"
-                  defaultValue={editingUpdate.category_id ?? categories[0]?.id}
-                  required
-                  style={{ width: "100%", marginTop: "4px", padding: "8px" }}
-                >
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.title_ru} / {c.title_kk}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label>
-                <strong>Дата поступления *</strong>
-                <input
-                  type="date"
-                  name="received_at"
-                  defaultValue={editingUpdate.received_at ?? new Date().toISOString().split("T")[0]}
-                  required
-                  style={{ width: "100%", marginTop: "4px" }}
-                />
-              </label>
-
-              <label>
-                <strong>Название набора данных (RU) *</strong>
-                <input
-                  name="title_ru"
-                  defaultValue={editingUpdate.title_ru ?? ""}
-                  required
-                  style={{ width: "100%", marginTop: "4px" }}
-                />
-              </label>
-              <label>
-                <strong>Название набора данных (KZ) *</strong>
-                <input
-                  name="title_kk"
-                  defaultValue={editingUpdate.title_kk ?? ""}
-                  required
-                  style={{ width: "100%", marginTop: "4px" }}
-                />
-              </label>
-
-              <label>
-                <strong>Краткое описание (RU)</strong>
-                <textarea
-                  name="description_ru"
-                  defaultValue={editingUpdate.description_ru ?? ""}
-                  rows={3}
-                  style={{ width: "100%", marginTop: "4px" }}
-                />
-              </label>
-              <label>
-                <strong>Краткое описание (KZ)</strong>
-                <textarea
-                  name="description_kk"
-                  defaultValue={editingUpdate.description_kk ?? ""}
-                  rows={3}
-                  style={{ width: "100%", marginTop: "4px" }}
-                />
-              </label>
-
-              <label>
-                <strong>Источник данных (название) *</strong>
-                <input
-                  name="source_name"
-                  defaultValue={editingUpdate.source_name ?? ""}
-                  placeholder="Казгидромет, Бюро нацстатистики..."
-                  required
-                  style={{ width: "100%", marginTop: "4px" }}
-                />
-              </label>
-              <label>
-                <strong>Ссылка на источник (URL)</strong>
-                <input
-                  type="url"
-                  name="source_url"
-                  defaultValue={editingUpdate.source_url ?? ""}
-                  placeholder="https://..."
-                  style={{ width: "100%", marginTop: "4px" }}
-                />
-              </label>
-
-              <label>
-                <strong>Период охвата (начало)</strong>
-                <input
-                  name="period_start"
-                  defaultValue={editingUpdate.period_start ?? ""}
-                  placeholder="2020, 01.2023..."
-                  style={{ width: "100%", marginTop: "4px" }}
-                />
-              </label>
-              <label>
-                <strong>Период охвата (конец)</strong>
-                <input
-                  name="period_end"
-                  defaultValue={editingUpdate.period_end ?? ""}
-                  placeholder="2024, текущее время..."
-                  style={{ width: "100%", marginTop: "4px" }}
-                />
-              </label>
-            </div>
-
-            <div style={{ marginBottom: "20px" }}>
-              <label style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer" }}>
-                <input
-                  type="checkbox"
-                  name="is_published"
-                  defaultChecked={editingUpdate.is_published ?? true}
-                />
-                Опубликовать на странице
-              </label>
-            </div>
-
-            <div style={{ display: "flex", gap: "10px" }}>
-              <button type="submit" className="button-primary" disabled={isPending}>
-                {isPending ? "Сохранение..." : "Сохранить запись"}
-              </button>
-              <button
-                type="button"
-                className="button-secondary"
-                onClick={() => setEditingUpdate(null)}
-                disabled={isPending}
-              >
-                Отмена
-              </button>
-            </div>
-          </form>
+        <div className="notice">
+          Чтобы добавлять поступления данных, сначала создайте хотя бы одну категорию во вкладке{" "}
+          <Link href={`${basePath}?tab=categories`} style={{ fontWeight: 700 }}>
+            «Категории»
+          </Link>
+          .
         </div>
       ) : null}
 
-      <div className="table-wrap">
-        <table className="articles-table">
-          <thead>
-            <tr>
-              <th>Набор данных (RU / KZ)</th>
-              <th>Категория</th>
-              <th>Источник</th>
-              <th>Период охвата</th>
-              <th>Дата поступления</th>
-              <th>Статус</th>
-              <th style={{ width: "100px", textAlign: "right" }}>Действия</th>
-            </tr>
-          </thead>
-          <tbody>
-            {updates.map((u) => (
-              <tr key={u.id}>
-                <td>
-                  <strong>{u.title_ru}</strong>
-                  <div style={{ fontSize: "12px", color: "#64748b" }}>{u.title_kk}</div>
-                </td>
-                <td>
-                  {u.category ? (
-                    <span>{u.category.title_ru}</span>
-                  ) : (
-                    <span style={{ color: "#94a3b8" }}>—</span>
-                  )}
-                </td>
-                <td>
-                  {u.source_url ? (
-                    <a href={u.source_url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "underline" }}>
-                      {u.source_name}
-                    </a>
-                  ) : (
-                    u.source_name
-                  )}
-                </td>
-                <td style={{ fontSize: "13px" }}>
-                  {u.period_start || u.period_end ? (
-                    `${u.period_start ?? "..."} — ${u.period_end ?? "..."}`
-                  ) : (
-                    <span style={{ color: "#94a3b8" }}>—</span>
-                  )}
-                </td>
-                <td style={{ fontSize: "13px", whiteSpace: "nowrap" }}>
-                  {u.received_at}
-                </td>
-                <td>
-                  {u.is_published ? (
-                    <span className="status-badge status-published">Опубликовано</span>
-                  ) : (
-                    <span className="status-badge status-draft">Черновик</span>
-                  )}
-                </td>
-                <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                  <button
-                    type="button"
-                    onClick={() => setEditingUpdate(u)}
-                    title="Редактировать"
-                    style={{ background: "none", border: "none", cursor: "pointer", marginRight: "8px", color: "#0284c7" }}
-                  >
-                    <Edit2 size={16} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(u.id, u.title_ru)}
-                    title="Удалить"
-                    style={{ background: "none", border: "none", cursor: "pointer", color: "#e11d48" }}
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </td>
-              </tr>
+      <section className="media-toolbar" aria-label="Фильтры поступлений">
+        <form action={basePath} className="media-filters">
+          <input type="hidden" name="tab" value="updates" />
+          <label className="search-field">
+            <Search size={16} aria-hidden="true" />
+            <span className="visually-hidden">Поиск по названию или источнику</span>
+            <input
+              type="search"
+              name="q"
+              defaultValue={filters.q ?? ""}
+              placeholder="Поиск по названию набора, описанию или источнику"
+              maxLength={120}
+            />
+          </label>
+          <select name="category" defaultValue={categoryFilter} aria-label="Категория">
+            <option value="all">Все категории</option>
+            {categories.map((cat) => (
+              <option key={cat.id} value={cat.id}>
+                {cat.title_ru}
+              </option>
             ))}
-            {updates.length === 0 ? (
-              <tr>
-                <td colSpan={7} style={{ textAlign: "center", padding: "24px", color: "#64748b" }}>
-                  Записи о поступлениях пока не добавлены.
-                </td>
-              </tr>
-            ) : null}
-          </tbody>
-        </table>
-      </div>
-    </div>
+          </select>
+          <select name="status" defaultValue={statusFilter} aria-label="Статус публикации">
+            <option value="all">Все статусы</option>
+            <option value="published">Опубликовано</option>
+            <option value="draft">Черновик</option>
+          </select>
+          <button type="submit" className="secondary-button">
+            Применить
+          </button>
+        </form>
+        <span className="real-count">
+          {filtered.length} {pluralUpdates(filtered.length)}
+        </span>
+      </section>
+
+      <section className="data-panel" aria-labelledby="updates-table-title">
+        <div className="data-panel-header">
+          <div>
+            <h2 id="updates-table-title">Последние поступления данных</h2>
+            <p>
+              Информационные записи о зарегистрированных наборах данных (до 5 последних
+              опубликованных отображаются на странице /open-data).
+            </p>
+          </div>
+        </div>
+
+        {filtered.length > 0 ? (
+          <div className="table-wrap">
+            <table className="articles-table">
+              <thead>
+                <tr>
+                  <th>Набор данных (RU / KZ)</th>
+                  <th>Категория</th>
+                  <th>Источник</th>
+                  <th>Период охвата</th>
+                  <th>Поступление</th>
+                  <th>Статус</th>
+                  <th style={{ textAlign: "right" }}>Действие</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((update) => (
+                  <tr key={update.id}>
+                    <td>
+                      <Link href={`${basePath}/updates/${update.id}`}>
+                        {update.title_ru}
+                      </Link>
+                      <small>{update.title_kk}</small>
+                    </td>
+                    <td>
+                      {update.category ? (
+                        <span className="opendata-category-chip">
+                          <OpenDataIcon name={update.category.icon} size={13} />
+                          <span>{update.category.title_ru}</span>
+                        </span>
+                      ) : (
+                        <span className="opendata-muted">—</span>
+                      )}
+                    </td>
+                    <td>
+                      {update.source_url ? (
+                        <a
+                          href={update.source_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="opendata-source-link"
+                        >
+                          <span>{update.source_name}</span>
+                          <ExternalLink size={12} aria-hidden="true" />
+                        </a>
+                      ) : (
+                        <span>{update.source_name}</span>
+                      )}
+                    </td>
+                    <td style={{ whiteSpace: "nowrap" }}>
+                      {update.period_start || update.period_end ? (
+                        <span>
+                          {update.period_start ?? "…"} — {update.period_end ?? "…"}
+                        </span>
+                      ) : (
+                        <span className="opendata-muted">—</span>
+                      )}
+                    </td>
+                    <td style={{ whiteSpace: "nowrap" }}>
+                      {formatReceivedDate(update.received_at)}
+                    </td>
+                    <td>
+                      {update.is_published ? (
+                        <span className="status-badge status-published">Опубликовано</span>
+                      ) : (
+                        <span className="status-badge status-draft">Черновик</span>
+                      )}
+                    </td>
+                    <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                      <Link
+                        href={`${basePath}/updates/${update.id}`}
+                        className="secondary-button opendata-row-action"
+                      >
+                        Редактировать
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="empty-state">
+            <span className="empty-icon">
+              <FileSpreadsheet aria-hidden="true" />
+            </span>
+            <h3>
+              {hasFilters ? "Поступления не найдены" : "Записей о поступлениях пока нет"}
+            </h3>
+            <p>
+              {hasFilters
+                ? "Измените поисковый запрос или сбросьте фильтры."
+                : "Добавьте первую запись о поступлении нового научного набора данных."}
+            </p>
+            <div style={{ marginTop: "16px", display: "flex", gap: "8px", justifyContent: "center" }}>
+              {hasFilters ? (
+                <Link href={`${basePath}?tab=updates`} className="secondary-button">
+                  Сбросить фильтры
+                </Link>
+              ) : null}
+              {categories.length > 0 ? (
+                <Link href={`${basePath}/updates/new`} className="primary-button">
+                  <Plus size={16} aria-hidden="true" />
+                  <span>Добавить поступление</span>
+                </Link>
+              ) : null}
+            </div>
+          </div>
+        )}
+      </section>
+    </>
   );
 }

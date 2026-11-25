@@ -1167,7 +1167,8 @@ details[open].wp-metabox-card > .wp-metabox-header {
 }
 
 .wp-sidebar-card:focus-within,
-.wp-sidebar-card:has(.wp-custom-select.is-open) {
+.wp-sidebar-card:has(.wp-custom-select.is-open),
+.wp-sidebar-card:has(.opendata-icon-picker.is-open) {
   z-index: 20;
 }
 
@@ -3164,4 +3165,460 @@ details[open].wp-sidebar-card > .wp-sidebar-card-header {
   color: #94a3b8;
   font-style: italic;
   padding: 8px 4px;
+}
+
+/* Open Data Aktobe Admin */
+.opendata-admin-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 22px;
+  padding: 6px;
+  border: 1px solid #dceaf0;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 9px 26px rgb(7 58 107 / 5%);
+}
+
+.opendata-admin-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  color: #476980;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
+}
+
+.opendata-admin-tab:hover {
+  background: #edf8fa;
+  color: #087e9b;
+}
+
+.opendata-admin-tab[aria-current="page"] {
+  background: linear-gradient(135deg, #0876ac, #043b72);
+  color: #ffffff;
+  box-shadow: 0 7px 18px rgb(6 80 135 / 18%);
+}
+
+.opendata-admin-tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #edf4f7;
+  color: #476980;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.opendata-admin-tab[aria-current="page"] .opendata-admin-tab-count {
+  background: rgb(255 255 255 / 20%);
+  color: #ffffff;
+}
+
+.opendata-table-title-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.opendata-table-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  border-radius: 10px;
+  background: #e5f7f9;
+  color: #087e9b;
+  border: 1px solid #ccebf0;
+}
+
+.opendata-table-title-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.opendata-table-subtitle {
+  color: #627792;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.opendata-code-pill {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: #f1f6f9;
+  border: 1px solid #dceaf0;
+  color: #234f70;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+}
+
+.opendata-muted {
+  color: #8ba0b3;
+  font-size: 12.5px;
+}
+
+.opendata-value-filled {
+  color: #0a345d;
+  font-weight: 650;
+}
+
+.admin-shell .status-badge.opendata-badge-planned {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  color: #475569;
+}
+
+.admin-shell .status-badge.opendata-badge-collecting {
+  border-color: #bae6fd;
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.admin-shell .status-badge.opendata-badge-processing {
+  border-color: #fde68a;
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.admin-shell .status-badge.opendata-badge-collected {
+  border-color: #a7f3d0;
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.opendata-category-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #f1f8fa;
+  border: 1px solid #d5e7ed;
+  color: #123e61;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.opendata-category-chip svg {
+  color: #087e9b;
+  flex-shrink: 0;
+}
+
+.opendata-source-link {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 4px;
+  color: #087e9b !important;
+  font-weight: 600 !important;
+  text-decoration: underline !important;
+  text-underline-offset: 2px;
+}
+
+.opendata-row-action {
+  min-height: 32px !important;
+  padding: 4px 12px !important;
+  font-size: 12px !important;
+  white-space: nowrap;
+}
+
+.opendata-field-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.opendata-field-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.opendata-field-counter {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.opendata-field-hint {
+  margin: 0;
+  font-size: 12px;
+  color: #627792;
+  line-height: 1.45;
+}
+
+.opendata-field-input {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 42px;
+  padding: 9px 13px;
+  border: 1px solid #cbdde5;
+  border-radius: 8px;
+  background: #fbfdfe;
+  color: #0a345d;
+  font-size: 14px;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.opendata-field-input:focus {
+  border-color: #0098b6;
+  box-shadow: 0 0 0 4px rgb(0 152 182 / 10%);
+  outline: none;
+}
+
+.opendata-two-cols {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.opendata-required-star {
+  color: #e11d48;
+  font-weight: 700;
+}
+
+.opendata-summary-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.opendata-summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #edf4f7;
+  font-size: 12.5px;
+  color: #476980;
+}
+
+.opendata-summary-row:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.opendata-summary-row strong {
+  color: #0a345d;
+  font-weight: 700;
+}
+
+.opendata-quick-links {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e5eff3;
+}
+
+.opendata-quick-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 12px;
+  border: 1px solid #dceaf0;
+  border-radius: 9px;
+  background: #f7fbfd;
+  color: #123e61;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: border-color 150ms ease, background-color 150ms ease, color 150ms ease;
+}
+
+.opendata-quick-link:hover {
+  border-color: rgb(0 152 182 / 42%);
+  background: #edf8fa;
+  color: #087e9b;
+}
+
+.opendata-quick-link > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Open Data Icon Picker */
+.opendata-icon-picker {
+  position: relative;
+  width: 100%;
+}
+
+.opendata-icon-picker-trigger {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 12px;
+  border: 1px solid #cbdde5;
+  border-radius: 9px;
+  background: #fbfdfe;
+  color: #0a345d;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+}
+
+.opendata-icon-picker-trigger:hover:not(:disabled) {
+  border-color: #94b8c8;
+  background: #ffffff;
+}
+
+.opendata-icon-picker.is-open .opendata-icon-picker-trigger {
+  border-color: #0098b6;
+  box-shadow: 0 0 0 4px rgb(0 152 182 / 10%);
+  background: #ffffff;
+}
+
+.opendata-icon-picker-current {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.opendata-icon-preview-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  border-radius: 8px;
+  background: #e5f7f9;
+  color: #087e9b;
+}
+
+.opendata-icon-picker-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.opendata-icon-picker-meta strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0a345d;
+  line-height: 1.25;
+}
+
+.opendata-icon-picker-meta code {
+  font-size: 11px;
+  color: #627792;
+}
+
+.opendata-icon-picker-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 100;
+  padding: 10px;
+  border: 1px solid #dceaf0;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 14px 34px rgb(7 58 107 / 14%);
+}
+
+.opendata-icon-picker-search {
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  border: 1px solid #cbdde5;
+  border-radius: 8px;
+  font-size: 12.5px;
+  background: #f8fcfd;
+}
+
+.opendata-icon-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  max-height: 240px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.opendata-icon-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: #1e293b;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.opendata-icon-option:hover {
+  background: #f3f9fb;
+  border-color: #dceaf0;
+}
+
+.opendata-icon-option.is-selected {
+  background: #e5f7f9;
+  border-color: #087e9b;
+  color: #073a6b;
+}
+
+.opendata-icon-option svg {
+  flex-shrink: 0;
+  color: #087e9b;
+}
+
+.opendata-icon-option span {
+  font-size: 12px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.opendata-danger-zone {
+  margin-top: 28px;
+}
+
+@media (max-width: 760px) {
+  .opendata-two-cols {
+    grid-template-columns: 1fr;
+  }
+
+  .opendata-icon-picker-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .opendata-admin-tabs {
+    padding: 6px;
+  }
+
+  .opendata-admin-tab {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
 }

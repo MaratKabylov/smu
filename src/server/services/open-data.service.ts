@@ -92,6 +92,19 @@ export class OpenDataService {
     return repo.updateSettings(input);
   }
 
+  async getMetricById(
+    access: AccessContext,
+    id: string
+  ): Promise<OpenDataMetricRow | null> {
+    const repo = await this.getAdminRepository(access);
+    return repo.getMetricById(id);
+  }
+
+  async listMetrics(access: AccessContext): Promise<OpenDataMetricRow[]> {
+    const repo = await this.getAdminRepository(access);
+    return repo.listMetrics();
+  }
+
   async saveMetric(
     access: AccessContext,
     raw: unknown
@@ -111,6 +124,19 @@ export class OpenDataService {
     return repo.deleteMetric(id);
   }
 
+  async getCategoryById(
+    access: AccessContext,
+    id: string
+  ): Promise<OpenDataCategoryRow | null> {
+    const repo = await this.getAdminRepository(access);
+    return repo.getCategoryById(id);
+  }
+
+  async listCategories(access: AccessContext): Promise<OpenDataCategoryRow[]> {
+    const repo = await this.getAdminRepository(access);
+    return repo.listCategories();
+  }
+
   async saveCategory(
     access: AccessContext,
     raw: unknown
@@ -128,6 +154,14 @@ export class OpenDataService {
     assertOpenDataAccess(access);
     const repo = await this.getAdminRepository(access);
     return repo.deleteCategory(id);
+  }
+
+  async getUpdateById(
+    access: AccessContext,
+    id: string
+  ): Promise<OpenDataUpdateWithCategory | null> {
+    const repo = await this.getAdminRepository(access);
+    return repo.getUpdateById(id);
   }
 
   async saveUpdate(

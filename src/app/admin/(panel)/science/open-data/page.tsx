@@ -2,11 +2,9 @@ import { notFound, redirect } from "next/navigation";
 import { getAdminAccess } from "@/server/services/access.service";
 import { canManageOpenData } from "@/lib/permissions/permissions";
 import { OpenDataService } from "@/server/services/open-data.service";
-import { OpenDataAdmin } from "@/components/admin/open-data/OpenDataAdmin";
+import { OpenDataAdmin, type OpenDataAdminSearchState } from "@/components/admin/open-data/OpenDataAdmin";
 
-type SearchParams = Promise<{
-  tab?: string;
-}>;
+type SearchParams = Promise<OpenDataAdminSearchState>;
 
 export default async function AdminOpenDataPage({
   searchParams,
@@ -19,13 +17,14 @@ export default async function AdminOpenDataPage({
     notFound();
   }
 
-  const { tab } = (await searchParams) ?? {};
+  const state = (await searchParams) ?? {};
   const service = new OpenDataService();
   const data = await service.getAdminData(access.access);
 
   return (
     <OpenDataAdmin
-      tab={tab}
+      tab={state.tab}
+      searchState={state}
       settings={data.settings}
       metrics={data.metrics}
       categories={data.categories}
