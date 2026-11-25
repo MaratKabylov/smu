@@ -7,17 +7,18 @@ import { permissionCodes } from "@/types/domain/auth";
 import type { DatabaseClient } from "@/lib/supabase/database";
 
 function clientFor(role: string, permissions: string[]): DatabaseClient {
-  const rows = {
-    user_roles: [{ role_id: "role-id" }],
-    roles: [{ id: "role-id", code: role }],
-    role_permissions: permissions.map((_, index) => ({ permission_id: `permission-${index}` })),
-    permissions: permissions.map((code, index) => ({ id: `permission-${index}`, code })),
-  };
+  const rows = [
+    {
+      roles: {
+        code: role,
+        role_permissions: permissions.map((code) => ({ permissions: { code } })),
+      },
+    },
+  ];
   return {
-    from: (table: keyof typeof rows) => ({
+    from: (table: string) => ({
       select: () => ({
-        eq: async () => ({ data: rows[table], error: null }),
-        in: async () => ({ data: rows[table], error: null }),
+        eq: async () => ({ data: table === "user_roles" ? rows : [], error: null }),
       }),
     }),
   } as unknown as DatabaseClient;

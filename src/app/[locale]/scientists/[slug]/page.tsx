@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { collaborationKeys, collaborationLabels, scientistLinkLabels } from "@/lib/scientists/profile";
 import { pageAlternates, openGraphLocale, noIndex } from "@/lib/seo/metadata";
 import { JsonLd } from "@/components/seo/JsonLd";
@@ -16,6 +17,8 @@ import { CommunityHeader } from "@/components/scientists/CommunityHeader";
 import { getPublicScientistBySlug, PublicScientistService } from "@/server/services/scientist.service";
 import type { ScientistLocale } from "@/types/domain/scientist";
 import { scientistOrganizationCity, scientistTaxonomyName } from "@/lib/i18n/scientist-taxonomy";
+
+export const revalidate = 300;
 
 type Props = { params: Promise<{ locale: string; slug: string }>; searchParams: Promise<PublicQuery> };
 
@@ -67,7 +70,7 @@ export default async function ScientistProfilePage({ params, searchParams }: Pro
       <div className="scientist-profile-shell">
         <nav className="public-breadcrumbs" aria-label={copy.breadcrumbs}><Link href={`/${locale}/scientists`}><ArrowLeft aria-hidden="true" />{copy.catalog}</Link><span>/</span><span>{scientist.translation.fullName}</span></nav>
         <section className="scientist-profile-hero">
-          <div className="scientist-profile-photo">{scientist.avatarUrl ? <img src={scientist.avatarUrl} alt={scientist.translation.fullName} /> : <span>{initials(scientist.translation.fullName)}</span>}</div>
+          <div className="scientist-profile-photo">{scientist.avatarUrl ? <img src={scientist.avatarUrl} alt={scientist.translation.fullName} decoding="async" fetchPriority="high" /> : <span>{initials(scientist.translation.fullName)}</span>}</div>
           <div className="scientist-profile-heading">
             <div className="scientist-profile-fields">{scientist.fields.map((field) => <Link href={`/${locale}/scientists?field=${field.slug}`} key={field.id}>{scientistTaxonomyName(field, locale)}</Link>)}</div>
             <h1>{scientist.translation.fullName}</h1>
@@ -92,8 +95,12 @@ export default async function ScientistProfilePage({ params, searchParams }: Pro
             {scientist.organization?.websiteUrl ? <a href={scientist.organization.websiteUrl} target="_blank" rel="noreferrer">{copy.organizationSite}<ArrowUpRight aria-hidden="true" /></a> : null}
           </aside>
         </div>
-        <ScientistPublications id={scientist.id} locale={locale} />
-        <RelatedArticles kind="scientist" id={scientist.id} locale={locale} />
+        <Suspense fallback={null}>
+          <ScientistPublications id={scientist.id} locale={locale} />
+        </Suspense>
+        <Suspense fallback={null}>
+          <RelatedArticles kind="scientist" id={scientist.id} locale={locale} />
+        </Suspense>
       </div>
     </main>
     <footer className="journal-footer"><span>© {new Date().getFullYear()} {getDictionary(locale).common.footer}</span><Link href={`/${locale}/scientists`}>{copy.catalog}</Link></footer>

@@ -12,7 +12,7 @@ import type {
 } from "@/lib/validation/article";
 import { ArticleRepository } from "@/server/repositories/article.repository";
 import type { AccessContext } from "@/types/domain/auth";
-import type { ArticleStatus } from "@/types/domain/article";
+import type { Article, ArticleStatus } from "@/types/domain/article";
 import { deletionTimestampSchema } from "@/lib/validation/deleted-records";
 
 type ArticleServiceErrorCode = "forbidden" | "not_found" | "invalid_transition" |
@@ -156,9 +156,13 @@ export class ArticleService {
     ));
   }
 
-  async listReviews(access: AccessContext, id: string) {
+  async listReviews(
+    access: AccessContext,
+    id: string,
+    knownArticle?: Pick<Article, "authorId" | "scientificReviewerId" | "deletedAt">,
+  ) {
     return this.repository(async (repository) => {
-      const article = await repository.getById(id);
+      const article = knownArticle ?? (await repository.getById(id));
       if (!article || article.deletedAt) throw new ArticleServiceError("not_found", "Статья не найдена.");
       assertAllowed(canEditArticle(access, article.authorId) ||
         canReviewArticle(access, article.scientificReviewerId) || canPublishArticle(access));

@@ -5,12 +5,12 @@ import type { ResearchProgramApplicationInput, ResearchProgramFilters, ResearchP
 import { ScientistRepository } from "./scientist.repository";
 import { ScienceWorkRepository } from "./science-work.repository";
 import type { ApplicationStatus, ResearchProgramApplication, ResearchProgram, ResearchProgramStatus } from "@/types/domain/research-program";
-import type { ScientistLocale } from "@/types/domain/scientist";
+import type { ScientistLocale, ScientistTaxonomy } from "@/types/domain/scientist";
 
 type ProgramRow = Pick<Tables<"research_programs">, "id" | "coordinator_id" | "field_id" | "format" | "capacity" | "status" | "updated_at" | "applications_open_on" | "application_deadline" | "starts_on" | "ends_on">;
 
 export class ResearchProgramRepository {
-  constructor(private readonly client: DatabaseClient) {}
+  constructor(private readonly client: DatabaseClient) { }
 
   options() { return new ScienceWorkRepository(this.client).options(); }
 
@@ -27,27 +27,49 @@ export class ResearchProgramRepository {
     return data ? (await this.hydrate([data]))[0] ?? null : null;
   }
   async listPublic(filters: ResearchProgramFilters, selectedIds?: string[]) {
-    const taxonomy = await new ScientistRepository(this.client).listTaxonomy();
-    let query = this.client.from("research_programs").select("*").eq("status", "published").is("deleted_at", null).order("updated_at", { ascending: false }).limit(100);
-    if (selectedIds && !selectedIds.length) return { programs: [], taxonomy };
-    if (selectedIds) query = query.in("id", selectedIds);
-    if (filters.format !== "all") query = query.eq("format", filters.format);
-    if (filters.field) {
-      const field = taxonomy.fields.find(item => item.slug === filters.field);
-      if (!field) return { programs: [], taxonomy };
-      query = query.eq("field_id", field.id);
+    if (selectedIds && !selectedIds.length) {
+      const taxonomy = await new ScientistRepository(this.client).listTaxonomy();
+      return { programs: [], taxonomy };
     }
-    if (filters.query) {
-      const result = await this.client.from("research_program_translations").select("program_id").eq("locale", filters.locale)
-        .ilike("title", "%" + filters.query.replace(/[\\%_]/g, character => "\\" + character) + "%");
-      if (result.error) throw result.error;
-      const ids = (result.data ?? []).map(item => item.program_id);
-      if (!ids.length) return { programs: [], taxonomy };
-      query = query.in("id", ids);
+    const canParallelize = Boolean(selectedIds && !filters.field && !filters.query);
+    let taxonomy: ScientistTaxonomy;
+    let rows: ProgramRow[];
+
+    if (canParallelize) {
+      let query = this.client.from("research_programs").select("*").eq("status", "published").is("deleted_at", null).in("id", selectedIds!).order("updated_at", { ascending: false }).limit(100);
+      if (filters.format !== "all") query = query.eq("format", filters.format);
+      const [loadedTaxonomy, programsResult] = await Promise.all([
+        new ScientistRepository(this.client).listTaxonomy(),
+        query,
+      ]);
+      if (programsResult.error) throw programsResult.error;
+      taxonomy = loadedTaxonomy;
+      rows = programsResult.data ?? [];
+    } else {
+      taxonomy = await new ScientistRepository(this.client).listTaxonomy();
+      let query = this.client.from("research_programs").select("*").eq("status", "published").is("deleted_at", null).order("updated_at", { ascending: false }).limit(100);
+      if (selectedIds) query = query.in("id", selectedIds);
+      if (filters.format !== "all") query = query.eq("format", filters.format);
+      if (filters.field) {
+        const field = taxonomy.fields.find(item => item.slug === filters.field);
+        if (!field) return { programs: [], taxonomy };
+        query = query.eq("field_id", field.id);
+      }
+      if (filters.query) {
+        const result = await this.client.from("research_program_translations").select("program_id").eq("locale", filters.locale)
+          .ilike("title", "%" + filters.query.replace(/[\\%_]/g, character => "\\" + character) + "%");
+        if (result.error) throw result.error;
+        const ids = (result.data ?? []).map(item => item.program_id);
+        if (!ids.length) return { programs: [], taxonomy };
+        query = query.in("id", ids);
+      }
+      const { data, error } = await query;
+      if (error) throw error;
+      rows = data ?? [];
     }
-    const { data, error } = await query;
-    if (error) throw error;
-    const programs = (await this.hydrate((data ?? []), true)).filter(item => item.translations.some(t => t.locale === filters.locale) && item.coordinator.some(t => t.locale === filters.locale));
+
+    const programs = (await this.hydrate(rows, true, { taxonomy, catalogLocale: filters.locale }))
+      .filter(item => item.translations.some(t => t.locale === filters.locale) && item.coordinator.some(t => t.locale === filters.locale));
     return { programs, taxonomy };
   }
   async getPublicBySlug(locale: ScientistLocale, slug: string) {
@@ -67,8 +89,10 @@ export class ResearchProgramRepository {
     if (status !== "all") query = query.eq("status", status);
     const { data, error } = await query;
     if (error) throw error;
-    return ((data ?? [])).map(row => ({ id: row.id, programId: row.program_id, locale: row.locale, fullName: row.full_name,
-      email: row.email, motivation: row.motivation, status: row.status, managerNote: row.manager_note, createdAt: row.created_at, consentAt: row.consent_at }));
+    return ((data ?? [])).map(row => ({
+      id: row.id, programId: row.program_id, locale: row.locale, fullName: row.full_name,
+      email: row.email, motivation: row.motivation, status: row.status, managerNote: row.manager_note, createdAt: row.created_at, consentAt: row.consent_at
+    }));
   }
   async save(actor: string, input: ResearchProgramInput, id: string | null) {
     const { data, error } = await this.client.rpc("save_research_program", { p_id: id, p_actor: actor, p_input: input });
@@ -81,35 +105,61 @@ export class ResearchProgramRepository {
     if (error) throw error;
   }
   async submit(input: ResearchProgramApplicationInput) {
-    const { error } = await this.client.rpc("submit_research_program_application", { p_program: input.programId,
-      p_input: { locale: input.locale, fullName: input.fullName, email: input.email, motivation: input.motivation, consent: input.consent } });
+    const { error } = await this.client.rpc("submit_research_program_application", {
+      p_program: input.programId,
+      p_input: { locale: input.locale, fullName: input.fullName, email: input.email, motivation: input.motivation, consent: input.consent }
+    });
     if (error) throw error;
   }
   async updateApplication(id: string, status: ApplicationStatus, note: string) {
     const { error } = await this.client.rpc("decide_research_program_application", { p_id: id, p_status: status, p_note: note });
     if (error) throw error;
   }
-  private async hydrate(rows: ProgramRow[], publicOnly = false): Promise<ResearchProgram[]> {
+  private async hydrate(
+    rows: ProgramRow[],
+    publicOnly = false,
+    options?: { taxonomy?: ScientistTaxonomy; catalogLocale?: ScientistLocale },
+  ): Promise<ResearchProgram[]> {
     if (!rows.length) return [];
+    const coordinatorIds = [...new Set(rows.map(row => row.coordinator_id))];
+    const programIds = rows.map(row => row.id);
+    const catalogLocale = options?.catalogLocale;
+    const translationsQuery = catalogLocale
+      ? this.client.from("research_program_translations").select("program_id, locale, title, slug, summary").in("program_id", programIds).eq("locale", catalogLocale)
+      : this.client.from("research_program_translations").select("*").in("program_id", programIds);
+
+    const [scientists, translations, coordinators, taxonomy] = await Promise.all([
+      publicOnly
+        ? this.client.from("scientist_profiles").select("id").in("id", coordinatorIds).eq("status", "verified").eq("is_public", true).is("deleted_at", null)
+        : Promise.resolve({ data: null as Array<{ id: string }> | null, error: null }),
+      translationsQuery,
+      this.client.from("scientist_profile_translations").select("scientist_profile_id, locale, full_name, slug").in("scientist_profile_id", coordinatorIds),
+      options?.taxonomy ? Promise.resolve(options.taxonomy) : new ScientistRepository(this.client).listTaxonomy(),
+    ]);
+    if (scientists.error) throw scientists.error;
+    if (translations.error) throw translations.error;
+    if (coordinators.error) throw coordinators.error;
+
     let visibleRows = rows;
     if (publicOnly) {
-      const scientists = await this.client.from("scientist_profiles").select("id").in("id", [...new Set(rows.map(row => row.coordinator_id))]).eq("status", "verified").eq("is_public", true).is("deleted_at", null);
-      if (scientists.error) throw scientists.error;
       const ids = new Set((scientists.data ?? []).map(item => item.id));
       visibleRows = rows.filter(row => ids.has(row.coordinator_id));
     }
     if (!visibleRows.length) return [];
-    const [translations, coordinators, taxonomy] = await Promise.all([
-      this.client.from("research_program_translations").select("*").in("program_id", visibleRows.map(row => row.id)),
-      this.client.from("scientist_profile_translations").select("scientist_profile_id, locale, full_name, slug").in("scientist_profile_id", [...new Set(visibleRows.map(row => row.coordinator_id))]),
-      new ScientistRepository(this.client).listTaxonomy(),
-    ]);
-    if (translations.error) throw translations.error;
-    if (coordinators.error) throw coordinators.error;
+
     return visibleRows.filter(row => !publicOnly || taxonomy.fields.some(field => field.id === row.field_id)).map(row => ({
       id: row.id, coordinatorId: row.coordinator_id, fieldId: row.field_id, format: row.format, capacity: row.capacity, status: row.status, updatedAt: row.updated_at,
       applicationsOpenOn: row.applications_open_on, applicationDeadline: row.application_deadline, startsOn: row.starts_on, endsOn: row.ends_on,
-      translations: (translations.data ?? []).filter(t => t.program_id === row.id).map(t => ({ locale: t.locale, title: t.title, slug: t.slug, summary: t.summary, description: t.description, curriculum: t.curriculum, eligibility: t.eligibility, outcomes: t.outcomes })),
+      translations: (translations.data ?? []).filter(t => t.program_id === row.id).map(t => ({
+        locale: t.locale,
+        title: t.title,
+        slug: t.slug,
+        summary: t.summary,
+        description: "description" in t && typeof t.description === "string" ? t.description : "",
+        curriculum: "curriculum" in t && typeof t.curriculum === "string" ? t.curriculum : "",
+        eligibility: "eligibility" in t && typeof t.eligibility === "string" ? t.eligibility : "",
+        outcomes: "outcomes" in t && typeof t.outcomes === "string" ? t.outcomes : "",
+      })),
       coordinator: (coordinators.data ?? []).filter(t => t.scientist_profile_id === row.coordinator_id).map(t => ({ locale: t.locale, fullName: t.full_name, slug: t.slug })),
       field: taxonomy.fields.find(field => field.id === row.field_id) ?? null,
     }));

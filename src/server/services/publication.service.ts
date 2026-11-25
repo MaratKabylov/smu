@@ -16,7 +16,22 @@ export class PublicationService {
     if (!isSupabaseConfigured()) return { publications: [], pagination: emptySearchPage(page) };
     const client = createPublicSupabaseClient();
     const pagination = await new SearchRepository(client).publicPage(locale, query, "publications", {}, page);
+    if (!pagination.items.length) return { publications: [], pagination };
     const repository = new PublicationRepository(client);
+    if (pagination.items.length === 1) {
+      const publications = await repository.listPublic(locale, pagination.items[0].id);
+      return { publications: orderBySearch(publications, pagination), pagination };
+    }
+    if (pagination.total <= 100) {
+      const batch = await repository.listPublic(locale, null, null);
+      const byId = new Map(batch.map(item => [item.id, item]));
+      const missing = pagination.items.filter(item => !byId.has(item.id));
+      if (!missing.length) {
+        return { publications: orderBySearch(batch, pagination), pagination };
+      }
+      const extra = (await Promise.all(missing.map(item => repository.listPublic(locale, item.id)))).flat();
+      return { publications: orderBySearch([...batch, ...extra], pagination), pagination };
+    }
     const publications = (await Promise.all(pagination.items.map(item => repository.listPublic(locale, item.id)))).flat();
     return { publications: orderBySearch(publications, pagination), pagination };
   }

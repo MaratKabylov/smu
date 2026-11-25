@@ -28,7 +28,11 @@ function withAuthorTranslations(item: ArticleAuthor, rows: DirectoryTranslationR
 
 // Callers first resolve the visible articles. Public callers explicitly constrain
 // status/time/deletion, so an editorial session cannot reveal unpublished credits.
-export async function loadArticleCredits(client: DatabaseClient, articleIds: string[]) {
+export async function loadArticleCredits(
+  client: DatabaseClient,
+  articleIds: string[],
+  knownCategories?: Map<string, ArticleTaxonomyItem>,
+) {
   if (!articleIds.length) return new Map<string, { categories: ArticleTaxonomyItem[]; authors: Array<ArticleAuthor & { role: ArticleAuthorRole }> }>();
   const [categoryResult, authorResult] = await Promise.all([
     client.from("article_category_links").select("article_id, category_id, sort_order").in("article_id", articleIds).order("sort_order"),
@@ -39,11 +43,12 @@ export async function loadArticleCredits(client: DatabaseClient, articleIds: str
   const categories = (categoryResult.data ?? []);
   const authors = (authorResult.data ?? []);
   const categoryIds = [...new Set(categories.map(item => item.category_id))];
+  const missingCategoryIds = knownCategories ? categoryIds.filter(id => !knownCategories.has(id)) : categoryIds;
   const authorIds = [...new Set(authors.map(item => item.author_id))];
   const [itemsResult, peopleResult, itemTranslationsResult, peopleTranslationsResult] = await Promise.all([
-    categoryIds.length ? client.from("article_categories").select(taxonomyColumns).in("id", categoryIds) : { data: [], error: null },
+    missingCategoryIds.length ? client.from("article_categories").select(taxonomyColumns).in("id", missingCategoryIds) : { data: [], error: null },
     authorIds.length ? client.from("authors").select(authorPublicColumns).in("id", authorIds) : { data: [], error: null },
-    categoryIds.length ? client.from("article_category_translations").select("category_id, locale, name").in("category_id", categoryIds) : { data: [], error: null },
+    missingCategoryIds.length ? client.from("article_category_translations").select("category_id, locale, name").in("category_id", missingCategoryIds) : { data: [], error: null },
     authorIds.length ? client.from("author_translations").select("author_id, locale, name, bio").in("author_id", authorIds) : { data: [], error: null },
   ]);
   if (itemsResult.error) throw itemsResult.error;
@@ -52,7 +57,10 @@ export async function loadArticleCredits(client: DatabaseClient, articleIds: str
   if (peopleTranslationsResult.error) throw peopleTranslationsResult.error;
   const itemTranslations = (itemTranslationsResult.data ?? []);
   const peopleTranslations = (peopleTranslationsResult.data ?? []);
-  const items = new Map((itemsResult.data ?? []).map(row => [row.id, withTaxonomyTranslations(mapTaxonomyItem(row), itemTranslations.filter(item => item.category_id === row.id))]));
+  const items = new Map<string, ArticleTaxonomyItem>(knownCategories ?? []);
+  for (const row of itemsResult.data ?? []) {
+    items.set(row.id, withTaxonomyTranslations(mapTaxonomyItem(row), itemTranslations.filter(item => item.category_id === row.id)));
+  }
   const people = new Map((peopleResult.data ?? []).map(row => [row.id, withAuthorTranslations(mapAuthor(row), peopleTranslations.filter(item => item.author_id === row.id))]));
   return new Map(articleIds.map(id => [id, {
     categories: categories.filter(link => link.article_id === id).flatMap(link => items.has(link.category_id) ? [items.get(link.category_id)!] : []),

@@ -54,7 +54,7 @@ export function RichTextContent({ content, body, images = [] }: { content?: Rich
         const caption = typeof node.attrs?.caption === "string" ? node.attrs.caption : asset.caption;
         return <figure key={key}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={asset.url} alt={typeof node.attrs?.alt === "string" ? node.attrs.alt : asset.alt} loading="lazy" />
+          <img src={asset.url} alt={typeof node.attrs?.alt === "string" ? node.attrs.alt : asset.alt} loading="lazy" decoding="async" />
           {caption ? <figcaption>{caption}</figcaption> : null}
         </figure>;
       }

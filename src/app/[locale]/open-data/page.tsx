@@ -7,6 +7,8 @@ import { getPublicSiteContent } from "@/server/services/site-content.service";
 import { getPublicOpenData } from "@/server/services/open-data.service";
 import { PublicOpenData } from "@/components/open-data/PublicOpenData";
 
+export const revalidate = 300;
+
 export async function generateMetadata({
   params,
 }: {

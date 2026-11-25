@@ -9,6 +9,8 @@ import { ResearchOutputService } from "@/server/services/research-output.service
 import { isLocale, locales, type Locale } from "@/lib/i18n/locales";
 import type { ArticleLocale } from "@/types/domain/article";
 
+export const revalidate = 300;
+
 type Props = { params: Promise<{ locale: string; id: string }> };
 
 const resultByLocale = cache(async (locale: ArticleLocale, id: string) => {

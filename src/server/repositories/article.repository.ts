@@ -24,8 +24,11 @@ import type {
 type ArticleRow = Pick<Tables<"articles">, "id" | "author_id" | "scientific_reviewer_id" | "requires_scientific_review" | "content_version" | "approved_version" | "category_id" | "cover_media_id" | "content_type" | "status" | "published_at" | "created_at" | "updated_at" | "deleted_at">;
 
 type TranslationRow = Pick<Tables<"article_translations">, "id" | "article_id" | "locale" | "title" | "slug" | "excerpt" | "body" | "content_json" | "seo_title" | "seo_description">;
+type SummaryTranslationRow = Pick<Tables<"article_translations">, "id" | "article_id" | "locale" | "title" | "slug" | "excerpt" | "seo_title" | "seo_description">;
 
 type TaxonomyRow = Pick<Tables<"article_categories">, "id" | "slug" | "name_ru" | "name_kk" | "is_active">;
+
+const summaryTranslationColumns = "id, article_id, locale, title, slug, excerpt, seo_title, seo_description";
 
 function mapTaxonomy(row: TaxonomyRow): ArticleTaxonomyItem {
   return {
@@ -46,6 +49,20 @@ function mapTranslation(row: TranslationRow): ArticleTranslation {
     excerpt: row.excerpt,
     body: row.body,
     contentJson: row.content_json === null ? null : richTextDocumentSchema.parse(row.content_json),
+    seoTitle: row.seo_title,
+    seoDescription: row.seo_description,
+  };
+}
+
+function mapSummaryTranslation(row: SummaryTranslationRow): ArticleTranslation {
+  return {
+    id: row.id,
+    locale: row.locale,
+    title: row.title,
+    slug: row.slug,
+    excerpt: row.excerpt,
+    body: "",
+    contentJson: null,
     seoTitle: row.seo_title,
     seoDescription: row.seo_description,
   };
@@ -84,7 +101,7 @@ export class ArticleRepository {
 
     const { data, error } = await query;
     if (error) throw error;
-    return this.hydrate((data ?? []));
+    return this.hydrate(data ?? [], { summaryOnly: true });
   }
 
   async getById(id: string): Promise<Article | null> {
@@ -237,38 +254,49 @@ export class ArticleRepository {
     });
   }
 
-  private async hydrate(rows: ArticleRow[]): Promise<Article[]> {
+  private async hydrate(rows: ArticleRow[], options?: { summaryOnly?: boolean }): Promise<Article[]> {
     if (rows.length === 0) return [];
 
+    const summaryOnly = options?.summaryOnly ?? false;
     const articleIds = rows.map((row) => row.id);
     const categoryIds = [
       ...new Set(rows.flatMap((row) => (row.category_id ? [row.category_id] : []))),
     ];
     const authorIds = [...new Set(rows.map((row) => row.author_id))];
+    const contentTypes = [...new Set(rows.map((row) => row.content_type))];
 
     const [translationsResult, linksResult, profilesResult, categoriesResult, credits, typesResult, relations] =
       await Promise.all([
-        this.client
-          .from("article_translations")
-          .select("*")
-          .in("article_id", articleIds),
-        this.client
-          .from("article_tag_links")
-          .select("article_id, tag_id")
-          .in("article_id", articleIds),
+        summaryOnly
+          ? this.client
+              .from("article_translations")
+              .select(summaryTranslationColumns)
+              .in("article_id", articleIds)
+          : this.client
+              .from("article_translations")
+              .select("*")
+              .in("article_id", articleIds),
+        summaryOnly
+          ? Promise.resolve({ data: [] as Array<{ article_id: string; tag_id: string }>, error: null })
+          : this.client
+              .from("article_tag_links")
+              .select("article_id, tag_id")
+              .in("article_id", articleIds),
         this.client
           .from("profiles")
           .select("id, display_name")
           .in("id", authorIds),
-        categoryIds.length > 0
+        !summaryOnly && categoryIds.length > 0
           ? this.client
               .from("article_categories")
               .select("id, slug, name_ru, name_kk, is_active")
               .in("id", categoryIds)
-          : Promise.resolve({ data: [], error: null }),
+          : Promise.resolve({ data: [] as TaxonomyRow[], error: null }),
         loadArticleCredits(this.client, articleIds),
-        this.client.from("article_types").select(taxonomyColumns).in("slug", [...new Set(rows.map(row => row.content_type))]),
-        new ArticleRelationsRepository(this.client).loadLinks(articleIds),
+        this.client.from("article_types").select(taxonomyColumns).in("slug", contentTypes),
+        summaryOnly
+          ? Promise.resolve(new Map())
+          : new ArticleRelationsRepository(this.client).loadLinks(articleIds),
       ]);
 
     if (translationsResult.error) throw translationsResult.error;
@@ -277,7 +305,7 @@ export class ArticleRepository {
     if (categoriesResult.error) throw categoriesResult.error;
     if (typesResult.error) throw typesResult.error;
 
-    const links = (linksResult.data ?? []);
+    const links = linksResult.data ?? [];
     const tagIds = [...new Set(links.map((link) => link.tag_id))];
     const tagsResult =
       tagIds.length > 0
@@ -288,48 +316,58 @@ export class ArticleRepository {
         : { data: [], error: null };
     if (tagsResult.error) throw tagsResult.error;
 
-    const translations = translationsResult.data ?? [];
-    const profiles = (profilesResult.data ?? []);
-    const categories = (categoriesResult.data ?? []);
-    const tags = (tagsResult.data ?? []);
+    const translationsByArticle = new Map<string, ArticleTranslation[]>();
+    for (const row of translationsResult.data ?? []) {
+      const mapped = summaryOnly
+        ? mapSummaryTranslation(row as SummaryTranslationRow)
+        : mapTranslation(row as TranslationRow);
+      const list = translationsByArticle.get(row.article_id) ?? [];
+      list.push(mapped);
+      translationsByArticle.set(row.article_id, list);
+    }
 
-    return rows.map((row) => ({
-      id: row.id,
-      relations: relations.get(row.id) ?? [],
-      authorId: row.author_id,
-      scientificReviewerId: row.scientific_reviewer_id,
-      requiresScientificReview: row.requires_scientific_review,
-      contentVersion: row.content_version,
-      approvedVersion: row.approved_version,
-      authorName:
-        profiles.find((profile) => profile.id === row.author_id)?.display_name ??
-        null,
-      categories: credits.get(row.id)?.categories ?? [],
-      authors: credits.get(row.id)?.authors ?? [],
-      contentTypeItem: (typesResult.data ?? []).map(mapTaxonomyItem).find(item => item.slug === row.content_type) ?? null,
-      categoryId: row.category_id,
-      category:
-        categories.find((category) => category.id === row.category_id)
-          ? mapTaxonomy(
-              categories.find((category) => category.id === row.category_id)!,
-            )
-          : null,
-      coverMediaId: row.cover_media_id,
-      contentType: row.content_type,
-      status: row.status,
-      publishedAt: row.published_at,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-      deletedAt: row.deleted_at,
-      translations: translations
-        .filter((translation) => translation.article_id === row.id)
-        .map(mapTranslation),
-      tags: links
-        .filter((link) => link.article_id === row.id)
-        .flatMap((link) => {
-          const tag = tags.find((item) => item.id === link.tag_id);
-          return tag ? [mapTaxonomy(tag)] : [];
-        }),
-    }));
+    const profileMap = new Map((profilesResult.data ?? []).map((profile) => [profile.id, profile.display_name]));
+    const categoryMap = new Map((categoriesResult.data ?? []).map((category) => [category.id, mapTaxonomy(category)]));
+    const typeMap = new Map((typesResult.data ?? []).map((type) => [type.slug, mapTaxonomyItem(type)]));
+    const tagMap = new Map((tagsResult.data ?? []).map((tag) => [tag.id, mapTaxonomy(tag)]));
+    const tagsByArticle = new Map<string, ArticleTaxonomyItem[]>();
+    for (const link of links) {
+      const tag = tagMap.get(link.tag_id);
+      if (!tag) continue;
+      const list = tagsByArticle.get(link.article_id) ?? [];
+      list.push(tag);
+      tagsByArticle.set(link.article_id, list);
+    }
+
+    return rows.map((row) => {
+      const rowCredits = credits.get(row.id);
+      const fallbackCategory = row.category_id
+        ? (categoryMap.get(row.category_id) ?? rowCredits?.categories.find((item) => item.id === row.category_id) ?? null)
+        : null;
+      return {
+        id: row.id,
+        relations: relations.get(row.id) ?? [],
+        authorId: row.author_id,
+        scientificReviewerId: row.scientific_reviewer_id,
+        requiresScientificReview: row.requires_scientific_review,
+        contentVersion: row.content_version,
+        approvedVersion: row.approved_version,
+        authorName: profileMap.get(row.author_id) ?? null,
+        categories: rowCredits?.categories ?? [],
+        authors: rowCredits?.authors ?? [],
+        contentTypeItem: typeMap.get(row.content_type) ?? null,
+        categoryId: row.category_id,
+        category: fallbackCategory,
+        coverMediaId: row.cover_media_id,
+        contentType: row.content_type,
+        status: row.status,
+        publishedAt: row.published_at,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+        deletedAt: row.deleted_at,
+        translations: translationsByArticle.get(row.id) ?? [],
+        tags: tagsByArticle.get(row.id) ?? [],
+      };
+    });
   }
 }

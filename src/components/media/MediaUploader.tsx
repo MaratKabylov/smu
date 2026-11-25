@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { CheckCircle2, ImagePlus, LoaderCircle, UploadCloud } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
-import { isMediaFileAllowed, mediaBucketRules } from "@/lib/validation/media";
+import { isMediaFileAllowed, mediaBucketRules } from "@/lib/media/rules";
 import { mediaBuckets, type MediaBucket } from "@/types/domain/media";
 
 type UploadState = "idle" | "preparing" | "uploading" | "complete" | "error";

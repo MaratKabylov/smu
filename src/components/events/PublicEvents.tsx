@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { catalogMetadata, pageAlternates, openGraphLocale } from "@/lib/seo/metadata";
 import type { PublicQuery } from "@/lib/i18n/locales";
 import { Pagination } from "@/components/search/Pagination";
@@ -144,7 +145,7 @@ export async function PublicEventCatalog({
                   <article className="public-article-card science-card" key={event.id}>
                     <Link className="public-card-cover" href={href} aria-label={translation.title}>
                       {event.coverUrl ? (
-                        <img src={event.coverUrl} alt="" loading="lazy" />
+                        <img src={event.coverUrl} alt="" loading="lazy" decoding="async" />
                       ) : (
                         <CalendarDays aria-hidden="true" />
                       )}
@@ -265,7 +266,7 @@ export async function PublicEventDetail({ params }: { params: EventDetailParams 
           ) : null}
           {event.coverUrl ? (
             <figure className="public-article-cover">
-              <img src={event.coverUrl} alt={translation.title} />
+              <img src={event.coverUrl} alt={translation.title} decoding="async" fetchPriority="high" />
             </figure>
           ) : null}
           <div className="public-article-layout">
@@ -328,7 +329,9 @@ export async function PublicEventDetail({ params }: { params: EventDetailParams 
               ) : null}
             </aside>
           </div>
-          <RelatedArticles kind={"event"} id={event.id} locale={locale} />
+          <Suspense fallback={null}>
+            <RelatedArticles kind={"event"} id={event.id} locale={locale} />
+          </Suspense>
           <div className="science-return">
             <Link href={"/" + locale + "/events"}>{text.catalog}</Link>
           </div>

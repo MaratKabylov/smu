@@ -19,7 +19,7 @@ export class PublicArticleService {
     const repository = new PublicArticleRepository(client);
     const [pagination, taxonomy] = await Promise.all([
       new SearchRepository(client).publicPage(filters.locale, filters.query, "journal", { category: filters.category, tag: filters.tag }, page),
-      repository.listTaxonomy(),
+      repository.listTaxonomy(filters.locale),
     ]);
     const articles = await repository.list({ ...filters, query: "", category: "", tag: "" }, taxonomy, pagination.items.map(item => item.id));
     return { articles: orderBySearch(articles, pagination), taxonomy, pagination };

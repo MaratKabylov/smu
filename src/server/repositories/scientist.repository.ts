@@ -258,50 +258,129 @@ export class PublicScientistRepository {
       : null;
     const field = filters.field ? taxonomy.fields.find((item) => item.slug === filters.field) : null;
     if ((filters.organization && !organization) || (filters.field && !field)) return [];
-
-    let translationQuery = this.client
-      .from("scientist_profile_translations")
-      .select("*")
-      .eq("locale", filters.locale);
     if (selectedIds && !selectedIds.length) return [];
-    if (selectedIds) translationQuery = translationQuery.in("scientist_profile_id", selectedIds);
-    if (filters.query) translationQuery = translationQuery.ilike("full_name", `%${filters.query}%`);
-    const translationResult = await translationQuery;
-    if (translationResult.error) throw translationResult.error;
-    let translations = (translationResult.data ?? []);
-    if (field) {
-      const { data, error } = await this.client
-        .from("scientist_field_links")
-        .select("scientist_profile_id")
-        .eq("scientific_field_id", field.id);
-      if (error) throw error;
-      const matched = new Set(((data ?? [])).map((row) => row.scientist_profile_id));
-      translations = translations.filter((item) => matched.has(item.scientist_profile_id));
-    }
-    if (translations.length === 0) return [];
 
-    let profileQuery = this.client
-      .from("scientist_profiles")
-      .select("id, organization_id, avatar_media_id, status, public_email, orcid, scholar_url, verified_at, created_at, updated_at, deleted_at, verification_status, is_public, collaboration, content_version")
-      .eq("status", "verified")
-      .eq("is_public", true)
-      .is("deleted_at", null)
-      .in("id", translations.map((item) => item.scientist_profile_id))
-      .order("verified_at", { ascending: false })
-      .limit(100);
-    if (organization) profileQuery = profileQuery.eq("organization_id", organization.id);
-    const { data, error } = await profileQuery;
-    if (error) throw error;
-    const profiles = await new ScientistRepository(this.client).hydrateProfiles((data ?? []));
-    return profiles.flatMap((profile) => {
-      const translation = translations.find((item) => item.scientist_profile_id === profile.id);
-      return translation ? [{
+    const cardTranslationColumns = "id, scientist_profile_id, locale, full_name, slug, position, academic_degree, short_bio";
+    const cardProfileColumns = "id, organization_id, avatar_media_id, verified_at";
+    const organizationById = new Map(taxonomy.organizations.map((item) => [item.id, item]));
+    const fieldById = new Map(taxonomy.fields.map((item) => [item.id, item]));
+
+    type CardTranslationRow = Omit<TranslationRow, "biography">;
+    type CardProfileRow = Pick<Tables<"scientist_profiles">, "id" | "organization_id" | "avatar_media_id" | "verified_at">;
+
+    let translations: CardTranslationRow[];
+    let profilesData: CardProfileRow[];
+    let fieldLinksData: Array<{ scientist_profile_id: string; scientific_field_id: string }>;
+
+    if (selectedIds && !filters.query && !field && !organization) {
+      const [translationResult, profileResult, fieldLinksResult] = await Promise.all([
+        this.client
+          .from("scientist_profile_translations")
+          .select(cardTranslationColumns)
+          .eq("locale", filters.locale)
+          .in("scientist_profile_id", selectedIds),
+        this.client
+          .from("scientist_profiles")
+          .select(cardProfileColumns)
+          .eq("status", "verified")
+          .eq("is_public", true)
+          .is("deleted_at", null)
+          .in("id", selectedIds)
+          .order("verified_at", { ascending: false })
+          .limit(100),
+        this.client
+          .from("scientist_field_links")
+          .select("scientist_profile_id, scientific_field_id")
+          .in("scientist_profile_id", selectedIds),
+      ]);
+      if (translationResult.error) throw translationResult.error;
+      if (profileResult.error) throw profileResult.error;
+      if (fieldLinksResult.error) throw fieldLinksResult.error;
+      translations = translationResult.data ?? [];
+      profilesData = profileResult.data ?? [];
+      fieldLinksData = fieldLinksResult.data ?? [];
+    } else {
+      let translationQuery = this.client
+        .from("scientist_profile_translations")
+        .select(cardTranslationColumns)
+        .eq("locale", filters.locale);
+      if (selectedIds) translationQuery = translationQuery.in("scientist_profile_id", selectedIds);
+      if (filters.query) translationQuery = translationQuery.ilike("full_name", `%${filters.query}%`);
+      const translationResult = await translationQuery;
+      if (translationResult.error) throw translationResult.error;
+      translations = translationResult.data ?? [];
+      if (field) {
+        const { data, error } = await this.client
+          .from("scientist_field_links")
+          .select("scientist_profile_id")
+          .eq("scientific_field_id", field.id);
+        if (error) throw error;
+        const matched = new Set((data ?? []).map((row) => row.scientist_profile_id));
+        translations = translations.filter((item) => matched.has(item.scientist_profile_id));
+      }
+      if (translations.length === 0) return [];
+      const candidateIds = translations.map((item) => item.scientist_profile_id);
+      let profileQuery = this.client
+        .from("scientist_profiles")
+        .select(cardProfileColumns)
+        .eq("status", "verified")
+        .eq("is_public", true)
+        .is("deleted_at", null)
+        .in("id", candidateIds)
+        .order("verified_at", { ascending: false })
+        .limit(100);
+      if (organization) profileQuery = profileQuery.eq("organization_id", organization.id);
+      const [profileResult, fieldLinksResult] = await Promise.all([
+        profileQuery,
+        this.client
+          .from("scientist_field_links")
+          .select("scientist_profile_id, scientific_field_id")
+          .in("scientist_profile_id", candidateIds),
+      ]);
+      if (profileResult.error) throw profileResult.error;
+      if (fieldLinksResult.error) throw fieldLinksResult.error;
+      profilesData = profileResult.data ?? [];
+      fieldLinksData = fieldLinksResult.data ?? [];
+    }
+
+    if (profilesData.length === 0) return [];
+
+    const avatarIds = [...new Set(profilesData.flatMap((row) => (row.avatar_media_id ? [row.avatar_media_id] : [])))];
+    const avatarsResult = avatarIds.length > 0
+      ? await this.client
+          .from("media_assets")
+          .select("id, storage_bucket, storage_path")
+          .in("id", avatarIds)
+          .eq("status", "ready")
+          .is("deleted_at", null)
+      : { data: [], error: null };
+    if (avatarsResult.error) throw avatarsResult.error;
+
+    const avatarById = new Map((avatarsResult.data ?? []).map((item) => [item.id, item]));
+    const translationByProfileId = new Map(translations.map((item) => [item.scientist_profile_id, item]));
+    const fieldsByProfileId = new Map<string, ScientistTaxonomyItem[]>();
+    for (const link of fieldLinksData) {
+      const resolvedField = fieldById.get(link.scientific_field_id);
+      if (!resolvedField) continue;
+      const list = fieldsByProfileId.get(link.scientist_profile_id);
+      if (list) list.push(resolvedField);
+      else fieldsByProfileId.set(link.scientist_profile_id, [resolvedField]);
+    }
+
+    return profilesData.flatMap((profile) => {
+      const translation = translationByProfileId.get(profile.id);
+      if (!translation) return [];
+      const avatar = profile.avatar_media_id ? avatarById.get(profile.avatar_media_id) : undefined;
+      const avatarUrl = avatar
+        ? this.client.storage.from(avatar.storage_bucket).getPublicUrl(avatar.storage_path).data.publicUrl
+        : null;
+      return [{
         id: profile.id,
-        avatarUrl: profile.avatarUrl,
-        organization: profile.organization,
-        fields: profile.fields,
-        translation: mapTranslation(translation),
-      }] : [];
+        avatarUrl,
+        organization: profile.organization_id ? organizationById.get(profile.organization_id) ?? null : null,
+        fields: fieldsByProfileId.get(profile.id) ?? [],
+        translation: mapTranslation({ ...translation, biography: "" }),
+      }];
     });
   }
 
@@ -327,12 +406,6 @@ export class PublicScientistRepository {
     if (!profileData) return null;
     const [profile] = await new ScientistRepository(this.client).hydrateProfiles([profileData]);
     if (!profile) return null;
-    const { data: alternateData, error: alternateError } = await this.client
-      .from("scientist_profile_translations")
-      .select("*")
-      .eq("scientist_profile_id", profile.id)
-      .neq("locale", locale);
-    if (alternateError) throw alternateError;
     return {
       id: profile.id,
       avatarUrl: profile.avatarUrl,
@@ -342,7 +415,7 @@ export class PublicScientistRepository {
       publicEmail: profile.publicEmail,
       orcid: profile.orcid,
       scholarUrl: profile.scholarUrl,
-      alternateTranslations: ((alternateData ?? [])).map(mapTranslation),
+      alternateTranslations: profile.translations.filter((item) => item.locale !== locale),
       links: profile.links,
       collaboration: profile.collaboration,
     };

@@ -7,5 +7,5 @@ export async function GET(_request: Request, { params }: { params: Promise<{ loc
   const { locale } = await params;
   if (!isLocale(locale)) return new Response("Not found", { status: 404, headers: { "X-Robots-Tag": "noindex" } });
   const items = await new SeoService().feed(locale);
-  return new Response(rssFeed(locale, items), { headers: { "Content-Type": "application/rss+xml; charset=utf-8", "Cache-Control": "no-store" } });
+  return new Response(rssFeed(locale, items), { headers: { "Content-Type": "application/rss+xml; charset=utf-8", "Cache-Control": "public, max-age=300, s-maxage=300, stale-while-revalidate=600" } });
 }

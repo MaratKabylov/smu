@@ -6,7 +6,8 @@ export const publicCacheSeconds = 300;
 const publicReadRpcs = new Set([
   "search_public", "seo_public_page", "seo_public_feed",
   "public_article_relations", "public_related_articles", "list_public_publications", "list_public_work_publications",
-  "list_public_research_outputs",
+  "list_public_research_outputs", "list_all_public_research_outputs",
+  "list_public_research_program_projects", "list_public_programs_by_project",
   "list_opportunities",
   "read_public_site_content",
   "list_public_content_paths",
@@ -15,6 +16,7 @@ const publicReadRpcs = new Set([
 ]);
 
 export function createPublicFetch(origin: string, publicKey: string): typeof fetch {
+  const allowedOrigin = new URL(origin).origin;
   return (input, init) => {
     const request = input instanceof Request ? input : null;
     const url = new URL(request?.url ?? String(input));
@@ -25,8 +27,8 @@ export function createPublicFetch(origin: string, publicKey: string): typeof fet
     const anonymous = !headers.has("cookie") && (!authorization || authorization === "Bearer " + publicKey)
       && (!headers.has("apikey") || headers.get("apikey") === publicKey);
     const read = rpc ? publicReadRpcs.has(rpc) && (method === "GET" || method === "POST")
-      : /^\/rest\/v1\/[^/]+$/.test(url.pathname) && method === "GET";
-    const cacheable = url.origin === new URL(origin).origin && anonymous && read;
+      : /^\/rest\/v1\/[^/]+$/.test(url.pathname) && (method === "GET" || method === "HEAD");
+    const cacheable = url.origin === allowedOrigin && anonymous && read;
     return fetch(input, {
       ...init,
       cache: cacheable ? "force-cache" : "no-store",

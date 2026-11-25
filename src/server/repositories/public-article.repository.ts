@@ -52,7 +52,8 @@ function mapTranslation(row: TranslationRow): PublicArticleTranslation {
 export class PublicArticleRepository {
   constructor(private readonly client: DatabaseClient) {}
 
-  async listTaxonomy(): Promise<ArticleTaxonomy> {
+  async listTaxonomy(locale?: ArticleLocale): Promise<ArticleTaxonomy> {
+    const needEnglish = !locale || locale === "en";
     const [categoriesResult, tagsResult, typesResult, categoryTranslations, tagTranslations, typeTranslations] = await Promise.all([
       this.client
         .from("article_categories")
@@ -65,9 +66,15 @@ export class PublicArticleRepository {
         .eq("is_active", true)
         .order("name_ru"),
       this.client.from("article_types").select(taxonomyColumns).order("name_ru"),
-      this.client.from("article_category_translations").select("category_id, name").eq("locale", "en"),
-      this.client.from("article_tag_translations").select("tag_id, name").eq("locale", "en"),
-      this.client.from("article_type_translations").select("type_id, name").eq("locale", "en"),
+      needEnglish
+        ? this.client.from("article_category_translations").select("category_id, name").eq("locale", "en")
+        : Promise.resolve({ data: [] as Array<{ category_id: string; name: string }>, error: null }),
+      needEnglish
+        ? this.client.from("article_tag_translations").select("tag_id, name").eq("locale", "en")
+        : Promise.resolve({ data: [] as Array<{ tag_id: string; name: string }>, error: null }),
+      needEnglish
+        ? this.client.from("article_type_translations").select("type_id, name").eq("locale", "en")
+        : Promise.resolve({ data: [] as Array<{ type_id: string; name: string }>, error: null }),
     ]);
     if (categoriesResult.error) throw categoriesResult.error;
     if (tagsResult.error) throw tagsResult.error;
@@ -101,58 +108,87 @@ export class PublicArticleRepository {
       : null;
     if ((filters.category && !category) || (filters.tag && !tag)) return [];
 
-    let translationsQuery = this.client
-      .from("article_translations")
-      .select("article_id, locale, title, slug, excerpt")
-      .eq("locale", filters.locale);
     if (selectedIds && !selectedIds.length) return [];
-    if (selectedIds) translationsQuery = translationsQuery.in("article_id", selectedIds);
-    if (filters.query) {
-      translationsQuery = translationsQuery.ilike("title", `%${filters.query}%`);
-    }
-    const translationsResult = await translationsQuery;
-    if (translationsResult.error) throw translationsResult.error;
-    let translations = (translationsResult.data ?? []);
 
-    if (category) {
-      const { data, error } = await this.client.from("article_category_links").select("article_id").eq("category_id", category.id);
-      if (error) throw error;
-      const ids = new Set(((data ?? [])).map(row => row.article_id));
-      translations = translations.filter(row => ids.has(row.article_id));
-    }
-    if (tag) {
+    let translations: TranslationRow[];
+    let rawArticles: Array<Pick<Tables<"articles">, "id" | "category_id" | "cover_media_id" | "content_type" | "published_at" | "updated_at">>;
+
+    if (selectedIds && !category && !tag && !filters.query) {
+      const [translationsResult, articlesResult] = await Promise.all([
+        this.client
+          .from("article_translations")
+          .select("article_id, locale, title, slug, excerpt")
+          .eq("locale", filters.locale)
+          .in("article_id", selectedIds),
+        this.client
+          .from("articles")
+          .select("id, category_id, cover_media_id, content_type, published_at, updated_at")
+          .eq("status", "published")
+          .is("deleted_at", null)
+          // PostgreSQL resolves now on a cache miss; the URL remains reusable.
+          .lte("published_at", "now")
+          .in("id", selectedIds)
+          .order("published_at", { ascending: false })
+          .limit(60),
+      ]);
+      if (translationsResult.error) throw translationsResult.error;
+      if (articlesResult.error) throw articlesResult.error;
+      translations = translationsResult.data ?? [];
+      rawArticles = articlesResult.data ?? [];
+    } else {
+      let translationsQuery = this.client
+        .from("article_translations")
+        .select("article_id, locale, title, slug, excerpt")
+        .eq("locale", filters.locale);
+      if (selectedIds) translationsQuery = translationsQuery.in("article_id", selectedIds);
+      if (filters.query) {
+        translationsQuery = translationsQuery.ilike("title", `%${filters.query}%`);
+      }
+      const translationsResult = await translationsQuery;
+      if (translationsResult.error) throw translationsResult.error;
+      translations = (translationsResult.data ?? []);
+
+      if (category) {
+        const { data, error } = await this.client.from("article_category_links").select("article_id").eq("category_id", category.id);
+        if (error) throw error;
+        const ids = new Set(((data ?? [])).map(row => row.article_id));
+        translations = translations.filter(row => ids.has(row.article_id));
+      }
+      if (tag) {
+        const { data, error } = await this.client
+          .from("article_tag_links")
+          .select("article_id")
+          .eq("tag_id", tag.id);
+        if (error) throw error;
+        const taggedIds = new Set(
+          ((data ?? [])).map((row) => row.article_id),
+        );
+        translations = translations.filter((row) => taggedIds.has(row.article_id));
+      }
+      if (translations.length === 0) return [];
+
       const { data, error } = await this.client
-        .from("article_tag_links")
-        .select("article_id")
-        .eq("tag_id", tag.id);
+        .from("articles")
+        .select("id, category_id, cover_media_id, content_type, published_at, updated_at")
+        .eq("status", "published")
+        .is("deleted_at", null)
+        // PostgreSQL resolves now on a cache miss; the URL remains reusable.
+        .lte("published_at", "now")
+        .in("id", translations.map((row) => row.article_id))
+        .order("published_at", { ascending: false })
+        .limit(60);
       if (error) throw error;
-      const taggedIds = new Set(
-        ((data ?? [])).map((row) => row.article_id),
-      );
-      translations = translations.filter((row) => taggedIds.has(row.article_id));
+      rawArticles = data ?? [];
     }
-    if (translations.length === 0) return [];
 
-    const articlesQuery = this.client
-      .from("articles")
-      .select("id, category_id, cover_media_id, content_type, published_at, updated_at")
-      .eq("status", "published")
-      .is("deleted_at", null)
-      // PostgreSQL resolves now on a cache miss; the URL remains reusable.
-      .lte("published_at", "now")
-      .in("id", translations.map((row) => row.article_id))
-      .order("published_at", { ascending: false })
-      .limit(60);
-
-    const { data, error } = await articlesQuery;
-    if (error) throw error;
-    const articles = (data ?? []).map(row => requiredFields(row, "published_at"));
+    const articles = rawArticles.map(row => requiredFields(row, "published_at"));
     if (articles.length === 0) return [];
 
     const articleIds = articles.map((article) => article.id);
     const coverIds = articles.flatMap((article) =>
       article.cover_media_id ? [article.cover_media_id] : [],
     );
+    const knownCategories = new Map(taxonomy.categories.map(item => [item.id, item]));
     const [linksResult, coversResult, coverTranslationsResult, credits] = await Promise.all([
       this.client
         .from("article_tag_links")
@@ -169,10 +205,10 @@ export class PublicArticleRepository {
             .is("deleted_at", null)
             .in("storage_bucket", publicMediaBuckets)
         : Promise.resolve({ data: [], error: null }),
-      coverIds.length > 0
+      coverIds.length > 0 && filters.locale === "en"
         ? this.client.from("media_asset_translations").select("media_asset_id, alt_text, caption").eq("locale", "en").in("media_asset_id", coverIds)
         : Promise.resolve({ data: [], error: null }),
-      loadArticleCredits(this.client, articleIds),
+      loadArticleCredits(this.client, articleIds, knownCategories),
     ]);
     if (linksResult.error) throw linksResult.error;
     if (coversResult.error) throw coversResult.error;
@@ -245,7 +281,7 @@ export class PublicArticleRepository {
         .select("article_id, locale, title, slug, excerpt")
         .eq("article_id", article.id)
         .neq("locale", locale),
-      this.listTaxonomy(),
+      this.listTaxonomy(locale),
       this.client
         .from("article_tag_links")
         .select("article_id, tag_id")
@@ -262,7 +298,7 @@ export class PublicArticleRepository {
             .in("storage_bucket", publicMediaBuckets)
             .maybeSingle()
         : Promise.resolve({ data: null, error: null }),
-      article.cover_media_id
+      article.cover_media_id && locale === "en"
         ? this.client.from("media_asset_translations").select("media_asset_id, alt_text, caption").eq("media_asset_id", article.cover_media_id).eq("locale", "en").maybeSingle()
         : Promise.resolve({ data: null, error: null }),
       loadArticleCredits(this.client, [article.id]),

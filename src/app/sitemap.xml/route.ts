@@ -4,5 +4,5 @@ import { sitemapIndex } from "@/lib/seo/xml";
 export async function GET() {
   await connection();
   const maps = await sitemapIds();
-  return new Response(sitemapIndex(maps.map(map => map.id)), { headers: { "Content-Type": "application/xml; charset=utf-8", "Cache-Control": "no-store" } });
+  return new Response(sitemapIndex(maps.map(map => map.id)), { headers: { "Content-Type": "application/xml; charset=utf-8", "Cache-Control": "public, max-age=300, s-maxage=300, stale-while-revalidate=600" } });
 }

@@ -13,15 +13,18 @@ export async function getArticleImages(client: DatabaseClient, content: RichText
   }
   if (content) visit(content, 0);
   if (!ids.size) return [];
-  const { data, error } = await client.from("media_assets")
-    .select("id, storage_bucket, storage_path, alt_ru, alt_kk, caption_ru, caption_kk")
-    .in("id", [...ids]).eq("storage_bucket", "article-media").eq("status", "ready")
-    .like("mime_type", "image/%").is("deleted_at", null);
-  if (error) throw error;
-  const { data: translated, error: translatedError } = await client.from("media_asset_translations")
-    .select("media_asset_id, alt_text, caption").eq("locale", locale).in("media_asset_id", [...ids]);
-  if (translatedError) throw translatedError;
-  return (data ?? []).map(asset => ({
+  const [assetsResult, translatedResult] = await Promise.all([
+    client.from("media_assets")
+      .select("id, storage_bucket, storage_path, alt_ru, alt_kk, caption_ru, caption_kk")
+      .in("id", [...ids]).eq("storage_bucket", "article-media").eq("status", "ready")
+      .like("mime_type", "image/%").is("deleted_at", null),
+    client.from("media_asset_translations")
+      .select("media_asset_id, alt_text, caption").eq("locale", locale).in("media_asset_id", [...ids]),
+  ]);
+  if (assetsResult.error) throw assetsResult.error;
+  if (translatedResult.error) throw translatedResult.error;
+  const translated = translatedResult.data;
+  return (assetsResult.data ?? []).map(asset => ({
     id: asset.id,
     url: client.storage.from(asset.storage_bucket).getPublicUrl(asset.storage_path).data.publicUrl,
     alt: translated?.find(item => item.media_asset_id === asset.id)?.alt_text

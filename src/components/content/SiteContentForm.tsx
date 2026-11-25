@@ -2,7 +2,8 @@
 
 import { useActionState } from "react";
 import { locales } from "@/lib/i18n/locales";
-import { contentLabels, type ContentPage, type SiteContentCatalog } from "@/lib/validation/site-content";
+import { contentLabels } from "@/lib/site-content-constants";
+import type { ContentPage, SiteContentCatalog } from "@/lib/validation/site-content";
 
 type RecordProps =
   | { kind: "page"; record: ContentPage }

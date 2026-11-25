@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createPublicSupabaseClient } from "@/lib/supabase/public";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/service-role";
 import { isSupabaseConfigured } from "@/lib/env";
 
 const headers = {
-  "Cache-Control": "public, max-age=3600, s-maxage=3600",
+  "Cache-Control": "public, max-age=240, s-maxage=240",
   "X-Robots-Tag": "noindex",
 };
 
@@ -14,7 +14,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     return new Response(null, { status: 404, headers });
   }
 
-  const client = await createServerSupabaseClient();
+  const client = createPublicSupabaseClient();
   const { data: pub, error: pubError } = await client
     .from("publications")
     .select("id, status, deleted_at, published_at, file_media_id")

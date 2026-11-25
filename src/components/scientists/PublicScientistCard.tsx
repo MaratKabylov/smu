@@ -10,7 +10,7 @@ export function PublicScientistCard({ scientist, locale }: { scientist: Scientis
     : null;
   return <article className="scientist-card">
     <div className="scientist-card-photo">
-      {scientist.avatarUrl ? <img src={scientist.avatarUrl} alt={scientist.translation.fullName} /> : <span>{initials(scientist.translation.fullName)}</span>}
+      {scientist.avatarUrl ? <img src={scientist.avatarUrl} alt={scientist.translation.fullName} loading="lazy" decoding="async" /> : <span>{initials(scientist.translation.fullName)}</span>}
     </div>
     <div className="scientist-card-content">
       <div className="scientist-card-fields">{scientist.fields.slice(0, 2).map((field) => <span key={field.id}>{scientistTaxonomyName(field, locale)}</span>)}</div>

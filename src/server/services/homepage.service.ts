@@ -10,14 +10,25 @@ import { homeCatalogs, type Homepage, type HomeCard } from "@/lib/homepage";
 import type { Locale } from "@/lib/i18n/locales";
 import { isSupabaseConfigured } from "@/lib/env";
 
+const staticHomepageSections = new Set(["research_program", "mentorship"]);
+
 async function loadPublicHomepage(locale: Locale): Promise<Homepage> {
-  const content = await getPublicSiteContent(locale);
-  if (!isSupabaseConfigured()) return { settings: content.settings, sections: [], stats: { scientists: 0, researchProjects: 0, partners: 0 } };
+  if (!isSupabaseConfigured()) {
+    const content = await getPublicSiteContent(locale);
+    return { settings: content.settings, sections: [], stats: { scientists: 0, researchProjects: 0, partners: 0 } };
+  }
   const client = createPublicSupabaseClient();
   const homepageRepository = new HomepageRepository(client);
-  const [stats, sections] = await Promise.all([homepageRepository.metrics(), Promise.all(content.sections.map(async section => {
+  const [content, stats] = await Promise.all([
+    getPublicSiteContent(locale),
+    homepageRepository.metrics(),
+  ]);
+  const sections = await Promise.all(content.sections.map(async section => {
     const catalog = homeCatalogs[section.key];
     let items: HomeCard[] = [];
+    if (staticHomepageSections.has(section.key)) {
+      return { ...section, items };
+    }
     if (section.key === "events") {
       items = await homepageRepository.events(locale, section.display_limit);
     } else if (catalog) {
@@ -31,7 +42,7 @@ async function loadPublicHomepage(locale: Locale): Promise<Homepage> {
       if (page) items = [{ id: "partners", title: page.title, summary: page.summary, href: `/${locale}/pages/partners` }];
     }
     return { ...section, items };
-  }))]);
+  }));
   return { settings: content.settings, sections, stats };
 }
 

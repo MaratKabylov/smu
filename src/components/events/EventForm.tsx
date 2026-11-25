@@ -29,7 +29,7 @@ import {
   eventStatusLabels,
 } from "@/lib/events";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
-import { isMediaFileAllowed } from "@/lib/validation/media";
+import { isMediaFileAllowed } from "@/lib/media/rules";
 import {
   eventFormats,
   eventKinds,

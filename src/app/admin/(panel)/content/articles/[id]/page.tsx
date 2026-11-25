@@ -59,7 +59,18 @@ export default async function ArticleDetailPage({ params, searchParams }: Articl
   const article = await service.getById(result.access, id);
   if (!article || article.deletedAt) notFound();
 
-  const [taxonomy, initialMedia] = await Promise.all([
+  const canPublish = canPublishArticle(result.access);
+  const canEdit = canEditArticle(result.access, article.authorId);
+  const mayEdit =
+    canEdit &&
+    (article.status === "draft" || hasPermission(result.access, "articles.edit_any")) &&
+    (article.status !== "archived" || canPublish);
+  const mayReview = canReviewArticle(result.access, article.scientificReviewerId);
+  const mayDecideReview = mayReview &&
+    (!article.requiresScientificReview || article.scientificReviewerId === result.access.userId);
+  const mayAssignReviewer = hasPermission(result.access, "articles.edit_any") || canPublish;
+
+  const [taxonomy, initialMedia, reviewers, reviews] = await Promise.all([
     service.listTaxonomy(result.access, true),
     canViewMedia(result.access)
       ? new MediaService()
@@ -67,6 +78,10 @@ export default async function ArticleDetailPage({ params, searchParams }: Articl
           .then((assets) =>
             assets.filter((asset) => asset.storageBucket === "article-media"),
           )
+      : Promise.resolve([]),
+    mayAssignReviewer ? service.listReviewers(result.access) : Promise.resolve([]),
+    canEdit || mayReview || canPublish
+      ? service.listReviews(result.access, article.id, article)
       : Promise.resolve([]),
   ]);
   const media = [...initialMedia];
@@ -83,20 +98,6 @@ export default async function ArticleDetailPage({ params, searchParams }: Articl
       media.push(currentCover.asset);
     }
   }
-  const canPublish = canPublishArticle(result.access);
-  const canEdit = canEditArticle(result.access, article.authorId);
-  const mayEdit =
-    canEdit &&
-    (article.status === "draft" || hasPermission(result.access, "articles.edit_any")) &&
-    (article.status !== "archived" || canPublish);
-  const mayReview = canReviewArticle(result.access, article.scientificReviewerId);
-  const mayDecideReview = mayReview &&
-    (!article.requiresScientificReview || article.scientificReviewerId === result.access.userId);
-  const mayAssignReviewer = hasPermission(result.access, "articles.edit_any") || canPublish;
-  const reviewers = mayAssignReviewer ? await service.listReviewers(result.access) : [];
-  const reviews = canEdit || mayReview || canPublish
-    ? await service.listReviews(result.access, article.id)
-    : [];
   const mayDelete = canDeleteArticle(result.access);
   const updateAction = updateArticle.bind(null, article.id);
   const deleteAction = softDeleteArticle.bind(null, article.id);

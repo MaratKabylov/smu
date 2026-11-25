@@ -1,32 +1,12 @@
 import { z } from "zod";
+import {
+  openDataCategoryStatuses,
+  openDataCategoryStatusLabels,
+} from "@/lib/open-data-constants";
 
-export const openDataCategoryStatusSchema = z.enum([
-  "planned",
-  "collecting",
-  "processing",
-  "collected",
-]);
+export { openDataCategoryStatusLabels };
 
-export const openDataCategoryStatusLabels = {
-  ru: {
-    planned: "Запланировано",
-    collecting: "Ведётся сбор",
-    processing: "Ведётся обработка",
-    collected: "Данные собраны",
-  },
-  kk: {
-    planned: "Жоспарланған",
-    collecting: "Деректер жиналуда",
-    processing: "Өңделуде",
-    collected: "Деректер жиналды",
-  },
-  en: {
-    planned: "Planned",
-    collecting: "Collecting data",
-    processing: "Processing data",
-    collected: "Data collected",
-  },
-} as const;
+export const openDataCategoryStatusSchema = z.enum(openDataCategoryStatuses);
 
 export const openDataSettingsInputSchema = z.object({
   title_ru: z.string().trim().min(1).max(200),

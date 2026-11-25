@@ -8,6 +8,8 @@ import { PublicHomepage } from "@/components/content/PublicHomepage";
 import { homeCopy } from "@/lib/homepage";
 import { absoluteUrl } from "@/lib/seo/site";
 
+export const revalidate = 300;
+
 export async function generateMetadata({ params }: { params: LocaleParams }): Promise<Metadata> {
   const locale = requireLocale((await params).locale);
   const { settings } = await getPublicSiteContent(locale);

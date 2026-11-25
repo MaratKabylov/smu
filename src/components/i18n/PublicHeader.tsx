@@ -5,19 +5,10 @@ import Link from "next/link";
 import { Suspense, createContext, useContext, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Menu } from "lucide-react";
-import { getDictionary } from "@/lib/i18n/dictionaries";
+import { publicHeaderCopy } from "@/lib/i18n/header-copy";
 import { localizedPath, locales, publicSections, translationPaths, type Locale, type PublicSection } from "@/lib/i18n/locales";
 import { LanguageSwitcher } from "./LanguageSwitcher";
-import { searchCopy } from "@/lib/search";
-import { accountCopy } from "@/lib/i18n/account";
-import { legacyCopy } from "@/lib/i18n/scientific-legacy";
 import { publicInformationPageKeys, type PublicInformationPageKey } from "@/lib/i18n/site-navigation";
-
-const headerCopy = {
-  ru: { menu: "Открыть меню", apply: "Подать заявку", tasks: "Задачи региона", science: "IT for Science", about: "О Совете" },
-  kk: { menu: "Мәзірді ашу", apply: "Өтінім беру", tasks: "Өңір міндеттері", science: "IT for Science", about: "Кеңес туралы" },
-  en: { menu: "Open menu", apply: "Apply now", tasks: "Regional challenges", science: "IT for Science", about: "About the Council" },
-} as const;
 
 const secondarySections = ["journal", "publications", "results", "mentorship", "research-program", "events"] as const;
 
@@ -35,6 +26,7 @@ export type PublicHeaderProps = {
 type RegisteredHeader = {
   id: symbol;
   pathname: string;
+  signature: string;
   props: PublicHeaderProps;
 };
 
@@ -44,6 +36,19 @@ type PublicHeaderController = {
 };
 
 const PublicHeaderContext = createContext<PublicHeaderController | null>(null);
+
+function headerPropsSignature(props: PublicHeaderProps): string {
+  return JSON.stringify([
+    props.locale,
+    props.section,
+    props.home ?? false,
+    props.contentPage ?? false,
+    props.siteName ?? "",
+    props.informationPage ?? "",
+    props.translations ?? null,
+    props.paths ?? null,
+  ]);
+}
 
 function inferredHeaderProps(locale: Locale, pathname: string): PublicHeaderProps | null {
   const segments = pathname.split("/").filter(Boolean);
@@ -65,38 +70,37 @@ function Brand({ locale, label }: { locale: Locale; label: string }) {
       <Image
         className="public-logo"
         src={russian ? "/images/smu-logo-ru.png" : "/images/smu-logo-kk.png"}
-        width={1448}
-        height={1086}
+        width={450}
+        height={338}
         sizes="(max-width: 760px) 176px, 205px"
         alt={russian ? "Совет молодых учёных" : "Жас ғалымдар кеңесі"}
-        priority
+        loading="eager"
       />
     </span>
   </Link>;
 }
 
-function HeaderLinks({ locale, section, contentPage, informationPage }: {
+function HeaderLinks({ locale, section, contentPage, informationPage, prefetch }: {
   locale: Locale;
   section: PublicSection;
   contentPage: boolean;
   informationPage?: PublicInformationPageKey;
+  prefetch?: boolean;
 }) {
-  const copy = getDictionary(locale).common;
-  const text = headerCopy[locale];
+  const copy = publicHeaderCopy[locale];
   const current = (item: PublicSection) => !contentPage && item === section ? "page" as const : undefined;
   return <>
-    <Link href={localizedPath(locale, "/scientists")} aria-current={current("scientists")}>{copy.sections.scientists}</Link>
-    <Link href={localizedPath(locale, "/research")} aria-current={current("research")}>{copy.sections.research}</Link>
-    <Link href={localizedPath(locale, "/projects")} aria-current={current("projects")}>{text.tasks}</Link>
-    <Link href={`/${locale}/support/it_request`}>{text.science}</Link>
-    <Link href={localizedPath(locale, "/opportunities")} aria-current={current("opportunities")}>{copy.sections.opportunities}</Link>
-    <Link href={`/${locale}/pages/about`} aria-current={informationPage ? "page" : undefined}>{text.about}</Link>
+    <Link href={localizedPath(locale, "/scientists")} aria-current={current("scientists")} prefetch={prefetch}>{copy.sections.scientists}</Link>
+    <Link href={localizedPath(locale, "/research")} aria-current={current("research")} prefetch={prefetch}>{copy.sections.research}</Link>
+    <Link href={localizedPath(locale, "/projects")} aria-current={current("projects")} prefetch={prefetch}>{copy.tasks}</Link>
+    <Link href={`/${locale}/support/it_request`} prefetch={prefetch}>{copy.science}</Link>
+    <Link href={localizedPath(locale, "/opportunities")} aria-current={current("opportunities")} prefetch={prefetch}>{copy.sections.opportunities}</Link>
+    <Link href={`/${locale}/pages/about`} aria-current={informationPage ? "page" : undefined} prefetch={prefetch}>{copy.about}</Link>
   </>;
 }
 
 function PublicHeaderView({ locale, section, translations, paths, home = false, contentPage = false, siteName, informationPage }: PublicHeaderProps) {
-  const copy = getDictionary(locale).common;
-  const text = headerCopy[locale];
+  const copy = publicHeaderCopy[locale];
   const languagePaths = paths ?? (home ? Object.fromEntries(locales.map(language => [language, `/${language}`])) : translations ? translationPaths(section, translations) : undefined);
   const languageFallback = <div className="journal-language" aria-label={copy.language}>{locales.map(language => <Link key={language} href={languagePaths?.[language] ?? localizedPath(language, `/${section}`)} hrefLang={language} className={language === locale ? "is-active" : ""}>{language === "ru" ? "RU" : language === "kk" ? "ҚАЗ" : "EN"}</Link>)}</div>;
 
@@ -109,35 +113,61 @@ function PublicHeaderView({ locale, section, translations, paths, home = false, 
       <Suspense fallback={languageFallback}>
         <LanguageSwitcher locale={locale} section={section} paths={languagePaths} label={copy.language} />
       </Suspense>
-      <Link className="public-header-cta" href={`/${locale}/support/research_proposal`}>{text.apply}</Link>
+      <Link className="public-header-cta" href={`/${locale}/support/research_proposal`} prefetch={false}>{copy.apply}</Link>
       <details className="public-mobile-menu">
-        <summary aria-label={text.menu}><Menu aria-hidden="true" /></summary>
+        <summary aria-label={copy.menu}><Menu aria-hidden="true" /></summary>
         <nav aria-label={copy.navigation}>
           <div className="public-mobile-languages" aria-label={copy.language}>
-            {locales.map(language => <Link key={language} href={languagePaths?.[language] ?? localizedPath(language, `/${section}`)} hrefLang={language} lang={language} aria-current={language === locale ? "page" : undefined}>{language === "ru" ? "RU" : language === "kk" ? "ҚАЗ" : "EN"}</Link>)}
+            {locales.map(language => <Link key={language} href={languagePaths?.[language] ?? localizedPath(language, `/${section}`)} hrefLang={language} lang={language} aria-current={language === locale ? "page" : undefined} prefetch={false}>{language === "ru" ? "RU" : language === "kk" ? "ҚАЗ" : "EN"}</Link>)}
           </div>
-          <HeaderLinks locale={locale} section={section} contentPage={home || contentPage} informationPage={informationPage} />
-          {secondarySections.map(item => <Link key={item} href={localizedPath(locale, `/${item}`)} aria-current={!home && !contentPage && item === section ? "page" : undefined}>{copy.sections[item]}</Link>)}
-          {section === "mentorship" && <Link href={`/${locale}/mentorship/legacy`}>{legacyCopy[locale].title}</Link>}
-          <Link href={localizedPath(locale, "/search")}>{searchCopy[locale].find}</Link>
-          <Link href={localizedPath(locale, "/account")}>{accountCopy[locale].account}</Link>
-          <Link href={`/${locale}/support/research_proposal`}>{text.apply}</Link>
+          <HeaderLinks locale={locale} section={section} contentPage={home || contentPage} informationPage={informationPage} prefetch={false} />
+          {secondarySections.map(item => <Link key={item} href={localizedPath(locale, `/${item}`)} aria-current={!home && !contentPage && item === section ? "page" : undefined} prefetch={false}>{copy.sections[item]}</Link>)}
+          {section === "mentorship" && <Link href={`/${locale}/mentorship/legacy`} prefetch={false}>{copy.legacy}</Link>}
+          <Link href={localizedPath(locale, "/search")} prefetch={false}>{copy.find}</Link>
+          <Link href={localizedPath(locale, "/account")} prefetch={false}>{copy.account}</Link>
+          <Link href={`/${locale}/support/research_proposal`} prefetch={false}>{copy.apply}</Link>
         </nav>
       </details>
     </div>
   </div></header>;
 }
 
-function PublicHeaderRegistration(props: PublicHeaderProps) {
+function PublicHeaderRegistration({
+  locale,
+  section,
+  translations,
+  paths,
+  home,
+  contentPage,
+  siteName,
+  informationPage,
+}: PublicHeaderProps) {
   const controller = useContext(PublicHeaderContext)!;
   const pathname = usePathname();
   const id = useRef(Symbol("public-header"));
+  const signature = headerPropsSignature({
+    locale,
+    section,
+    translations,
+    paths,
+    home,
+    contentPage,
+    siteName,
+    informationPage,
+  });
 
   useLayoutEffect(() => {
     const registrationId = id.current;
-    controller.register({ id: registrationId, pathname, props });
+    controller.register({
+      id: registrationId,
+      pathname,
+      signature,
+      props: { locale, section, translations, paths, home, contentPage, siteName, informationPage },
+    });
     return () => controller.unregister(registrationId);
-  }, [controller, pathname, props]);
+    // signature captures every field of PublicHeaderProps by value
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [controller, pathname, signature]);
 
   return null;
 }
@@ -155,7 +185,9 @@ export function PersistentPublicHeaderProvider({ locale, children }: { locale: L
   const pathname = usePathname();
   const [registered, setRegistered] = useState<RegisteredHeader | null>(null);
   const controller = useMemo<PublicHeaderController>(() => ({
-    register: setRegistered,
+    register: next => setRegistered(current =>
+      current && current.pathname === next.pathname && current.signature === next.signature ? current : next
+    ),
     unregister: id => setRegistered(current => current?.id === id ? null : current),
   }), []);
   const inferred = inferredHeaderProps(locale, pathname);

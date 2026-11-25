@@ -1,6 +1,7 @@
 import { z } from "zod";
+import { legacyKinds } from "@/lib/scientific-legacy-constants";
 
-export const legacyKinds = ["topic", "archive", "unpublished_data", "dataset", "methodology", "collection", "unfinished_research", "scientific_school", "successor_topic"] as const;
+export { legacyKinds };
 export const legacyKindSchema = z.enum(legacyKinds);
 export const legacyStatusSchema = z.enum(["draft", "published", "archived"]);
 export const legacyUrlSchema = z.string().max(2000).refine(value => value === "" || /^https?:\/\/[A-Za-z0-9][A-Za-z0-9.-]*(:[0-9]{1,5})?([/?#][^\s]*)?$/.test(value));

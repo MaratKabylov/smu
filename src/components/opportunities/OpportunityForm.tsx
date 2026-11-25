@@ -7,7 +7,8 @@ import Link from "next/link";
 import { CustomSelect } from "@/components/articles/CustomSelect";
 import { eventLocalInput } from "@/lib/events";
 import { generateSlug } from "@/lib/articles/slug";
-import { opportunityTypes, type Opportunity } from "@/lib/validation/opportunity";
+import { opportunityTypes } from "@/lib/opportunity-constants";
+import type { Opportunity } from "@/lib/validation/opportunity";
 import { opportunityTypeLabels, opportunityErrorMessage } from "@/lib/i18n/opportunity";
 
 const statuses = { draft: "Черновик", published: "Опубликовано", archived: "В архиве" };

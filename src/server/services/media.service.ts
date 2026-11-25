@@ -189,7 +189,7 @@ export class MediaService {
       throw new MediaServiceError("invalid_upload", "Содержимое файла не соответствует формату или размеру.");
     }
     const target = serviceClient.storage.from(asset.storageBucket);
-    const stored = await target.upload(asset.storagePath, bytes, { contentType: asset.mimeType, upsert: false, cacheControl: "3600" });
+    const stored = await target.upload(asset.storagePath, bytes, { contentType: asset.mimeType, upsert: false, cacheControl: "31536000" });
     if (stored.error) throw new MediaServiceError("storage_error", "Не удалось сохранить проверенный файл.");
     try {
       // Metadata, readiness and audit commit atomically. The RPC is restricted

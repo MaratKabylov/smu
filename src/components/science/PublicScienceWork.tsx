@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { catalogMetadata, pageAlternates, openGraphLocale, noIndex } from "@/lib/seo/metadata";
 import type { PublicQuery } from "@/lib/i18n/locales";
 import { Pagination } from "@/components/search/Pagination";
@@ -52,7 +53,7 @@ export async function PublicScienceWorkCatalog({ kind, searchParams, params }: {
       {works.length ? <div className="public-article-grid">{works.map(work => {
         const translation = work.translations.find(item => item.locale === filters.locale)!;
         const href = base + "/" + translation.slug;
-        return <article className="public-article-card science-card" key={work.id}><Link className="public-card-cover" href={href} aria-label={translation.title}>{work.coverUrl ? <img src={work.coverUrl} alt="" loading="lazy" /> : <FlaskConical aria-hidden="true" />}</Link><div className="public-card-content"><div className="public-card-meta"><span>{scienceWorkStageLabels[filters.locale][work.stage]}</span></div><h2><Link href={href}>{translation.title}</Link></h2><p>{translation.summary}</p>{work.field ? <small className="science-card-field">{scientistTaxonomyName(work.field, filters.locale)}</small> : null}<Link className="public-card-link" href={href}>{text.read}<ArrowUpRight aria-hidden="true" /></Link></div></article>;
+        return <article className="public-article-card science-card" key={work.id}><Link className="public-card-cover" href={href} aria-label={translation.title}>{work.coverUrl ? <img src={work.coverUrl} alt="" loading="lazy" decoding="async" /> : <FlaskConical aria-hidden="true" />}</Link><div className="public-card-content"><div className="public-card-meta"><span>{scienceWorkStageLabels[filters.locale][work.stage]}</span></div><h2><Link href={href}>{translation.title}</Link></h2><p>{translation.summary}</p>{work.field ? <small className="science-card-field">{scientistTaxonomyName(work.field, filters.locale)}</small> : null}<Link className="public-card-link" href={href}>{text.read}<ArrowUpRight aria-hidden="true" /></Link></div></article>;
       })}</div> : <div className="journal-empty"><FlaskConical aria-hidden="true" /><h2>{text.empty}</h2><p>{text.hint}</p>{filters.query || filters.field || filters.organization || filters.stage !== "all" ? <Link href={base}>{text.reset}</Link> : null}</div>}
       <Pagination {...pagination} path={base} query={state} locale={locale} />
       </section>
@@ -86,7 +87,7 @@ export async function PublicScienceWorkDetail({ kind, params }: { kind: ScienceW
     <main className="public-article-page"><div className="public-article-shell">
       <nav className="public-breadcrumbs" aria-label={text.catalog}><Link href={base}><ArrowLeft aria-hidden="true" />{scienceWorkTitles[locale][kind]}</Link></nav>
       <header className="public-article-header"><div className="public-article-kicker">{work.field ? <Link href={base + "?field=" + work.field.slug}>{scientistTaxonomyName(work.field, locale)}</Link> : null}<span>{scienceWorkStageLabels[locale][work.stage]}</span></div><h1>{translation.title}</h1><p className="public-article-lead">{translation.summary}</p></header>
-      {work.coverUrl ? <figure className="public-article-cover"><img src={work.coverUrl} alt={translation.title} /></figure> : null}
+      {work.coverUrl ? <figure className="public-article-cover"><img src={work.coverUrl} alt={translation.title} decoding="async" fetchPriority="high" /></figure> : null}
       <div className="public-article-layout"><article className="science-work-body"><h2>{text.description}</h2>{translation.description.split(/\n{2,}/).map((paragraph, index) => <p key={index}>{paragraph}</p>)}{translation.results ? <><h2>{text.results}</h2>{translation.results.split(/\n{2,}/).map((paragraph, index) => <p key={index}>{paragraph}</p>)}</> : null}</article>
         <aside className="public-article-aside science-work-aside">
           {work.organization ? <div><small>{text.organization}</small><Link href={base + "?organization=" + work.organization.slug}>{scientistTaxonomyName(work.organization, locale)}</Link></div> : null}
@@ -98,7 +99,12 @@ export async function PublicScienceWorkDetail({ kind, params }: { kind: ScienceW
           {work.doi ? <a href={"https://doi.org/" + work.doi} target="_blank" rel="noreferrer">DOI: {work.doi}<ArrowUpRight aria-hidden="true" /></a> : null}
           {work.externalUrl ? <a href={work.externalUrl} target="_blank" rel="noreferrer">{text.external}<ArrowUpRight aria-hidden="true" /></a> : null}
         </aside>
-      </div>{kind === "project" ? <ProjectPrograms workId={work.id} locale={locale} /> : null}<PublicResearchOutputs workId={work.id} locale={locale} /><WorkPublications id={work.id} locale={locale} /><RelatedArticles kind={kind} id={work.id} locale={locale} /><div className="science-return"><Link href={base}>{text.catalog}</Link></div>
+      </div>
+      {kind === "project" ? <Suspense fallback={null}><ProjectPrograms workId={work.id} locale={locale} /></Suspense> : null}
+      <Suspense fallback={null}><PublicResearchOutputs workId={work.id} locale={locale} /></Suspense>
+      <Suspense fallback={null}><WorkPublications id={work.id} locale={locale} /></Suspense>
+      <Suspense fallback={null}><RelatedArticles kind={kind} id={work.id} locale={locale} /></Suspense>
+      <div className="science-return"><Link href={base}>{text.catalog}</Link></div>
     </div></main><footer className="journal-footer"><span>© {new Date().getFullYear()} {text.footer}</span><Link href={base}>{scienceWorkTitles[locale][kind]}</Link></footer>
   </>;
 }

@@ -9,10 +9,13 @@ export class ResearchOutputRepository {
   async list() {
     const { data, error } = await this.client.from("research_outputs")
       .select("id,owner_id,status,version,kind,updated_at,research_output_versions(version,snapshot,created_at)")
-      .order("updated_at", { ascending: false }).limit(100);
+      .order("updated_at", { ascending: false })
+      .order("version", { referencedTable: "research_output_versions", ascending: false })
+      .limit(1, { referencedTable: "research_output_versions" })
+      .limit(100);
     if (error) throw error;
     return (data ?? []).map(row => {
-      const snapshot = row.research_output_versions.find(v => v.version === row.version)?.snapshot;
+      const snapshot = (row.research_output_versions.find(v => v.version === row.version) ?? row.research_output_versions[0])?.snapshot;
       return {
         id: row.id,
         ownerId: row.owner_id,

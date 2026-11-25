@@ -1,15 +1,16 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { Check, Eye, Image as ImageIcon, RotateCcw, Save, Trash2, X } from "lucide-react";
 import Link from "next/link";
-import { RichTextEditor } from "./RichTextEditor";
 import { ArticleRelationsEditor } from "./ArticleRelationsEditor";
 import type { ArticleRelationLink } from "@/types/domain/article-relations";
 import { ArticleAuthorsEditor } from "./ArticleAuthorsEditor";
 import { CustomSelect } from "./CustomSelect";
 import { generateSlug } from "@/lib/articles/slug";
+import { plainTextDocument, richTextToPlainText } from "@/lib/articles/rich-text-plain";
 import { ArticleAutosave, type SaveState } from "@/lib/articles/autosave";
 import { saveArticleDraft } from "@/server/actions/article.actions";
 import {
@@ -18,6 +19,20 @@ import {
   type ArticleTaxonomy,
 } from "@/types/domain/article";
 import type { MediaAsset } from "@/types/domain/media";
+
+const RichTextEditor = dynamic(
+  () => import("./RichTextEditor").then((mod) => mod.RichTextEditor),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="rich-text-editor-shell wp-styled-editor" aria-busy="true">
+        <div className="rt-editor-content-wrap" style={{ minHeight: "360px", padding: "20px", color: "#64748b" }}>
+          Загрузка редактора…
+        </div>
+      </div>
+    ),
+  },
+);
 
 type ArticleFormProps = {
   action: (formData: FormData) => void | Promise<void>;
@@ -47,9 +62,15 @@ export function ArticleForm({
   const [relations, setRelations] = useState<ArticleRelationLink[]>(() => article?.relations ?? []);
   const [categoryIds, setCategoryIds] = useState<string[]>(() => article?.categories.map(item => item.id) ?? []);
   const [activeLocale, setActiveLocale] = useState<"Ru" | "Kk" | "En">("Ru");
+  const [mountedLocales, setMountedLocales] = useState<Set<"Ru" | "Kk" | "En">>(() => new Set(["Ru"]));
   const [coverMediaId, setCoverMediaId] = useState<string>(() => article?.coverMediaId ?? "");
   const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
   const [mediaSearchQuery, setMediaSearchQuery] = useState("");
+
+  const selectLocale = (locale: "Ru" | "Kk" | "En") => {
+    setActiveLocale(locale);
+    setMountedLocales((prev) => (prev.has(locale) ? prev : new Set([...prev, locale])));
+  };
 
   const id = article?.id;
   const version = article?.contentVersion;
@@ -149,7 +170,7 @@ export function ArticleForm({
               role="tab"
               aria-selected={activeLocale === "Ru"}
               className={`wp-lang-tab ${activeLocale === "Ru" ? "is-active" : ""}`}
-              onClick={() => setActiveLocale("Ru")}
+              onClick={() => selectLocale("Ru")}
             >
               <span className={`wp-tab-dot ${ru?.title ? "is-filled" : ""}`} />
               Русский
@@ -159,7 +180,7 @@ export function ArticleForm({
               role="tab"
               aria-selected={activeLocale === "Kk"}
               className={`wp-lang-tab ${activeLocale === "Kk" ? "is-active" : ""}`}
-              onClick={() => setActiveLocale("Kk")}
+              onClick={() => selectLocale("Kk")}
             >
               <span className={`wp-tab-dot ${kk?.title ? "is-filled" : ""}`} />
               Қазақша
@@ -169,7 +190,7 @@ export function ArticleForm({
               role="tab"
               aria-selected={activeLocale === "En"}
               className={`wp-lang-tab ${activeLocale === "En" ? "is-active" : ""}`}
-              onClick={() => setActiveLocale("En")}
+              onClick={() => selectLocale("En")}
             >
               <span className={`wp-tab-dot ${en?.title ? "is-filled" : ""}`} />
               English <small className="wp-tab-optional">необяз.</small>
@@ -237,6 +258,7 @@ export function ArticleForm({
             languageLabel="Русская версия"
             value={ru}
             active={activeLocale === "Ru"}
+            editorMounted={mountedLocales.has("Ru")}
             disabled={disabled}
             media={media}
             onChange={changed}
@@ -246,6 +268,7 @@ export function ArticleForm({
             languageLabel="Қазақша нұсқа"
             value={kk}
             active={activeLocale === "Kk"}
+            editorMounted={mountedLocales.has("Kk")}
             disabled={disabled}
             media={media}
             onChange={changed}
@@ -255,6 +278,7 @@ export function ArticleForm({
             languageLabel="English version (optional)"
             value={en}
             active={activeLocale === "En"}
+            editorMounted={mountedLocales.has("En")}
             disabled={disabled}
             media={media}
             onChange={changed}
@@ -517,6 +541,7 @@ type TranslationWorkspaceProps = {
   languageLabel: string;
   value?: Article["translations"][number];
   active: boolean;
+  editorMounted: boolean;
   disabled: boolean;
   media: MediaAsset[];
   onChange: () => void;
@@ -527,6 +552,7 @@ function TranslationWorkspace({
   locale,
   value,
   active,
+  editorMounted,
   disabled,
   media,
   onChange,
@@ -538,6 +564,12 @@ function TranslationWorkspace({
   const [excerpt, setExcerpt] = useState(value?.excerpt ?? "");
   const [seoTitle, setSeoTitle] = useState(value?.seoTitle ?? "");
   const [seoDescription, setSeoDescription] = useState(value?.seoDescription ?? "");
+  const initialDocument = useMemo(
+    () => value?.contentJson ?? plainTextDocument(value?.body ?? ""),
+    [value?.body, value?.contentJson],
+  );
+  const initialContentJson = useMemo(() => JSON.stringify(initialDocument), [initialDocument]);
+  const initialPlainBody = useMemo(() => richTextToPlainText(initialDocument), [initialDocument]);
 
   const handleTitleChange = (newTitle: string) => {
     setTitle(newTitle);
@@ -627,7 +659,14 @@ function TranslationWorkspace({
 
       {/* Rich Text Editor */}
       <div className="wp-editor-content-box">
-        <RichTextEditor locale={locale} value={value} disabled={disabled} media={media} onChange={onChange} />
+        {editorMounted ? (
+          <RichTextEditor locale={locale} value={value} disabled={disabled} media={media} onChange={onChange} />
+        ) : (
+          <>
+            <input type="hidden" name={`contentJson${locale}`} value={initialContentJson} />
+            <input type="hidden" name={`body${locale}`} value={initialPlainBody} />
+          </>
+        )}
       </div>
 
       {/* Collapsible SEO Box */}

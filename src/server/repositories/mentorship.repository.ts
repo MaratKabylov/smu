@@ -6,12 +6,12 @@ import { ScientistRepository } from "./scientist.repository";
 import { ScienceWorkRepository } from "./science-work.repository";
 import type { ApplicationStatus, MentorshipApplication, MentorshipOffer, MentorshipStatus, MentorshipKind, MentorshipRelationStatus } from "@/types/domain/mentorship";
 import { mentorshipProgressSchema } from "@/lib/validation/mentorship";
-import type { ScientistLocale } from "@/types/domain/scientist";
+import type { ScientistLocale, ScientistTaxonomy } from "@/types/domain/scientist";
 
 type OfferRow = Pick<Tables<"mentorship_offers">, "id" | "scientist_id" | "field_id" | "format" | "capacity" | "status" | "updated_at">;
 
 export class MentorshipRepository {
-  constructor(private readonly client: DatabaseClient) {}
+  constructor(private readonly client: DatabaseClient) { }
 
   options() { return new ScienceWorkRepository(this.client).options(); }
 
@@ -28,27 +28,49 @@ export class MentorshipRepository {
     return data ? (await this.hydrate([data]))[0] ?? null : null;
   }
   async listPublic(filters: MentorshipFilters, selectedIds?: string[]) {
-    const taxonomy = await new ScientistRepository(this.client).listTaxonomy();
-    let query = this.client.from("mentorship_offers").select("*").eq("status", "published").is("deleted_at", null).order("updated_at", { ascending: false }).limit(100);
-    if (selectedIds && !selectedIds.length) return { offers: [], taxonomy };
-    if (selectedIds) query = query.in("id", selectedIds);
-    if (filters.format !== "all") query = query.eq("format", filters.format);
-    if (filters.field) {
-      const field = taxonomy.fields.find(item => item.slug === filters.field);
-      if (!field) return { offers: [], taxonomy };
-      query = query.eq("field_id", field.id);
+    if (selectedIds && !selectedIds.length) {
+      const taxonomy = await new ScientistRepository(this.client).listTaxonomy();
+      return { offers: [], taxonomy };
     }
-    if (filters.query) {
-      const result = await this.client.from("mentorship_offer_translations").select("offer_id").eq("locale", filters.locale)
-        .ilike("title", "%" + filters.query.replace(/[\\%_]/g, character => "\\" + character) + "%");
-      if (result.error) throw result.error;
-      const ids = (result.data ?? []).map(item => item.offer_id);
-      if (!ids.length) return { offers: [], taxonomy };
-      query = query.in("id", ids);
+    const canParallelize = Boolean(selectedIds && !filters.field && !filters.query);
+    let taxonomy: ScientistTaxonomy;
+    let rows: OfferRow[];
+
+    if (canParallelize) {
+      let query = this.client.from("mentorship_offers").select("*").eq("status", "published").is("deleted_at", null).in("id", selectedIds!).order("updated_at", { ascending: false }).limit(100);
+      if (filters.format !== "all") query = query.eq("format", filters.format);
+      const [loadedTaxonomy, offersResult] = await Promise.all([
+        new ScientistRepository(this.client).listTaxonomy(),
+        query,
+      ]);
+      if (offersResult.error) throw offersResult.error;
+      taxonomy = loadedTaxonomy;
+      rows = offersResult.data ?? [];
+    } else {
+      taxonomy = await new ScientistRepository(this.client).listTaxonomy();
+      let query = this.client.from("mentorship_offers").select("*").eq("status", "published").is("deleted_at", null).order("updated_at", { ascending: false }).limit(100);
+      if (selectedIds) query = query.in("id", selectedIds);
+      if (filters.format !== "all") query = query.eq("format", filters.format);
+      if (filters.field) {
+        const field = taxonomy.fields.find(item => item.slug === filters.field);
+        if (!field) return { offers: [], taxonomy };
+        query = query.eq("field_id", field.id);
+      }
+      if (filters.query) {
+        const result = await this.client.from("mentorship_offer_translations").select("offer_id").eq("locale", filters.locale)
+          .ilike("title", "%" + filters.query.replace(/[\\%_]/g, character => "\\" + character) + "%");
+        if (result.error) throw result.error;
+        const ids = (result.data ?? []).map(item => item.offer_id);
+        if (!ids.length) return { offers: [], taxonomy };
+        query = query.in("id", ids);
+      }
+      const { data, error } = await query;
+      if (error) throw error;
+      rows = data ?? [];
     }
-    const { data, error } = await query;
-    if (error) throw error;
-    const offers = (await this.hydrate((data ?? []), true)).filter(item => item.translations.some(t => t.locale === filters.locale) && item.mentor.some(t => t.locale === filters.locale));
+
+    const offers = (await this.hydrate(rows, true, { taxonomy, catalogLocale: filters.locale }))
+      .filter(item => item.translations.some(t => t.locale === filters.locale) && item.mentor.some(t => t.locale === filters.locale));
     return { offers, taxonomy };
   }
   async getPublicBySlug(locale: ScientistLocale, slug: string) {
@@ -68,8 +90,10 @@ export class MentorshipRepository {
     if (status !== "all") query = query.eq("status", status);
     const { data, error } = await query;
     if (error) throw error;
-    return ((data ?? [])).map(row => ({ id: row.id, offerId: row.offer_id, locale: row.locale, fullName: row.full_name,
-      email: row.email, motivation: row.motivation, status: row.status, managerNote: row.manager_note, createdAt: row.created_at, consentAt: row.consent_at }));
+    return ((data ?? [])).map(row => ({
+      id: row.id, offerId: row.offer_id, locale: row.locale, fullName: row.full_name,
+      email: row.email, motivation: row.motivation, status: row.status, managerNote: row.manager_note, createdAt: row.created_at, consentAt: row.consent_at
+    }));
   }
   async save(actor: string, input: MentorshipInput, id: string | null) {
     const { data, error } = await this.client.rpc("save_mentorship_offer", { p_id: id, p_actor: actor, p_input: input });
@@ -82,8 +106,10 @@ export class MentorshipRepository {
     if (error) throw error;
   }
   async submit(input: MentorshipApplicationInput) {
-    const { error } = await this.client.rpc("submit_mentorship_application", { p_offer: input.offerId,
-      p_input: { locale: input.locale, fullName: input.fullName, email: input.email, motivation: input.motivation, consent: input.consent } });
+    const { error } = await this.client.rpc("submit_mentorship_application", {
+      p_offer: input.offerId,
+      p_input: { locale: input.locale, fullName: input.fullName, email: input.email, motivation: input.motivation, consent: input.consent }
+    });
     if (error) throw error;
   }
   async updateApplication(id: string, status: ApplicationStatus, note: string, kind: MentorshipKind = "mentor") {
@@ -103,26 +129,47 @@ export class MentorshipRepository {
     const { error } = await this.client.rpc("withdraw_mentorship_application", { p_id: id });
     if (error) throw error;
   }
-  private async hydrate(rows: OfferRow[], publicOnly = false): Promise<MentorshipOffer[]> {
+  private async hydrate(
+    rows: OfferRow[],
+    publicOnly = false,
+    options?: { taxonomy?: ScientistTaxonomy; catalogLocale?: ScientistLocale },
+  ): Promise<MentorshipOffer[]> {
     if (!rows.length) return [];
+    const scientistIds = [...new Set(rows.map(row => row.scientist_id))];
+    const offerIds = rows.map(row => row.id);
+    const catalogLocale = options?.catalogLocale;
+    const translationsQuery = catalogLocale
+      ? this.client.from("mentorship_offer_translations").select("offer_id, locale, title, slug, summary").in("offer_id", offerIds).eq("locale", catalogLocale)
+      : this.client.from("mentorship_offer_translations").select("*").in("offer_id", offerIds);
+
+    const [scientists, translations, mentors, taxonomy] = await Promise.all([
+      publicOnly
+        ? this.client.from("scientist_profiles").select("id").in("id", scientistIds).eq("status", "verified").eq("is_public", true).is("deleted_at", null)
+        : Promise.resolve({ data: null as Array<{ id: string }> | null, error: null }),
+      translationsQuery,
+      this.client.from("scientist_profile_translations").select("scientist_profile_id, locale, full_name, slug").in("scientist_profile_id", scientistIds),
+      options?.taxonomy ? Promise.resolve(options.taxonomy) : new ScientistRepository(this.client).listTaxonomy(),
+    ]);
+    if (scientists.error) throw scientists.error;
+    if (translations.error) throw translations.error;
+    if (mentors.error) throw mentors.error;
+
     let visibleRows = rows;
     if (publicOnly) {
-      const scientists = await this.client.from("scientist_profiles").select("id").in("id", [...new Set(rows.map(row => row.scientist_id))]).eq("status", "verified").eq("is_public", true).is("deleted_at", null);
-      if (scientists.error) throw scientists.error;
       const ids = new Set((scientists.data ?? []).map(item => item.id));
       visibleRows = rows.filter(row => ids.has(row.scientist_id));
     }
     if (!visibleRows.length) return [];
-    const [translations, mentors, taxonomy] = await Promise.all([
-      this.client.from("mentorship_offer_translations").select("*").in("offer_id", visibleRows.map(row => row.id)),
-      this.client.from("scientist_profile_translations").select("scientist_profile_id, locale, full_name, slug").in("scientist_profile_id", [...new Set(visibleRows.map(row => row.scientist_id))]),
-      new ScientistRepository(this.client).listTaxonomy(),
-    ]);
-    if (translations.error) throw translations.error;
-    if (mentors.error) throw mentors.error;
+
     return visibleRows.filter(row => !publicOnly || taxonomy.fields.some(field => field.id === row.field_id)).map(row => ({
       id: row.id, scientistId: row.scientist_id, fieldId: row.field_id, format: row.format, capacity: row.capacity, status: row.status, updatedAt: row.updated_at,
-      translations: (translations.data ?? []).filter(t => t.offer_id === row.id).map(t => ({ locale: t.locale, title: t.title, slug: t.slug, summary: t.summary, description: t.description })),
+      translations: (translations.data ?? []).filter(t => t.offer_id === row.id).map(t => ({
+        locale: t.locale,
+        title: t.title,
+        slug: t.slug,
+        summary: t.summary,
+        description: "description" in t && typeof t.description === "string" ? t.description : "",
+      })),
       mentor: (mentors.data ?? []).filter(t => t.scientist_profile_id === row.scientist_id).map(t => ({ locale: t.locale, fullName: t.full_name, slug: t.slug })),
       field: taxonomy.fields.find(field => field.id === row.field_id) ?? null,
     }));

@@ -116,6 +116,7 @@ export function AdminSidebar() {
                   className={`admin-nav-item${active ? " is-active" : ""}`}
                   href={item.href}
                   key={item.label}
+                  prefetch={false}
                 >
                   <Icon aria-hidden="true" />
                   <span>{item.label}</span>

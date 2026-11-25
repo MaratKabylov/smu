@@ -3,7 +3,8 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { legacyCopy } from "@/lib/i18n/scientific-legacy";
 import { locales, type Locale } from "@/lib/i18n/locales";
-import { legacyKinds, type LegacyOwnerItem } from "@/lib/validation/scientific-legacy";
+import { legacyKinds } from "@/lib/scientific-legacy-constants";
+import type { LegacyOwnerItem } from "@/lib/validation/scientific-legacy";
 import { saveScientificLegacy, setScientificLegacyConsent, type LegacyFormState } from "@/server/actions/scientific-legacy.actions";
 
 export function LegacyForm({ locale, record }: { locale: Locale; record?: LegacyOwnerItem }) {

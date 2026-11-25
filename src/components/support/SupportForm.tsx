@@ -16,8 +16,8 @@ import {
   supportFields,
   supportPriorities,
   type SupportKind,
-  type SupportRecord,
-} from "@/lib/validation/support-request";
+} from "@/lib/support-request-constants";
+import type { SupportRecord } from "@/lib/validation/support-request";
 import {
   submitSupportRequest,
   updateSupportRequest,

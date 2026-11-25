@@ -23,17 +23,20 @@ describe("anonymous public Supabase cache", () => {
     expect(mocks.create).toHaveBeenCalledTimes(2);
     expect(mocks.create.mock.calls[0][2]).not.toHaveProperty("cookies");
   });
-  it.each(["search_public", "seo_public_page", "seo_public_feed", "public_article_relations", "public_related_articles", "list_public_publications", "list_public_work_publications", "read_public_site_content", "list_public_content_paths", "list_homepage_results", "list_homepage_events"])("caches the read-only %s POST including its body", async rpc => {
+  it.each(["search_public", "seo_public_page", "seo_public_feed", "public_article_relations", "public_related_articles", "list_public_publications", "list_public_work_publications", "list_public_research_outputs", "list_all_public_research_outputs", "list_public_research_program_projects", "list_public_programs_by_project", "read_public_site_content", "list_public_content_paths", "list_homepage_results", "list_homepage_events"])("caches the read-only %s POST including its body", async rpc => {
     createPublicSupabaseClient();
     const init = { method: "POST", headers: anonymous, body: '{"p_locale":"kk","p_page":2}', cache: "no-store" };
     const url = origin + "/rest/v1/rpc/" + rpc;
     await mocks.create.mock.calls[0][2].global.fetch(url, init);
     expect(mocks.fetch).toHaveBeenCalledWith(url, { ...init, cache: "force-cache", next: { revalidate: publicCacheSeconds, tags: [publicContentTag] } });
   });
-  it("keeps locale, filters, pagination and projections in GET cache keys", async () => {
+  it("keeps locale, filters, pagination and projections in GET and HEAD cache keys", async () => {
     const url = origin + "/rest/v1/article_translations?locale=eq.en&slug=eq.water&select=title";
     await publicFetch(new URL(url), { headers: anonymous });
     expect(mocks.fetch).toHaveBeenCalledWith(new URL(url), expect.objectContaining({ cache: "force-cache", next: { revalidate: publicCacheSeconds, tags: [publicContentTag] } }));
+    const headUrl = origin + "/rest/v1/scientist_profiles?select=id&status=eq.verified";
+    await publicFetch(headUrl, { method: "HEAD", headers: anonymous });
+    expect(mocks.fetch).toHaveBeenCalledWith(headUrl, expect.objectContaining({ method: "HEAD", cache: "force-cache", next: { revalidate: publicCacheSeconds, tags: [publicContentTag] } }));
   });
   it.each([
     ["/rest/v1/articles", "POST", anonymous],

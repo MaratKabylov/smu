@@ -187,12 +187,13 @@ function HeroVisual() {
   return <div className={styles.heroVisual} aria-hidden="true">
     <Image
       className={styles.heroArtwork}
-      src="/images/hero-aktobe-science.png"
-      width={1536}
-      height={1024}
+      src="/images/hero-aktobe-science.webp"
+      width={1420}
+      height={947}
       sizes="(max-width: 820px) 92vw, 52vw"
       alt=""
       priority
+      fetchPriority="high"
     />
   </div>;
 }

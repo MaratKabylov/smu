@@ -4,14 +4,14 @@ import type { DatabaseClient } from "@/lib/supabase/database";
 import type { PublicScienceWorkFilters, ScienceWorkInput, ScienceWorkListFilters } from "@/lib/validation/science-work";
 import { ScientistRepository } from "@/server/repositories/scientist.repository";
 import type { ScienceWork, ScienceWorkKind, ScienceWorkMember, ScienceWorkOptions, ScienceWorkStatus } from "@/types/domain/science-work";
-import type { ScientistLocale } from "@/types/domain/scientist";
+import type { ScientistLocale, ScientistTaxonomy } from "@/types/domain/scientist";
 
 type WorkRow = Pick<Tables<"science_works">, "id" | "kind" | "status" | "stage" | "organization_id" | "field_id" | "cover_media_id" | "start_date" | "end_date" | "external_url" | "doi" | "updated_at" | "deleted_at">;
 
 type ScientistTranslationRow = Pick<Tables<"scientist_profile_translations">, "scientist_profile_id" | "locale" | "full_name" | "slug">;
 
 export class ScienceWorkRepository {
-  constructor(private readonly client: DatabaseClient) {}
+  constructor(private readonly client: DatabaseClient) { }
 
   async options(): Promise<ScienceWorkOptions> {
     const [taxonomy, profiles] = await Promise.all([
@@ -46,29 +46,52 @@ export class ScienceWorkRepository {
   }
 
   async listPublic(kind: ScienceWorkKind, filters: PublicScienceWorkFilters, selectedIds?: string[]) {
-    const taxonomy = await new ScientistRepository(this.client).listTaxonomy();
-    let query = this.client.from("science_works").select("*").eq("kind", kind).eq("status", "published").is("deleted_at", null).order("updated_at", { ascending: false }).limit(100);
-    if (selectedIds && !selectedIds.length) return { works: [], taxonomy };
-    if (selectedIds) query = query.in("id", selectedIds);
-    if (filters.stage !== "all") query = query.eq("stage", filters.stage);
-    if (filters.field) {
-      const field = taxonomy.fields.find(item => item.slug === filters.field);
-      if (!field) return { works: [], taxonomy };
-      query = query.eq("field_id", field.id);
+    const canParallelize = Boolean(selectedIds && !filters.field && !filters.organization && !filters.query);
+    if (selectedIds && !selectedIds.length) {
+      const taxonomy = await new ScientistRepository(this.client).listTaxonomy();
+      return { works: [], taxonomy };
     }
-    if (filters.organization) {
-      const organization = taxonomy.organizations.find(item => item.slug === filters.organization);
-      if (!organization) return { works: [], taxonomy };
-      query = query.eq("organization_id", organization.id);
+
+    let taxonomy: ScientistTaxonomy;
+    let rows: WorkRow[];
+
+    if (canParallelize) {
+      let query = this.client.from("science_works").select("*").eq("kind", kind).eq("status", "published").is("deleted_at", null).in("id", selectedIds!).order("updated_at", { ascending: false }).limit(100);
+      if (filters.stage !== "all") query = query.eq("stage", filters.stage);
+      const [loadedTaxonomy, workResult] = await Promise.all([
+        new ScientistRepository(this.client).listTaxonomy(),
+        query,
+      ]);
+      if (workResult.error) throw workResult.error;
+      taxonomy = loadedTaxonomy;
+      rows = workResult.data ?? [];
+    } else {
+      taxonomy = await new ScientistRepository(this.client).listTaxonomy();
+      let query = this.client.from("science_works").select("*").eq("kind", kind).eq("status", "published").is("deleted_at", null).order("updated_at", { ascending: false }).limit(100);
+      if (selectedIds) query = query.in("id", selectedIds);
+      if (filters.stage !== "all") query = query.eq("stage", filters.stage);
+      if (filters.field) {
+        const field = taxonomy.fields.find(item => item.slug === filters.field);
+        if (!field) return { works: [], taxonomy };
+        query = query.eq("field_id", field.id);
+      }
+      if (filters.organization) {
+        const organization = taxonomy.organizations.find(item => item.slug === filters.organization);
+        if (!organization) return { works: [], taxonomy };
+        query = query.eq("organization_id", organization.id);
+      }
+      if (filters.query) {
+        const ids = await this.matchingIds(filters.query, filters.locale);
+        if (!ids.length) return { works: [], taxonomy };
+        query = query.in("id", ids);
+      }
+      const { data, error } = await query;
+      if (error) throw error;
+      rows = data ?? [];
     }
-    if (filters.query) {
-      const ids = await this.matchingIds(filters.query, filters.locale);
-      if (!ids.length) return { works: [], taxonomy };
-      query = query.in("id", ids);
-    }
-    const { data, error } = await query;
-    if (error) throw error;
-    const works = (await this.hydrate((data ?? []), true)).filter(work => work.translations.some(item => item.locale === filters.locale));
+
+    const works = (await this.hydrate(rows, true, { taxonomy, catalogLocale: filters.locale }))
+      .filter(work => work.translations.some(item => item.locale === filters.locale));
     return { works, taxonomy };
   }
 
@@ -102,14 +125,25 @@ export class ScienceWorkRepository {
     return [...new Set((data ?? []).map(item => item.work_id))];
   }
 
-  private async hydrate(rows: WorkRow[], publicOnly = false): Promise<ScienceWork[]> {
+  private async hydrate(
+    rows: WorkRow[],
+    publicOnly = false,
+    options?: { taxonomy?: ScientistTaxonomy; catalogLocale?: ScientistLocale },
+  ): Promise<ScienceWork[]> {
     if (!rows.length) return [];
     const ids = rows.map(row => row.id);
     const coverIds = rows.flatMap(row => row.cover_media_id ? [row.cover_media_id] : []);
+    const catalogLocale = options?.catalogLocale;
+    const translationsQuery = catalogLocale
+      ? this.client.from("science_work_translations").select("work_id, locale, title, slug, summary").in("work_id", ids).eq("locale", catalogLocale)
+      : this.client.from("science_work_translations").select("*").in("work_id", ids);
+
     const [translations, members, taxonomy, covers] = await Promise.all([
-      this.client.from("science_work_translations").select("*").in("work_id", ids),
-      this.client.from("science_work_members").select("*").in("work_id", ids),
-      new ScientistRepository(this.client).listTaxonomy(),
+      translationsQuery,
+      catalogLocale
+        ? Promise.resolve({ data: [], error: null })
+        : this.client.from("science_work_members").select("*").in("work_id", ids),
+      options?.taxonomy ? Promise.resolve(options.taxonomy) : new ScientistRepository(this.client).listTaxonomy(),
       coverIds.length ? this.client.from("media_assets").select("id, storage_bucket, storage_path").in("id", coverIds).eq("storage_bucket", "article-media").eq("status", "ready").like("mime_type", "image/%").is("deleted_at", null) : Promise.resolve({ data: [], error: null }),
     ]);
     for (const result of [translations, members, covers]) if (result.error) throw result.error;
@@ -141,7 +175,14 @@ export class ScienceWorkRepository {
         coverUrl: cover ? this.client.storage.from(cover.storage_bucket).getPublicUrl(cover.storage_path).data.publicUrl : null,
         startDate: row.start_date, endDate: row.end_date, externalUrl: row.external_url, doi: row.doi,
         updatedAt: row.updated_at, deletedAt: row.deleted_at,
-        translations: (translations.data ?? []).filter(item => item.work_id === row.id).map(item => ({ locale: item.locale, title: item.title, slug: item.slug, summary: item.summary, description: item.description, results: item.results })),
+        translations: (translations.data ?? []).filter(item => item.work_id === row.id).map(item => ({
+          locale: item.locale,
+          title: item.title,
+          slug: item.slug,
+          summary: item.summary,
+          description: "description" in item && typeof item.description === "string" ? item.description : "",
+          results: "results" in item && typeof item.results === "string" ? item.results : "",
+        })),
         members: team, organization: taxonomy.organizations.find(item => item.id === row.organization_id) ?? null,
         field: taxonomy.fields.find(item => item.id === row.field_id) ?? null,
       };

@@ -54,10 +54,10 @@ describe("public indexing routes", () => {
     expect(await sitemap({ id: Promise.resolve("0") })).toHaveLength((publicSections.length + 1) * locales.length);
     for (const id of ["1", "-1", "01", "NaN", "50000", "100000000000000000000"]) await expect(sitemap({ id: Promise.resolve(id) })).rejects.toThrow("not_found");
   });
-  it("serves XML parts and an index without persistent caching", async () => {
+  it("serves XML parts and an index with bounded public revalidation caching", async () => {
     const index = await indexGET();
     expect(index.headers.get("Content-Type")).toContain("application/xml");
-    expect(index.headers.get("Cache-Control")).toBe("no-store");
+    expect(index.headers.get("Cache-Control")).toContain("max-age=300");
     expect(await index.text()).toContain("https://smu.example/sitemap/1.xml");
     const part = await partGET(new Request("https://smu.example/sitemap/1.xml"), { params: Promise.resolve({ id: "1.xml" }) });
     expect(await part.text()).toContain('hreflang="kk" href="https://smu.example/kk/journal/su"');

@@ -8,6 +8,7 @@ import { locales } from "@/lib/i18n/locales";
 import { requireLocale, type LocaleParams } from "@/lib/i18n/server";
 import { logoutAccount } from "@/server/actions/account.actions";
 import { getAccountAccess } from "@/server/services/account.service";
+import "./account.css";
 
 export const metadata: Metadata = { robots: { index: false, follow: false } };
 export default async function AccountLayout({ children, params }: { children: React.ReactNode; params: LocaleParams }) {

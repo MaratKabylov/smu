@@ -1,4 +1,4 @@
-import { cache } from "react";
+import { cache, Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
@@ -15,11 +15,15 @@ import { getDictionary } from "@/lib/i18n/dictionaries";
 import type { ArticleLocale } from "@/types/domain/article";
 import { isLocale } from "@/lib/i18n/locales";
 
+export const revalidate = 300;
+
 type Props = { params: Promise<{ locale: string; id: string }> };
 
 const publicationByLocale = cache(async (locale: ArticleLocale, id: string) => {
-  const [publication] = await new PublicationService().listPublic(locale, id);
-  const paths = await new SeoService().paths("publications", id);
+  const [[publication], paths] = await Promise.all([
+    new PublicationService().listPublic(locale, id),
+    new SeoService().paths("publications", id),
+  ]);
   return { publication, paths };
 });
 
@@ -278,7 +282,9 @@ export default async function Page({ params }: Props) {
 
               {/* RELATED EDITORIAL ARTICLES */}
               <div style={{ marginTop: "40px" }}>
-                <RelatedArticles kind="publication" id={item.id} locale={locale} />
+                <Suspense fallback={null}>
+                  <RelatedArticles kind="publication" id={item.id} locale={locale} />
+                </Suspense>
               </div>
             </article>
 

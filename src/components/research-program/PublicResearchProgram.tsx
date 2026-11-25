@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { catalogMetadata, pageAlternates, openGraphLocale } from "@/lib/seo/metadata";
 import type { PublicQuery } from "@/lib/i18n/locales";
 import { Pagination } from "@/components/search/Pagination";
@@ -424,7 +425,9 @@ export async function PublicResearchProgramDetail({
               </div>
             )}
 
-            <PublicProgramProjects programId={program.id} locale={locale} />
+            <Suspense fallback={null}>
+              <PublicProgramProjects programId={program.id} locale={locale} />
+            </Suspense>
           </div>
 
           <aside className="public-article-aside science-work-aside">

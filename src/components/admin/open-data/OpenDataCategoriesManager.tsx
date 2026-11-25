@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import type { OpenDataCategoryRow, OpenDataCategoryStatus } from "@/types/domain/open-data";
-import { openDataCategoryStatusLabels } from "@/lib/validation/open-data";
+import { openDataCategoryStatusLabels } from "@/lib/open-data-constants";
 import {
   saveOpenDataCategoryAction,
   deleteOpenDataCategoryAction,

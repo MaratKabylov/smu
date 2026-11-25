@@ -41,7 +41,13 @@ export function PublicArticleCard({
       >
         {article.cover ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={article.cover.url} alt={alt ?? ""} />
+          <img
+            src={article.cover.url}
+            alt={alt ?? ""}
+            loading={featured ? "eager" : "lazy"}
+            decoding="async"
+            fetchPriority={featured ? "high" : undefined}
+          />
         ) : (
           <span className="public-card-placeholder">СМУ</span>
         )}

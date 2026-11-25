@@ -1,9 +1,8 @@
 import { z } from "zod";
 import { locales } from "@/lib/i18n/locales";
+import { opportunityTypes, opportunityStatuses, opportunityAdminPath } from "@/lib/opportunity-constants";
 
-export const opportunityTypes = ["grant", "conference", "internship", "competition", "open_call", "scholarship", "other"] as const;
-export const opportunityStatuses = ["draft", "published", "archived"] as const;
-export const opportunityAdminPath = "/admin/opportunities";
+export { opportunityTypes, opportunityStatuses, opportunityAdminPath };
 export const opportunitySlug = z.string().trim().min(2).max(160).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
 const sourceUrl = z.url().min(10).max(2000).refine(value => {
   const url = new URL(value);

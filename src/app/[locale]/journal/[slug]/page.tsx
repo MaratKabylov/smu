@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { pageAlternates, openGraphLocale, noIndex } from "@/lib/seo/metadata";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { articleJsonLd } from "@/lib/seo/structured-data";
@@ -16,6 +17,8 @@ import { articleTypeLabel } from "@/lib/articles/presentation";
 import { ArticleCredits } from "@/components/articles/ArticleCredits";
 import { getPublishedArticleBySlug, PublicArticleService } from "@/server/services/public-article.service";
 import type { ArticleLocale } from "@/types/domain/article";
+
+export const revalidate = 300;
 
 type PublicArticlePageProps = {
   params: Promise<{ locale: string; slug: string }>;
@@ -121,7 +124,7 @@ export default async function PublicArticlePage({ params, searchParams }: Public
             {article.cover ? (
               <figure className="public-article-cover">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={article.cover.url} alt={coverAlt ?? ""} />
+                <img src={article.cover.url} alt={coverAlt ?? ""} decoding="async" fetchPriority="high" />
                 {coverCaption ? <figcaption>{coverCaption}</figcaption> : null}
               </figure>
             ) : null}
@@ -153,7 +156,9 @@ export default async function PublicArticlePage({ params, searchParams }: Public
             <ArticleCredits authors={article.authors} locale={locale} detailed />
           </article>
 
-          <PublicArticleRelations id={article.id} locale={locale} />
+          <Suspense fallback={null}>
+            <PublicArticleRelations id={article.id} locale={locale} />
+          </Suspense>
           <section className="public-article-end">
             <span>СМУ</span>
             <div>

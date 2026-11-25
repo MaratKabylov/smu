@@ -423,15 +423,16 @@ export class OpenDataRepository {
   }
 
   async getHomepageData(locale: Locale): Promise<HomepageOpenDataPayload | null> {
-    const settings = await this.getSettings();
-    if (!settings || !settings.is_published || !settings.show_on_homepage) {
-      return null;
-    }
-
-    const [metricsRes, categoriesRes] = await Promise.all([
+    const [settingsRes, metricsRes, categoriesRes] = await Promise.all([
+      this.client
+        .from("open_data_settings")
+        .select("is_published, show_on_homepage, title_ru, title_kk, subtitle_ru, subtitle_kk, short_description_ru, short_description_kk, status_text_ru, status_text_kk")
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle(),
       this.client
         .from("open_data_metrics")
-        .select("*")
+        .select("id, code, title_ru, title_kk, value_numeric, value_text_ru, value_text_kk, unit_ru, unit_kk, icon, sort_order")
         .eq("is_visible", true)
         .eq("show_on_homepage", true)
         .order("sort_order", { ascending: true })
@@ -439,7 +440,7 @@ export class OpenDataRepository {
         .limit(4),
       this.client
         .from("open_data_categories")
-        .select("*")
+        .select("id, slug, title_ru, title_kk, description_ru, description_kk, icon, dataset_count, status, sort_order")
         .eq("is_visible", true)
         .eq("show_on_homepage", true)
         .order("sort_order", { ascending: true })
@@ -447,12 +448,18 @@ export class OpenDataRepository {
         .limit(6),
     ]);
 
+    if (settingsRes.error) throw settingsRes.error;
+    const settings = settingsRes.data;
+    if (!settings || !settings.is_published || !settings.show_on_homepage) {
+      return null;
+    }
+
     if (metricsRes.error) throw metricsRes.error;
     if (categoriesRes.error) throw categoriesRes.error;
 
     const isKk = locale === "kk";
-    const rawMetrics: OpenDataMetricRow[] = metricsRes.data ?? [];
-    const rawCategories: OpenDataCategoryRow[] = categoriesRes.data ?? [];
+    const rawMetrics = metricsRes.data ?? [];
+    const rawCategories = categoriesRes.data ?? [];
 
     const filledMetrics = rawMetrics.filter(
       (m) => m.value_numeric !== null || (isKk ? m.value_text_kk : m.value_text_ru) !== null
