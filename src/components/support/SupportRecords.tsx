@@ -18,6 +18,11 @@ export function SupportDetail({
   manage?: boolean;
 }) {
   const copy = supportCopy[locale];
+  const override = copy.kindOverrides?.[record.kind];
+  const contactNameLabel = override?.contactName ?? copy.contactName;
+  const organizationLabel = override?.organization ?? copy.organization;
+  const nameLabel = override?.name ?? copy.name;
+  const descriptionLabel = override?.description ?? copy.description;
 
   return (
     <article className="support-detail" style={{ margin: 0 }}>
@@ -89,7 +94,7 @@ export function SupportDetail({
           >
             <div>
               <dt style={{ fontSize: "12px", color: "#64748b", margin: 0, fontWeight: 500 }}>
-                {copy.contactName}
+                {contactNameLabel}
               </dt>
               <dd style={{ fontSize: "14px", fontWeight: 600, color: "#1e293b", margin: "2px 0 0" }}>
                 {record.contactName}
@@ -111,7 +116,7 @@ export function SupportDetail({
             {record.organization ? (
               <div>
                 <dt style={{ fontSize: "12px", color: "#64748b", margin: 0, fontWeight: 500 }}>
-                  {copy.organization}
+                  {organizationLabel}
                 </dt>
                 <dd style={{ fontSize: "14px", color: "#334155", margin: "2px 0 0" }}>
                   {record.organization}
@@ -137,7 +142,7 @@ export function SupportDetail({
               color: "var(--forest-bright)",
             }}
           >
-            {copy.name}
+            {nameLabel}
           </span>
           <h2
             lang={record.locale}
@@ -157,7 +162,7 @@ export function SupportDetail({
               color: "#64748b",
             }}
           >
-            {copy.description}
+            {descriptionLabel}
           </span>
           <p
             lang={record.locale}

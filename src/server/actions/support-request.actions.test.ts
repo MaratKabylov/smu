@@ -28,7 +28,7 @@ it("rejects files submitted to open data forms before calling the service", asyn
 });
 it("refreshes only the protected queue and owner routes in every language", async () => {
   await submitSupportRequest("en", "it_request", {}, form());
-  for (const kind of ["research_proposal", "it_request", "publication_support", "open_data_offer", "open_data_request"]) expect(m.refresh).toHaveBeenCalledWith(`/admin/support/${kind}`);
+  for (const kind of ["research_proposal", "it_request", "publication_support", "open_data_offer", "open_data_request", "scientist_application"]) expect(m.refresh).toHaveBeenCalledWith(`/admin/support/${kind}`);
   for (const locale of ["ru", "kk", "en"]) expect(m.refresh).toHaveBeenCalledWith(`/${locale}/account/support`);
 });
 it("maps errors safely without exposing contact details or invalidating failures", async () => {

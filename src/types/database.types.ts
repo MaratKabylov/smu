@@ -2726,7 +2726,7 @@ export type Database = {
       "support_requests": {
         Row: {
           "id": string;
-          "kind": "research_proposal" | "it_request" | "publication_support" | "open_data_offer" | "open_data_request";
+          "kind": "research_proposal" | "it_request" | "publication_support" | "open_data_offer" | "open_data_request" | "scientist_application";
           "owner_id": string | null;
           "locale": "ru" | "kk" | "en";
           "title": string;
@@ -2747,7 +2747,7 @@ export type Database = {
         };
         Insert: {
           "id": string;
-          "kind": "research_proposal" | "it_request" | "publication_support" | "open_data_offer" | "open_data_request";
+          "kind": "research_proposal" | "it_request" | "publication_support" | "open_data_offer" | "open_data_request" | "scientist_application";
           "owner_id"?: string | null;
           "locale": "ru" | "kk" | "en";
           "title": string;
@@ -2768,7 +2768,7 @@ export type Database = {
         };
         Update: {
           "id"?: string;
-          "kind"?: "research_proposal" | "it_request" | "publication_support" | "open_data_offer" | "open_data_request";
+          "kind"?: "research_proposal" | "it_request" | "publication_support" | "open_data_offer" | "open_data_request" | "scientist_application";
           "owner_id"?: string | null;
           "locale"?: "ru" | "kk" | "en";
           "title"?: string;

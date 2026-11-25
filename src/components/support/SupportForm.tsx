@@ -26,6 +26,17 @@ import {
 
 export function SupportForm({ locale, kind }: { locale: Locale; kind: SupportKind }) {
   const copy = supportCopy[locale];
+  const override = copy.kindOverrides?.[kind];
+  const sections = { ...copy.sections, ...override?.sections };
+  const placeholders = { ...copy.placeholders, ...override?.placeholders };
+  const labels = {
+    contactName: override?.contactName ?? copy.contactName,
+    organization: override?.organization ?? copy.organization,
+    name: override?.name ?? copy.name,
+    description: override?.description ?? copy.description,
+    files: override?.files ?? copy.files,
+    submit: override?.submit ?? copy.submit,
+  };
   const allowsFiles = supportAllowsFiles(kind);
   const [state, action, pending] = useActionState(
     submitSupportRequest.bind(null, locale, kind),
@@ -68,7 +79,7 @@ export function SupportForm({ locale, kind }: { locale: Locale; kind: SupportKin
           >
             <User size={16} style={{ color: "var(--forest-bright)" }} aria-hidden="true" />
             <h2 style={{ margin: 0, fontSize: "15px", fontWeight: 650 }}>
-              {copy.sections.applicant}
+              {sections.applicant}
             </h2>
           </div>
 
@@ -81,7 +92,7 @@ export function SupportForm({ locale, kind }: { locale: Locale; kind: SupportKin
           >
             <label style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
               <span className="wp-field-label">
-                {copy.contactName} <span style={{ color: "#e11d48" }}>*</span>
+                {labels.contactName} <span style={{ color: "#e11d48" }}>*</span>
               </span>
               <input
                 name="contactName"
@@ -89,7 +100,7 @@ export function SupportForm({ locale, kind }: { locale: Locale; kind: SupportKin
                 minLength={2}
                 maxLength={160}
                 autoComplete="name"
-                placeholder={copy.placeholders.contactName}
+                placeholder={placeholders.contactName}
                 style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
               />
             </label>
@@ -104,19 +115,19 @@ export function SupportForm({ locale, kind }: { locale: Locale; kind: SupportKin
                 required
                 maxLength={254}
                 autoComplete="email"
-                placeholder={copy.placeholders.email}
+                placeholder={placeholders.email}
                 style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
               />
             </label>
           </div>
 
           <label style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-            <span className="wp-field-label">{copy.organization}</span>
+            <span className="wp-field-label">{labels.organization}</span>
             <input
               name="organization"
               maxLength={200}
               autoComplete="organization"
-              placeholder={copy.placeholders.organization}
+              placeholder={placeholders.organization}
               style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
             />
           </label>
@@ -138,27 +149,27 @@ export function SupportForm({ locale, kind }: { locale: Locale; kind: SupportKin
           >
             <FileText size={16} style={{ color: "var(--forest-bright)" }} aria-hidden="true" />
             <h2 style={{ margin: 0, fontSize: "15px", fontWeight: 650 }}>
-              {copy.sections.subject}
+              {sections.subject}
             </h2>
           </div>
 
           <label style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
             <span className="wp-field-label">
-              {copy.name} <span style={{ color: "#e11d48" }}>*</span>
+              {labels.name} <span style={{ color: "#e11d48" }}>*</span>
             </span>
             <input
               name="title"
               required
               minLength={3}
               maxLength={200}
-              placeholder={copy.placeholders.title}
+              placeholder={placeholders.title}
               style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
             />
           </label>
 
           <label style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
             <span className="wp-field-label">
-              {copy.description} <span style={{ color: "#e11d48" }}>*</span>
+              {labels.description} <span style={{ color: "#e11d48" }}>*</span>
             </span>
             <textarea
               name="description"
@@ -166,7 +177,7 @@ export function SupportForm({ locale, kind }: { locale: Locale; kind: SupportKin
               minLength={20}
               maxLength={20000}
               rows={6}
-              placeholder={copy.placeholders.description}
+              placeholder={placeholders.description}
               style={{ padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
             />
           </label>
@@ -188,7 +199,7 @@ export function SupportForm({ locale, kind }: { locale: Locale; kind: SupportKin
           >
             <Settings size={16} style={{ color: "var(--forest-bright)" }} aria-hidden="true" />
             <h2 style={{ margin: 0, fontSize: "15px", fontWeight: 650 }}>
-              {copy.sections.parameters}
+              {sections.parameters}
             </h2>
           </div>
 
@@ -203,6 +214,7 @@ export function SupportForm({ locale, kind }: { locale: Locale; kind: SupportKin
                 minLength={2}
                 maxLength={5000}
                 rows={3}
+                placeholder={override?.fieldPlaceholders?.[field]}
                 style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
               />
             </label>
@@ -226,12 +238,12 @@ export function SupportForm({ locale, kind }: { locale: Locale; kind: SupportKin
             >
               <UploadCloud size={16} style={{ color: "var(--forest-bright)" }} aria-hidden="true" />
               <h2 style={{ margin: 0, fontSize: "15px", fontWeight: 650 }}>
-                {copy.sections.attachments}
+                {sections.attachments}
               </h2>
             </div>
 
             <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              <span className="wp-field-label">{copy.files}</span>
+              <span className="wp-field-label">{labels.files}</span>
               <input
                 name="files"
                 type="file"
@@ -247,7 +259,7 @@ export function SupportForm({ locale, kind }: { locale: Locale; kind: SupportKin
               />
             </label>
             <small style={{ color: "#64748b", fontSize: "12px" }}>
-              {copy.sections.attachmentsHint}
+              {sections.attachmentsHint}
             </small>
           </div>
         )}
@@ -289,7 +301,7 @@ export function SupportForm({ locale, kind }: { locale: Locale; kind: SupportKin
             }}
           >
             <Send size={15} aria-hidden="true" />
-            <span>{pending ? copy.pending : copy.submit}</span>
+            <span>{pending ? copy.pending : labels.submit}</span>
           </button>
         </div>
       </fieldset>

@@ -4,6 +4,7 @@ export const supportKinds = [
   "publication_support",
   "open_data_offer",
   "open_data_request",
+  "scientist_application",
 ] as const;
 
 export const hubSupportKinds = [
@@ -29,6 +30,10 @@ export function isOpenDataSupportKind(kind: SupportKind): boolean {
   return kind === "open_data_offer" || kind === "open_data_request";
 }
 
+export function isScientistSupportKind(kind: SupportKind): boolean {
+  return kind === "scientist_application";
+}
+
 export function supportAllowsFiles(kind: SupportKind): boolean {
   return !isOpenDataSupportKind(kind);
 }
@@ -39,6 +44,7 @@ export const supportFields = {
   publication_support: ["journal", "manuscriptStage", "supportNeeded"],
   open_data_offer: ["category", "dataFormat", "periodAndSource"],
   open_data_request: ["requestedData", "researchGoal", "periodOrFormat"],
+  scientist_application: ["researchFields", "scientificProfiles", "keyAchievements"],
 } as const;
 
 export const supportPermissions = {
@@ -47,6 +53,7 @@ export const supportPermissions = {
   publication_support: "publication_support.manage",
   open_data_offer: "open_data_offers.manage",
   open_data_request: "open_data_requests.manage",
+  scientist_application: "scientist_applications.manage",
 } as const;
 
 export const SUPPORT_FILE_MAX_BYTES = 1024 * 1024;

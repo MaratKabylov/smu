@@ -36,7 +36,7 @@ const copy = {
     heroTitle: "Наука, которая работает для региона",
     heroIntro: "Объединяем учёных, данные и реальные задачи Актюбинской области.",
     scientist: "Я учёный",
-    propose: "Предложить задачу",
+    propose: "Предложить проект",
     stats: ["Учёных в сообществе", "Исследовательских проектов", "Партнёров в регионе"],
     actionsTitle: "Что вы можете сделать на платформе",
     actions: [
@@ -83,7 +83,7 @@ const copy = {
     heroTitle: "Өңір үшін жұмыс істейтін ғылым",
     heroIntro: "Ақтөбе облысының ғалымдарын, деректерін және нақты міндеттерін біріктіреміз.",
     scientist: "Мен ғалыммын",
-    propose: "Міндет ұсыну",
+    propose: "Жоба ұсыну",
     stats: ["Қауымдастықтағы ғалымдар", "Зерттеу жобалары", "Өңірдегі серіктестер"],
     actionsTitle: "Платформада не істей аласыз",
     actions: [
@@ -130,7 +130,7 @@ const copy = {
     heroTitle: "Science that works for the region",
     heroIntro: "We connect scientists, data, and real challenges of the Aktobe Region.",
     scientist: "I am a scientist",
-    propose: "Propose a challenge",
+    propose: "Propose a project",
     stats: ["Scientists in the community", "Research projects", "Regional partners"],
     actionsTitle: "What you can do on the platform",
     actions: [
@@ -235,7 +235,7 @@ export function PublicHomepage({ data, openData = null, locale }: { data: Homepa
     <main>
       <section className={styles.hero} aria-labelledby="home-title"><div className={styles.heroInner}>
         <div className={styles.heroCopy}><p className={styles.eyebrow}>{getDictionary(locale).common.region}</p><h1 id="home-title">{hero?.title || text.heroTitle}</h1><p className={styles.heroIntro}>{text.heroIntro}</p>
-          <div className={styles.heroActions}><Link className={styles.primaryButton} href={`/${locale}/scientists`}>{text.scientist}<Users aria-hidden="true" /></Link><Link className={styles.secondaryButton} href={`/${locale}/support/research_proposal`}>{text.propose}<Lightbulb aria-hidden="true" /></Link></div>
+          <div className={styles.heroActions}><Link className={styles.primaryButton} href={`/${locale}/support/scientist_application`}>{text.scientist}<Users aria-hidden="true" /></Link><Link className={styles.secondaryButton} href={`/${locale}/support/research_proposal`}>{text.propose}<Lightbulb aria-hidden="true" /></Link></div>
           <dl className={styles.stats}><div><dt>{data.stats.scientists}</dt><dd>{text.stats[0]}</dd></div><div><dt>{data.stats.researchProjects}</dt><dd>{text.stats[1]}</dd></div><div><dt>{data.stats.partners}</dt><dd>{text.stats[2]}</dd></div></dl>
         </div><HeroVisual />
       </div></section>

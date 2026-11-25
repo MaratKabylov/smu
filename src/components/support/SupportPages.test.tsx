@@ -54,4 +54,11 @@ it("links Open Data forms back to /open-data and excludes them from the general 
   expect(hubHtml).toContain('href="/ru/support/it_request"');
   expect(hubHtml).not.toContain("open_data_offer");
   expect(hubHtml).not.toContain("open_data_request");
+  expect(hubHtml).not.toContain("scientist_application");
+});
+it("links scientist directory application back to /scientists with community header", async () => {
+  const html = renderToStaticMarkup(await PublicPage({ params: Promise.resolve({ locale: "kk", kind: "scientist_application" }) }));
+  expect(html).toContain('href="/kk/scientists"');
+  expect(html).toContain("Ғылыми қауымдастық");
+  expect(html).toContain("Ғалымдар тізіміне қосылу");
 });

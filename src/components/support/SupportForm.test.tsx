@@ -45,3 +45,11 @@ it.each(["open_data_offer", "open_data_request"] as const)("omits file uploads a
     : ["requestedData", "researchGoal", "periodOrFormat"];
   for (const field of expectedFields) expect(container.querySelector(`[name="${field}"]`)).not.toBeNull();
 });
+it("renders scientist application labels, detail fields, and optional PDF uploads", async () => {
+  await act(async () => root.render(<SupportForm locale="ru" kind="scientist_application" />));
+  expect(container.querySelector('[name="files"]')).not.toBeNull();
+  expect(container.textContent).toContain("Должность и учёная степень");
+  for (const field of ["researchFields", "scientificProfiles", "keyAchievements"]) {
+    expect(container.querySelector(`[name="${field}"]`)).not.toBeNull();
+  }
+});

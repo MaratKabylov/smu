@@ -10,7 +10,8 @@ const input = (kind: SupportKind = "research_proposal", extra: Record<string, un
     : kind === "it_request" ? { currentProcess: "Manual data collection", desiredSolution: "A research application", dataDescription: "SECRET data" }
     : kind === "publication_support" ? { journal: "Scientific journal", manuscriptStage: "Draft manuscript", supportNeeded: "Editing and submission" }
     : kind === "open_data_offer" ? { category: "Ecology", dataFormat: "CSV", periodAndSource: "2020-2025" }
-    : { requestedData: "Climate indicators", researchGoal: "Regional analysis", periodOrFormat: "2020-2025 CSV" }, ...extra } as SupportInput);
+    : kind === "open_data_request" ? { requestedData: "Climate indicators", researchGoal: "Regional analysis", periodOrFormat: "2020-2025 CSV" }
+    : { researchFields: "Applied mathematics", scientificProfiles: "https://orcid.org/0000-0000-0000-0001", keyAchievements: "Peer-reviewed publications and mentoring" }, ...extra } as SupportInput);
 async function run<T = Record<string, unknown>>(actor: string | null, sql: string, args: unknown[] = [], role = actor ? "authenticated" : "anon") {
   await db.query("select set_config('request.jwt.claim.sub',$1,false)", [actor ?? ""]);
   await db.exec("set role " + role);

@@ -2,6 +2,20 @@ import type { Locale } from "@/lib/i18n/locales";
 import type { SupportKind } from "@/lib/validation/support-request";
 import { publicFormRateMessage } from "./public-form";
 
+type SupportKindOverride = {
+  kicker?: string;
+  intro?: string;
+  contactName?: string;
+  organization?: string;
+  name?: string;
+  description?: string;
+  files?: string;
+  submit?: string;
+  sections?: Partial<SupportCopy["sections"]>;
+  placeholders?: Partial<SupportCopy["placeholders"]>;
+  fieldPlaceholders?: Record<string, string>;
+};
+
 type SupportCopy = {
   title: string; own: string; intro: string; guest: string; contactName: string; email: string; organization: string; name: string; description: string;
   files: string; consent: string; consentNoFiles: string; submit: string; pending: string; back: string; empty: string; unavailable: string; previous: string; next: string;
@@ -12,6 +26,7 @@ type SupportCopy = {
   kinds: Record<SupportKind, string>;
   statuses: Record<"new" | "in_review" | "in_progress" | "completed" | "rejected", string>;
   priorities: Record<"low" | "normal" | "high", string>; fields: Record<string, string>;
+  kindOverrides?: Partial<Record<SupportKind, SupportKindOverride>>;
 };
 
 export const supportCopy: Record<Locale, SupportCopy> = {
@@ -39,12 +54,42 @@ export const supportCopy: Record<Locale, SupportCopy> = {
       title: "Краткая тема обращения (от 3 до 200 символов)",
       description: "Подробно изложите цели, задачи, текущую ситуацию и ожидаемые результаты (от 20 символов)...",
     },
-    kinds: { research_proposal: "Предложить исследование", it_request: "IT-поддержка", publication_support: "Поддержка публикации", open_data_offer: "Предложить данные", open_data_request: "Запросить данные" },
+    kinds: { research_proposal: "Предложить исследование", it_request: "IT-поддержка", publication_support: "Поддержка публикации", open_data_offer: "Предложить данные", open_data_request: "Запросить данные", scientist_application: "Добавление в список учёных" },
     statuses: { new: "Новое", in_review: "На рассмотрении", in_progress: "В работе", completed: "Завершено", rejected: "Отклонено" }, priorities: { low: "Низкий", normal: "Обычный", high: "Высокий" },
     fields: {
       importance: "Актуальность и ожидаемая польза", region: "Регион исследования", availableData: "Доступные данные", currentProcess: "Текущий рабочий процесс", desiredSolution: "Желаемое IT-решение", dataDescription: "Данные и ограничения доступа", journal: "Журнал или направление публикации", manuscriptStage: "Стадия подготовки рукописи", supportNeeded: "Какая помощь нужна",
       category: "Тематика / категория данных", dataFormat: "Формат и объём данных", periodAndSource: "Период охвата и источник данных",
       requestedData: "Требуемые показатели / данные", researchGoal: "Цель исследования / проекта", periodOrFormat: "Желаемый временной период или формат",
+      researchFields: "Научные направления и специализация", scientificProfiles: "Ссылки на научные профили (ORCID, Scopus, Google Scholar и др.)", keyAchievements: "Ключевые публикации, проекты и форматы сотрудничества",
+    },
+    kindOverrides: {
+      scientist_application: {
+        kicker: "Научное сообщество",
+        intro: "Заполните анкету — после проверки модератором ваш профиль будет добавлен в публичный каталог учёных Актюбинской области.",
+        contactName: "ФИО полностью",
+        organization: "Организация (вуз, НИИ, лаборатория)",
+        name: "Должность и учёная степень",
+        description: "Биография и научные интересы",
+        files: "Дополнительно: CV, резюме или список публикаций (до 3 PDF, каждый до 1 МиБ, необязательно).",
+        submit: "Отправить заявку",
+        sections: {
+          applicant: "Контактные данные учёного",
+          subject: "Профиль и научная деятельность",
+          parameters: "Научные данные для карточки",
+          attachments: "Резюме и материалы (PDF, необязательно)",
+        },
+        placeholders: {
+          contactName: "Иванов Иван Иванович",
+          organization: "Например: АРУ им. К. Жубанова, кафедра информатики",
+          title: "Например: PhD, к.т.н., старший научный сотрудник",
+          description: "Кратко расскажите об образовании, исследовательском опыте, научных интересах и достижениях (от 20 символов)...",
+        },
+        fieldPlaceholders: {
+          researchFields: "Например: экология, анализ данных, биотехнологии, прикладная математика",
+          scientificProfiles: "Ссылки на ORCID, Google Scholar, Scopus, ResearchGate или укажите «пока нет»",
+          keyAchievements: "Значимые статьи, гранты, проекты, готовность к наставничеству или совместным исследованиям",
+        },
+      },
     },
   },
   kk: {
@@ -71,12 +116,42 @@ export const supportCopy: Record<Locale, SupportCopy> = {
       title: "Өтініштің қысқаша тақырыбы (3-тен 200 таңбаға дейін)",
       description: "Мақсаттарды, міндеттерді, ағымдағы жағдайды және күтілетін нәтижелерді толық сипаттаңыз (20 таңбадан кем емес)...",
     },
-    kinds: { research_proposal: "Зерттеу ұсыну", it_request: "IT-қолдау", publication_support: "Жарияланымды қолдау", open_data_offer: "Деректер ұсыну", open_data_request: "Деректерге сұраныс жіберу" },
+    kinds: { research_proposal: "Зерттеу ұсыну", it_request: "IT-қолдау", publication_support: "Жарияланымды қолдау", open_data_offer: "Деректер ұсыну", open_data_request: "Деректерге сұраныс жіберу", scientist_application: "Ғалымдар тізіміне қосылу" },
     statuses: { new: "Жаңа", in_review: "Қаралуда", in_progress: "Орындалуда", completed: "Аяқталды", rejected: "Қабылданбады" }, priorities: { low: "Төмен", normal: "Қалыпты", high: "Жоғары" },
     fields: {
       importance: "Өзектілігі және күтілетін пайдасы", region: "Зерттеу аймағы", availableData: "Қолжетімді деректер", currentProcess: "Ағымдағы жұмыс үдерісі", desiredSolution: "Қажетті IT-шешім", dataDescription: "Деректер және қолжетімділік шектеулері", journal: "Журнал немесе жарияланым бағыты", manuscriptStage: "Қолжазбаны дайындау кезеңі", supportNeeded: "Қандай көмек қажет",
       category: "Деректер тақырыбы / санаты", dataFormat: "Деректердің пішімі мен көлемі", periodAndSource: "Қамту кезеңі және дереккөз",
       requestedData: "Қажетті көрсеткіштер / деректер", researchGoal: "Зерттеу / жоба мақсаты", periodOrFormat: "Қажетті уақыт кезеңі немесе пішім",
+      researchFields: "Ғылыми бағыттар және мамандану", scientificProfiles: "Ғылыми профильдерге сілтемелер (ORCID, Scopus, Google Scholar және т.б.)", keyAchievements: "Негізгі жарияланымдар, жобалар және ынтымақтастық бағыттары",
+    },
+    kindOverrides: {
+      scientist_application: {
+        kicker: "Ғылыми қауымдастық",
+        intro: "Сауалнаманы толтырыңыз — модератор тексергеннен кейін профиліңіз Ақтөбе облысы ғалымдарының ашық каталогына қосылады.",
+        contactName: "Толық аты-жөніңіз",
+        organization: "Ұйым (ЖОО, ҒЗИ, зертхана)",
+        name: "Лауазымы және ғылыми дәрежесі",
+        description: "Өмірбаян және ғылыми қызығушылықтар",
+        files: "Қосымша: CV, түйіндеме немесе жарияланымдар тізімі (3 PDF-ке дейін, әрқайсысы 1 МиБ-қа дейін, міндетті емес).",
+        submit: "Өтінім жіберу",
+        sections: {
+          applicant: "Ғалымның байланыс деректері",
+          subject: "Профиль және ғылыми қызмет",
+          parameters: "Карточкаға арналған ғылыми деректер",
+          attachments: "Түйіндеме және материалдар (PDF, міндетті емес)",
+        },
+        placeholders: {
+          contactName: "Үсенов Асан Үсенұлы",
+          organization: "Мысалы: Қ. Жұбанов атындағы АӨУ, информатика кафедрасы",
+          title: "Мысалы: PhD, аға ғылыми қызметкер, қауымдастырылған профессор",
+          description: "Біліміңіз, зерттеу тәжірибеңіз, ғылыми қызығушылықтарыңыз бен жетістіктеріңіз туралы қысқаша жазыңыз (20 таңбадан кем емес)...",
+        },
+        fieldPlaceholders: {
+          researchFields: "Мысалы: экология, деректерді талдау, биотехнология, қолданбалы математика",
+          scientificProfiles: "ORCID, Google Scholar, Scopus, ResearchGate сілтемелері немесе «әзірге жоқ» деп көрсетіңіз",
+          keyAchievements: "Негізгі мақалалар, гранттар, жобалар, тәлімгерлікке немесе бірлескен зерттеулерге дайындық",
+        },
+      },
     },
   },
   en: {
@@ -103,12 +178,42 @@ export const supportCopy: Record<Locale, SupportCopy> = {
       title: "Short request title (3 to 200 characters)",
       description: "Describe the goals, context, and expected outcome in detail (at least 20 characters)...",
     },
-    kinds: { research_proposal: "Propose research", it_request: "IT support", publication_support: "Publication support", open_data_offer: "Contribute data", open_data_request: "Request data" },
+    kinds: { research_proposal: "Propose research", it_request: "IT support", publication_support: "Publication support", open_data_offer: "Contribute data", open_data_request: "Request data", scientist_application: "Join the scientists directory" },
     statuses: { new: "New", in_review: "Under review", in_progress: "In progress", completed: "Completed", rejected: "Rejected" }, priorities: { low: "Low", normal: "Normal", high: "High" },
     fields: {
       importance: "Significance and expected benefit", region: "Research region", availableData: "Available data", currentProcess: "Current process", desiredSolution: "Desired IT solution", dataDescription: "Data and access restrictions", journal: "Journal or publication field", manuscriptStage: "Manuscript preparation stage", supportNeeded: "Support needed",
       category: "Data topic / category", dataFormat: "Data format and volume", periodAndSource: "Coverage period and source",
       requestedData: "Required indicators / data", researchGoal: "Research / project objective", periodOrFormat: "Desired time period or format",
+      researchFields: "Research fields and specialization", scientificProfiles: "Scientific profile links (ORCID, Scopus, Google Scholar, etc.)", keyAchievements: "Key publications, projects, and collaboration interests",
+    },
+    kindOverrides: {
+      scientist_application: {
+        kicker: "Scientific community",
+        intro: "Fill out this form — after moderator review, your profile will be added to the public directory of scientists of the Aktobe Region.",
+        contactName: "Full name",
+        organization: "Organization (university, institute, lab)",
+        name: "Position and academic degree",
+        description: "Biography and research interests",
+        files: "Optional: CV, resume, or list of publications (up to 3 PDFs, up to 1 MiB each).",
+        submit: "Submit application",
+        sections: {
+          applicant: "Scientist contact details",
+          subject: "Profile and research background",
+          parameters: "Directory profile details",
+          attachments: "CV and documents (PDF, optional)",
+        },
+        placeholders: {
+          contactName: "Jane Doe",
+          organization: "e.g., Zhubanov University, Department of Computer Science",
+          title: "e.g., PhD, Associate Professor, Senior Researcher",
+          description: "Briefly describe your education, research experience, scientific interests, and key achievements (at least 20 characters)...",
+        },
+        fieldPlaceholders: {
+          researchFields: "e.g., ecology, data analysis, biotechnology, applied mathematics",
+          scientificProfiles: "Links to ORCID, Google Scholar, Scopus, ResearchGate, or write \"none yet\"",
+          keyAchievements: "Key papers, grants, projects, and interest in mentorship or joint research",
+        },
+      },
     },
   },
 };
@@ -141,5 +246,10 @@ export const supportAdminMeta: Record<
     title: "Запросы данных",
     kicker: "Open Data Aktobe",
     description: "Запросы на предоставление, поиск и формирование научных наборов данных региона.",
+  },
+  scientist_application: {
+    title: "Заявки учёных",
+    kicker: "Научное сообщество",
+    description: "Заявки исследователей на добавление профиля в публичный список учёных региона.",
   },
 };

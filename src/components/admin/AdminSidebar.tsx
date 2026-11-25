@@ -67,6 +67,7 @@ const navigation: AdminNavigationSection[] = [
       { label: "Поддержка публикаций", href: "/admin/support/publication_support", icon: BookOpenText },
       { label: "Предложения данных", href: "/admin/support/open_data_offer", icon: Database },
       { label: "Запросы данных", href: "/admin/support/open_data_request", icon: FileSpreadsheet },
+      { label: "Заявки учёных", href: "/admin/support/scientist_application", icon: UsersRound },
     ],
   },
   {

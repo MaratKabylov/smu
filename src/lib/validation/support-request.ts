@@ -6,6 +6,7 @@ import {
   supportStatuses,
   supportPriorities,
   isOpenDataSupportKind,
+  isScientistSupportKind,
   supportAllowsFiles,
   supportFields,
   supportPermissions,
@@ -20,6 +21,7 @@ export {
   supportStatuses,
   supportPriorities,
   isOpenDataSupportKind,
+  isScientistSupportKind,
   supportAllowsFiles,
   supportFields,
   supportPermissions,
@@ -39,6 +41,7 @@ export const supportInputSchema = z.discriminatedUnion("kind", [
   base.extend({ kind: z.literal("publication_support"), details: z.object({ journal: text, manuscriptStage: text, supportNeeded: text }) }),
   base.extend({ kind: z.literal("open_data_offer"), details: z.object({ category: text, dataFormat: text, periodAndSource: text }) }),
   base.extend({ kind: z.literal("open_data_request"), details: z.object({ requestedData: text, researchGoal: text, periodOrFormat: text }) }),
+  base.extend({ kind: z.literal("scientist_application"), details: z.object({ researchFields: text, scientificProfiles: text, keyAchievements: text }) }),
 ]);
 export type SupportInput = z.infer<typeof supportInputSchema>;
 export const supportUpdateSchema = z.object({ id: z.uuid(), version: z.number().int().positive(), status: z.enum(supportStatuses), priority: z.enum(supportPriorities), assignedTo: z.uuid().nullable(), note: z.string().trim().max(5000) });

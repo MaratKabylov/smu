@@ -40,6 +40,7 @@ export const permissionCodes = [
   "publication_support.manage",
   "open_data_offers.manage",
   "open_data_requests.manage",
+  "scientist_applications.manage",
   "publications.manage",
   "outputs.create",
   "outputs.manage",
