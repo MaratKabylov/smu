@@ -7,7 +7,7 @@ import { SupportForm } from "@/components/support/SupportForm";
 import { supportCopy } from "@/lib/i18n/support-request";
 import { locales } from "@/lib/i18n/locales";
 import { requireLocale } from "@/lib/i18n/server";
-import { supportKindSchema } from "@/lib/validation/support-request";
+import { isOpenDataSupportKind, supportKindSchema } from "@/lib/validation/support-request";
 
 export const metadata: Metadata = { robots: { index: false, follow: false } };
 
@@ -22,16 +22,17 @@ export default async function Page({
   if (!kind.success) notFound();
 
   const copy = supportCopy[locale];
+  const isOpenData = isOpenDataSupportKind(kind.data);
 
   return (
     <>
       <PublicHeader
         locale={locale}
-        section="journal"
+        section={isOpenData ? "research" : "journal"}
         paths={Object.fromEntries(locales.map((l) => [l, `/${l}/support/${kind.data}`]))}
       />
       <main className="support-page">
-        <Link className="back-link" href={`/${locale}/support`}>
+        <Link className="back-link" href={isOpenData ? `/${locale}/open-data` : `/${locale}/support`}>
           <ArrowLeft size={16} aria-hidden="true" />
           <span>{copy.back}</span>
         </Link>
@@ -47,7 +48,7 @@ export default async function Page({
               margin: "0 0 6px",
             }}
           >
-            {copy.title}
+            {isOpenData ? "Open Data Aktobe" : copy.title}
           </p>
           <h1 style={{ margin: 0, fontSize: "26px", fontWeight: 750, color: "#0f172a" }}>
             {copy.kinds[kind.data]}

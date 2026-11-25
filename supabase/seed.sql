@@ -38,6 +38,9 @@ values
   ('research_proposals.manage', 'Рассмотрение исследовательских предложений'),
   ('it_requests.manage', 'Обработка IT-заявок'),
   ('publication_support.manage', 'Поддержка публикаций'),
+  ('open_data_offers.manage', 'Обработка предложений данных'),
+  ('open_data_requests.manage', 'Обработка запросов данных'),
+  ('open_data.manage', 'Управление Open Data Aktobe'),
   ('publications.manage', 'Управление научными публикациями'),
   ('outputs.create', 'Создание собственных научных результатов'),
   ('outputs.manage', 'Управление всеми научными результатами'),
@@ -74,6 +77,7 @@ with grants(role_code, permission_code) as (
     ('content_manager', 'articles.review'),
     ('content_manager', 'articles.publish'),
     ('content_manager', 'articles.delete'),
+    ('content_manager', 'open_data.manage'),
     ('content_manager', 'audit.read'),
     ('author', 'media.view'),
     ('author', 'media.create'),
@@ -99,6 +103,7 @@ with grants(role_code, permission_code) as (
     ('project_manager', 'admin.access'),
     ('project_manager', 'projects.manage'),
     ('project_manager', 'research.manage'),
+    ('project_manager', 'open_data.manage'),
     ('project_manager', 'audit.read')
 )
 insert into public.role_permissions (role_id, permission_id)

@@ -1,7 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { isLocale, locales, type Locale } from "@/lib/i18n/locales";
-import { parseSupportForm, supportKinds, supportUpdateSchema, type SupportKind } from "@/lib/validation/support-request";
+import { parseSupportForm, supportAllowsFiles, supportKinds, supportUpdateSchema, type SupportKind } from "@/lib/validation/support-request";
 import { SupportRequestService } from "@/server/services/support-request.service";
 import { protectPublicForm, PublicFormProtectionError } from "@/server/services/public-form-protection.service";
 export type SupportFormState = { message?: "saved" | "failed" | "invalid" | "session" | "rate" | "stale" | "file"; id?: string };
@@ -19,6 +19,7 @@ export async function submitSupportRequest(locale: Locale, kind: SupportKind, _p
   if (!input) return { message: "invalid" };
   const files = form.getAll("files").filter((file): file is File => file instanceof File && (file.size > 0 || file.name !== ""));
   if (form.getAll("files").some(file => !(file instanceof File))) return { message: "invalid" };
+  if (!supportAllowsFiles(kind) && files.length > 0) return { message: "file" };
   try {
     await protectPublicForm(form, input.email);
     const id = await new SupportRequestService().submit(input, files);

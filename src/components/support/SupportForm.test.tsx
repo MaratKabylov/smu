@@ -34,4 +34,14 @@ it("retains editable fields and a safe error after a failed submission", async (
   await act(async () => form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
   expect(container.querySelector<HTMLFieldSetElement>("fieldset")!.disabled).toBe(false); expect(container.querySelector('[role="alert"]')?.textContent).toContain("Could not save");
   expect(container.querySelector('[name="journal"]')).not.toBeNull(); expect(container.querySelector('[name="currentProcess"]')).toBeNull();
+  expect(container.querySelector('[name="files"]')).not.toBeNull();
+});
+it.each(["open_data_offer", "open_data_request"] as const)("omits file uploads and attachment consent copy for %s", async kind => {
+  await act(async () => root.render(<SupportForm locale="ru" kind={kind} />));
+  expect(container.querySelector('[name="files"]')).toBeNull();
+  expect(container.textContent).not.toContain("приложенные материалы");
+  const expectedFields = kind === "open_data_offer"
+    ? ["category", "dataFormat", "periodAndSource"]
+    : ["requestedData", "researchGoal", "periodOrFormat"];
+  for (const field of expectedFields) expect(container.querySelector(`[name="${field}"]`)).not.toBeNull();
 });

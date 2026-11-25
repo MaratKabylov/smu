@@ -13,6 +13,8 @@ export const dashboardMetrics = {
   research_proposals: { label: "Новые предложения исследований", href: "/admin/support/research_proposal?status=new", allowed: (a: AccessContext) => has(a, "research_proposals.manage") },
   it_requests: { label: "Новые IT-заявки", href: "/admin/support/it_request?status=new", allowed: (a: AccessContext) => has(a, "it_requests.manage") },
   publication_requests: { label: "Новые обращения по публикациям", href: "/admin/support/publication_support?status=new", allowed: (a: AccessContext) => has(a, "publication_support.manage") },
+  open_data_offers: { label: "Новые предложения данных", href: "/admin/support/open_data_offer?status=new", allowed: (a: AccessContext) => has(a, "open_data_offers.manage") },
+  open_data_requests: { label: "Новые запросы данных", href: "/admin/support/open_data_request?status=new", allowed: (a: AccessContext) => has(a, "open_data_requests.manage") },
   article_drafts: { label: "Черновики статей", href: "/admin/content/articles?status=draft", allowed: globalArticles },
   review_articles: { label: "Статьи на моей проверке", href: "/admin/content/articles?status=in_review", allowed: (a: AccessContext) => has(a, "articles.review") },
   own_drafts: { label: "Мои черновики", href: "/ru/account/articles", allowed: (a: AccessContext) => has(a, "articles.edit_own") || globalArticles(a) },

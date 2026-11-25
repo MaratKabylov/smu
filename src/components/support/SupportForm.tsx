@@ -2,21 +2,17 @@
 
 import { useActionState } from "react";
 import {
-  AlertCircle,
-  Building,
-  CheckCircle2,
   FileText,
-  Mail,
   Save,
   Send,
   Settings,
-  ShieldCheck,
   UploadCloud,
   User,
 } from "lucide-react";
 import type { Locale } from "@/lib/i18n/locales";
 import { supportCopy } from "@/lib/i18n/support-request";
 import {
+  supportAllowsFiles,
   supportFields,
   supportPriorities,
   type SupportKind,
@@ -30,6 +26,7 @@ import {
 
 export function SupportForm({ locale, kind }: { locale: Locale; kind: SupportKind }) {
   const copy = supportCopy[locale];
+  const allowsFiles = supportAllowsFiles(kind);
   const [state, action, pending] = useActionState(
     submitSupportRequest.bind(null, locale, kind),
     {} as SupportFormState
@@ -71,7 +68,7 @@ export function SupportForm({ locale, kind }: { locale: Locale; kind: SupportKin
           >
             <User size={16} style={{ color: "var(--forest-bright)" }} aria-hidden="true" />
             <h2 style={{ margin: 0, fontSize: "15px", fontWeight: 650 }}>
-              Контактные данные заявителя
+              {copy.sections.applicant}
             </h2>
           </div>
 
@@ -92,7 +89,7 @@ export function SupportForm({ locale, kind }: { locale: Locale; kind: SupportKin
                 minLength={2}
                 maxLength={160}
                 autoComplete="name"
-                placeholder="Иван Иванов"
+                placeholder={copy.placeholders.contactName}
                 style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
               />
             </label>
@@ -107,7 +104,7 @@ export function SupportForm({ locale, kind }: { locale: Locale; kind: SupportKin
                 required
                 maxLength={254}
                 autoComplete="email"
-                placeholder="example@mail.kz"
+                placeholder={copy.placeholders.email}
                 style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
               />
             </label>
@@ -119,7 +116,7 @@ export function SupportForm({ locale, kind }: { locale: Locale; kind: SupportKin
               name="organization"
               maxLength={200}
               autoComplete="organization"
-              placeholder="НИИ, университет, лаборатория или предприятие"
+              placeholder={copy.placeholders.organization}
               style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
             />
           </label>
@@ -141,7 +138,7 @@ export function SupportForm({ locale, kind }: { locale: Locale; kind: SupportKin
           >
             <FileText size={16} style={{ color: "var(--forest-bright)" }} aria-hidden="true" />
             <h2 style={{ margin: 0, fontSize: "15px", fontWeight: 650 }}>
-              Суть обращения
+              {copy.sections.subject}
             </h2>
           </div>
 
@@ -154,7 +151,7 @@ export function SupportForm({ locale, kind }: { locale: Locale; kind: SupportKin
               required
               minLength={3}
               maxLength={200}
-              placeholder="Краткая тема обращения (от 3 до 200 символов)"
+              placeholder={copy.placeholders.title}
               style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
             />
           </label>
@@ -169,7 +166,7 @@ export function SupportForm({ locale, kind }: { locale: Locale; kind: SupportKin
               minLength={20}
               maxLength={20000}
               rows={6}
-              placeholder="Подробно изложите цели, задачи, текущую ситуацию и ожидаемые результаты (от 20 символов)..."
+              placeholder={copy.placeholders.description}
               style={{ padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
             />
           </label>
@@ -191,7 +188,7 @@ export function SupportForm({ locale, kind }: { locale: Locale; kind: SupportKin
           >
             <Settings size={16} style={{ color: "var(--forest-bright)" }} aria-hidden="true" />
             <h2 style={{ margin: 0, fontSize: "15px", fontWeight: 650 }}>
-              Параметры и детализация направления
+              {copy.sections.parameters}
             </h2>
           </div>
 
@@ -213,45 +210,47 @@ export function SupportForm({ locale, kind }: { locale: Locale; kind: SupportKin
         </div>
 
         {/* SECTION 4: FILE ATTACHMENTS */}
-        <div
-          className="wp-editor-content-box"
-          style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "10px" }}
-        >
+        {allowsFiles && (
           <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              paddingBottom: "10px",
-              borderBottom: "1px solid #f1f5f9",
-            }}
+            className="wp-editor-content-box"
+            style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "10px" }}
           >
-            <UploadCloud size={16} style={{ color: "var(--forest-bright)" }} aria-hidden="true" />
-            <h2 style={{ margin: 0, fontSize: "15px", fontWeight: 650 }}>
-              Приложения (PDF-файлы)
-            </h2>
-          </div>
-
-          <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            <span className="wp-field-label">{copy.files}</span>
-            <input
-              name="files"
-              type="file"
-              accept="application/pdf,.pdf"
-              multiple
+            <div
               style={{
-                padding: "8px 12px",
-                borderRadius: "8px",
-                border: "1px dashed #cbd5e1",
-                background: "#f8fafc",
-                fontSize: "13px",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                paddingBottom: "10px",
+                borderBottom: "1px solid #f1f5f9",
               }}
-            />
-          </label>
-          <small style={{ color: "#64748b", fontSize: "12px" }}>
-            Допустимый формат: только PDF. Не более 3 файлов, размер каждого файла до 1 МиБ.
-          </small>
-        </div>
+            >
+              <UploadCloud size={16} style={{ color: "var(--forest-bright)" }} aria-hidden="true" />
+              <h2 style={{ margin: 0, fontSize: "15px", fontWeight: 650 }}>
+                {copy.sections.attachments}
+              </h2>
+            </div>
+
+            <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              <span className="wp-field-label">{copy.files}</span>
+              <input
+                name="files"
+                type="file"
+                accept="application/pdf,.pdf"
+                multiple
+                style={{
+                  padding: "8px 12px",
+                  borderRadius: "8px",
+                  border: "1px dashed #cbd5e1",
+                  background: "#f8fafc",
+                  fontSize: "13px",
+                }}
+              />
+            </label>
+            <small style={{ color: "#64748b", fontSize: "12px" }}>
+              {copy.sections.attachmentsHint}
+            </small>
+          </div>
+        )}
 
         {/* HONEYPOT ANTI-SPAM */}
         <div className="support-honeypot" aria-hidden="true">
@@ -272,7 +271,7 @@ export function SupportForm({ locale, kind }: { locale: Locale; kind: SupportKin
               style={{ marginTop: "3px" }}
             />
             <span style={{ fontSize: "13px", color: "#334155", lineHeight: 1.4 }}>
-              {copy.consent}
+              {allowsFiles ? copy.consent : copy.consentNoFiles}
             </span>
           </label>
 

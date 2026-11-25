@@ -7,6 +7,7 @@ import {
   ChevronRight,
   CircleUserRound,
   Database,
+  FileSpreadsheet,
   FlaskConical,
   HandHeart,
   Images,
@@ -64,6 +65,8 @@ const navigation: AdminNavigationSection[] = [
       { label: "Предложения исследований", href: "/admin/support/research_proposal", icon: FlaskConical },
       { label: "IT-заявки", href: "/admin/support/it_request", icon: LayoutGrid },
       { label: "Поддержка публикаций", href: "/admin/support/publication_support", icon: BookOpenText },
+      { label: "Предложения данных", href: "/admin/support/open_data_offer", icon: Database },
+      { label: "Запросы данных", href: "/admin/support/open_data_request", icon: FileSpreadsheet },
     ],
   },
   {

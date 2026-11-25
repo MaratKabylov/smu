@@ -405,14 +405,14 @@ export function PublicOpenData({ data, locale, siteName }: Props) {
           <p>{data.collaborationText}</p>
           <div className="opendata-collab-actions">
             <Link
-              href={`/${locale}/pages/contacts?subject=open_data_contribution`}
+              href={`/${locale}/support/open_data_offer`}
               className="opendata-btn-contribute"
             >
               <span>{t.btnContribute}</span>
               <Send size={16} aria-hidden="true" />
             </Link>
             <Link
-              href={`/${locale}/pages/contacts?subject=open_data_request`}
+              href={`/${locale}/support/open_data_request`}
               className="opendata-btn-request"
             >
               <span>{t.btnRequest}</span>

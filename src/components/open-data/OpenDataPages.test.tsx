@@ -186,9 +186,9 @@ describe("OpenData Components", () => {
     expect(html).toContain("2020 — 2025");
 
     // Collaboration buttons
-    expect(html).toContain('href="/ru/pages/contacts?subject=open_data_contribution"');
+    expect(html).toContain('href="/ru/support/open_data_offer"');
     expect(html).toContain("Предложить данные");
-    expect(html).toContain('href="/ru/pages/contacts?subject=open_data_request"');
+    expect(html).toContain('href="/ru/support/open_data_request"');
     expect(html).toContain("Запросить данные");
   });
 

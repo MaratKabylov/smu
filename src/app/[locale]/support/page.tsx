@@ -4,9 +4,9 @@ import { PublicHeader } from "@/components/i18n/PublicHeader";
 import { supportCopy } from "@/lib/i18n/support-request";
 import { locales, type Locale } from "@/lib/i18n/locales";
 import { requireLocale, type LocaleParams } from "@/lib/i18n/server";
-import { supportKinds, type SupportKind } from "@/lib/validation/support-request";
+import { hubSupportKinds, type HubSupportKind } from "@/lib/validation/support-request";
 
-const kindDescriptions: Record<Locale, Record<SupportKind, string>> = {
+const kindDescriptions: Record<Locale, Record<HubSupportKind, string>> = {
   ru: {
     research_proposal:
       "Предложите тему или инициативу исследования в Актюбинской области, требующую научного или практического содействия.",
@@ -33,7 +33,7 @@ const kindDescriptions: Record<Locale, Record<SupportKind, string>> = {
   },
 };
 
-const kindIcons: Record<SupportKind, typeof FlaskConical> = {
+const kindIcons: Record<HubSupportKind, typeof FlaskConical> = {
   research_proposal: FlaskConical,
   it_request: Cpu,
   publication_support: BookOpen,
@@ -74,7 +74,7 @@ export default async function Page({ params }: { params: LocaleParams }) {
             margin: "24px 0",
           }}
         >
-          {supportKinds.map((kind) => {
+          {hubSupportKinds.map((kind) => {
             const Icon = kindIcons[kind];
             const desc = kindDescriptions[locale][kind];
 

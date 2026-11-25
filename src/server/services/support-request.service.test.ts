@@ -34,6 +34,8 @@ it("does not turn failed, unconfirmed or anonymous sessions into guest submissio
 });
 it("validates all files before any storage operation", async () => {
   for (const files of [[file(), file(), file(), file()], [file(), new File(["<html>fake</html>"], "fake.pdf", { type: "application/pdf" })], [new File([], "empty.pdf", { type: "application/pdf" })]]) await expect(service.submit(input, files)).rejects.toThrow("invalid_file");
+  await expect(service.submit({ ...input, kind: "open_data_offer", details: { category: "Ecology", dataFormat: "CSV", periodAndSource: "2020-2025" } }, [file()])).rejects.toThrow("invalid_file");
+  await expect(service.submit({ ...input, kind: "open_data_request", details: { requestedData: "Air", researchGoal: "Study", periodOrFormat: "CSV" } }, [file()])).rejects.toThrow("invalid_file");
   expect(m.upload).not.toHaveBeenCalled(); expect(m.trustedRpc).not.toHaveBeenCalled();
 });
 it("cleans up stored files when metadata or audit fails", async () => {

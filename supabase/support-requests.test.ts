@@ -6,7 +6,11 @@ import type { SupportInput, SupportKind, SupportRecord } from "../src/lib/valida
 let db: PGlite;
 const own = "00000000-0000-4000-a000-000000000091", other = "00000000-0000-4000-a000-000000000092", admin = "00000000-0000-4000-a000-000000000093", unconfirmed = "00000000-0000-4000-a000-000000000094", anonymous = "00000000-0000-4000-a000-000000000095", specialist = "00000000-0000-4000-a000-000000000096";
 const input = (kind: SupportKind = "research_proposal", extra: Record<string, unknown> = {}): SupportInput => ({ kind, locale: "ru", title: "Scientific research request", description: "SECRET description of a scientific research request.", contactName: "Secret Contact", email: `${own}@example.org`, organization: "SECRET ORG", consent: true,
-  details: kind === "research_proposal" ? { importance: "Regional significance", region: "Aktobe", availableData: "SECRET data" } : kind === "it_request" ? { currentProcess: "Manual data collection", desiredSolution: "A research application", dataDescription: "SECRET data" } : { journal: "Scientific journal", manuscriptStage: "Draft manuscript", supportNeeded: "Editing and submission" }, ...extra } as SupportInput);
+  details: kind === "research_proposal" ? { importance: "Regional significance", region: "Aktobe", availableData: "SECRET data" }
+    : kind === "it_request" ? { currentProcess: "Manual data collection", desiredSolution: "A research application", dataDescription: "SECRET data" }
+    : kind === "publication_support" ? { journal: "Scientific journal", manuscriptStage: "Draft manuscript", supportNeeded: "Editing and submission" }
+    : kind === "open_data_offer" ? { category: "Ecology", dataFormat: "CSV", periodAndSource: "2020-2025" }
+    : { requestedData: "Climate indicators", researchGoal: "Regional analysis", periodOrFormat: "2020-2025 CSV" }, ...extra } as SupportInput);
 async function run<T = Record<string, unknown>>(actor: string | null, sql: string, args: unknown[] = [], role = actor ? "authenticated" : "anon") {
   await db.query("select set_config('request.jwt.claim.sub',$1,false)", [actor ?? ""]);
   await db.exec("set role " + role);

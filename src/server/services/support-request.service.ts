@@ -3,7 +3,7 @@ import { z } from "zod";
 import { isSupabaseConfigured } from "@/lib/env";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/service-role";
-import { SUPPORT_FILE_MAX_BYTES, supportInputSchema, supportKindSchema, supportStatuses, supportUpdateSchema, validSupportFile, type SupportKind } from "@/lib/validation/support-request";
+import { SUPPORT_FILE_MAX_BYTES, supportAllowsFiles, supportInputSchema, supportKindSchema, supportStatuses, supportUpdateSchema, validSupportFile, type SupportKind } from "@/lib/validation/support-request";
 import { SupportRequestRepository, type SupportFileMetadata } from "@/server/repositories/support-request.repository";
 
 export class SupportRequestService {
@@ -17,6 +17,7 @@ export class SupportRequestService {
   async submit(raw: unknown, files: File[]) {
     const input = supportInputSchema.parse(raw);
     if (!isSupabaseConfigured()) throw new Error("setup");
+    if (!supportAllowsFiles(input.kind) && files.length > 0) throw new Error("invalid_file");
     if (files.length > 3 || files.some(file => !file.size || file.size > SUPPORT_FILE_MAX_BYTES)) throw new Error("invalid_file");
     // Inspect all bytes before writing anything. Only bounded PDF attachments.
     const checked: { file: File; bytes: Uint8Array }[] = [];

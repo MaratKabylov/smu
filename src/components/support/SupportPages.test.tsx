@@ -10,6 +10,7 @@ vi.mock("@/components/support/SupportForm", () => ({ SupportForm: () => <form da
 import AccountPage from "@/app/[locale]/account/support/page";
 import AdminPage from "@/app/admin/(panel)/support/[kind]/page";
 import PublicPage from "@/app/[locale]/support/[kind]/page";
+import SupportHubPage from "@/app/[locale]/support/page";
 import { SupportDetail } from "./SupportRecords";
 const id = "00000000-0000-4000-a000-000000000001";
 const record = { id, kind: "it_request" as const, locale: "kk" as const, title: "<script>Request</script>", status: "new" as const, createdAt: "2026-10-17", updatedAt: "2026-10-17", description: "<script>Content</script>", details: { currentProcess: "Manual", desiredSolution: "Automation", dataDescription: "Research" }, files: [], version: 1 };
@@ -42,4 +43,15 @@ it.each(["ru", "kk", "en"])("renders a public %s form without requiring a sessio
 it("hides backend errors from page output", async () => {
   m.list.mockRejectedValue(new Error("SECRET private@example.org"));
   const html = renderToStaticMarkup(await AccountPage({ params: Promise.resolve({ locale: "en" }), searchParams: Promise.resolve({}) })); expect(html).toContain("temporarily unavailable"); expect(html).not.toContain("SECRET");
+});
+it("links Open Data forms back to /open-data and excludes them from the general /support hub", async () => {
+  for (const kind of ["open_data_offer", "open_data_request"] as const) {
+    const html = renderToStaticMarkup(await PublicPage({ params: Promise.resolve({ locale: "ru", kind }) }));
+    expect(html).toContain('href="/ru/open-data"');
+    expect(html).toContain("Open Data Aktobe");
+  }
+  const hubHtml = renderToStaticMarkup(await SupportHubPage({ params: Promise.resolve({ locale: "ru" }) }));
+  expect(hubHtml).toContain('href="/ru/support/it_request"');
+  expect(hubHtml).not.toContain("open_data_offer");
+  expect(hubHtml).not.toContain("open_data_request");
 });

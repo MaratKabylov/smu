@@ -19,9 +19,16 @@ it("passes inspected file candidates to the service and preserves empty file rej
   const f = form(); f.append("files", new File([], "empty.pdf", { type: "application/pdf" })); await submitSupportRequest("ru", "it_request", {}, f); expect(m.submit.mock.calls[0][1][0].name).toBe("empty.pdf");
   f.set("files", "forged"); expect(await submitSupportRequest("ru", "it_request", {}, f)).toEqual({ message: "invalid" });
 });
+it("rejects files submitted to open data forms before calling the service", async () => {
+  const f = new FormData();
+  for (const [key, value] of Object.entries({ title: "Open data offer", description: "A description of open data contribution for Aktobe.", contactName: "A Scientist", email: "own@example.org", organization: "", category: "Ecology", dataFormat: "CSV", periodAndSource: "2020-2025", consent: "yes" })) f.set(key, value);
+  f.append("files", new File(["%PDF-1.7\nDATA"], "data.pdf", { type: "application/pdf" }));
+  expect(await submitSupportRequest("ru", "open_data_offer", {}, f)).toEqual({ message: "file" });
+  expect(m.submit).not.toHaveBeenCalled();
+});
 it("refreshes only the protected queue and owner routes in every language", async () => {
   await submitSupportRequest("en", "it_request", {}, form());
-  for (const kind of ["research_proposal", "it_request", "publication_support"]) expect(m.refresh).toHaveBeenCalledWith(`/admin/support/${kind}`);
+  for (const kind of ["research_proposal", "it_request", "publication_support", "open_data_offer", "open_data_request"]) expect(m.refresh).toHaveBeenCalledWith(`/admin/support/${kind}`);
   for (const locale of ["ru", "kk", "en"]) expect(m.refresh).toHaveBeenCalledWith(`/${locale}/account/support`);
 });
 it("maps errors safely without exposing contact details or invalidating failures", async () => {
