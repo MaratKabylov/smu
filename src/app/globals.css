@@ -5046,6 +5046,7 @@ details[open].wp-sidebar-card > .wp-sidebar-card-header {
   .science-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .science-filters.mentorship-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .science-filters label { grid-column: 1 / -1; }
+  .science-filters label.science-filter-compact { grid-column: auto; }
 }
 @media (max-width: 900px) {
   .science-site .journal-nav { display: flex; grid-column: 1 / -1; grid-row: 2; flex-wrap: wrap; justify-content: center; padding-bottom: 12px; }
@@ -5704,6 +5705,115 @@ body:has(.public-header),
 
 .mentorship-card {
   border-top: 3px solid var(--public-cyan);
+}
+
+.science-filters label:focus-within,
+.science-filters select:focus {
+  border-color: var(--public-cyan);
+  outline: none;
+  box-shadow: 0 0 0 3px rgb(0 152 182 / 14%);
+}
+
+.science-filters input:focus {
+  outline: none;
+}
+
+.science-filters label.science-filter-compact input {
+  font-size: 12px;
+}
+
+.opportunity-card {
+  display: flex;
+  flex-direction: column;
+  border-top: 3px solid var(--public-cyan);
+}
+
+.opportunity-card .public-card-content {
+  flex: 1;
+}
+
+.opportunity-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.opportunity-status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.opportunity-status-pill.is-open {
+  background: #e6f7fa;
+  color: #007796;
+  border: 1px solid #b8e6f0;
+}
+
+.opportunity-status-pill.is-closed {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+.opportunity-detail-status {
+  margin: 18px auto 0;
+}
+
+.opportunity-card-details {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #eef4f7;
+}
+
+.opportunity-card-detail {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--public-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.opportunity-card-detail svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  color: var(--public-cyan);
+}
+
+.opportunity-card .public-card-link {
+  margin-top: auto;
+  padding-top: 18px;
+}
+
+.opportunity-aside {
+  padding: 24px;
+}
+
+.science-work-aside .opportunity-source-link {
+  grid-column: 1 / -1;
+  justify-content: center;
+  padding: 12px 16px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #0871a7, #043b72);
+  color: #fff;
+  font-weight: 800;
+  box-shadow: 0 7px 18px rgb(5 72 124 / 16%);
+}
+
+.science-work-aside .opportunity-source-link:hover {
+  filter: brightness(1.06);
 }
 
 .journal-empty {
