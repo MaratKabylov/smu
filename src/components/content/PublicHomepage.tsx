@@ -55,8 +55,8 @@ const copy = {
       ["Наставничество", "Поддержка опытных учёных для молодых исследователей и проектных команд."],
     ],
     itTitle: "IT for Science",
-    itText: "Бесплатно помогаем учёным создавать цифровые инструменты для исследований.",
-    itCta: "Рассказать о задаче",
+    itText: "Помогаем учёным создавать цифровые инструменты для исследований.",
+    itCta: "Рассказать о проекте",
     opportunitiesTitle: "Возможности для ученых",
     opportunities: [
       ["Гранты", "Актуальные грантовые программы для ваших идей и проектов."],
@@ -102,8 +102,8 @@ const copy = {
       ["Тәлімгерлік", "Жас зерттеушілер мен жобалық командаларға тәжірибелі ғалымдардың қолдауы."],
     ],
     itTitle: "IT for Science",
-    itText: "Ғалымдарға зерттеуге арналған цифрлық құралдарды тегін жасауға көмектесеміз.",
-    itCta: "Міндет туралы айту",
+    itText: "Ғалымдарға зерттеуге арналған цифрлық құралдарды жасауға көмектесеміз.",
+    itCta: "Жоба туралы айтып беріңіз",
     opportunitiesTitle: "Ғалымдарға арналған мүмкіндіктер",
     opportunities: [
       ["Гранттар", "Идеялар мен жобаларыңызға арналған өзекті гранттық бағдарламалар."],
@@ -149,8 +149,8 @@ const copy = {
       ["Mentorship", "Experienced researchers supporting young scientists and project teams."],
     ],
     itTitle: "IT for Science",
-    itText: "We help scientists build digital research tools free of charge.",
-    itCta: "Tell us about a challenge",
+    itText: "We help scientists build digital research tools.",
+    itCta: "Tell us about a project",
     opportunitiesTitle: "Opportunities for scientists",
     opportunities: [
       ["Grants", "Current grant programs for your ideas and projects."],
